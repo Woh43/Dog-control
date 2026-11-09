@@ -3,6 +3,8 @@ import os
 import shutil
 import tempfile
 
+import yaml
+
 from ament_index_python.packages import (
     get_package_prefix,
     get_package_share_directory,
@@ -47,7 +49,12 @@ def generate_launch_description():
     runtime_dir = tempfile.mkdtemp(prefix='custom_dog_gazebo_', dir='/tmp')
     atexit.register(shutil.rmtree, runtime_dir, ignore_errors=True)
     controllers = os.path.join(runtime_dir, 'controllers.yaml')
-    shutil.copy2(os.path.join(package_share, 'config', 'controllers.yaml'), controllers)
+    with open(os.path.join(package_share, 'config', 'controllers.yaml')) as stream:
+        configuration = yaml.safe_load(stream)
+    configuration['nmpc_wbc_controller']['ros__parameters']['urdf_file'] = os.path.join(
+        description_share, 'urdf', 'custom_dog.urdf')
+    with open(controllers, 'w') as stream:
+        yaml.safe_dump(configuration, stream, sort_keys=False)
     os.symlink(description_share, os.path.join(runtime_dir, 'custom_dog_description'))
     gazebo_control_plugin = os.path.join(
         get_package_prefix('gazebo_ros2_control'),

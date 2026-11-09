@@ -1,7 +1,7 @@
 controller_manager:
   ros__parameters:
     use_sim_time: true
-    update_rate: 1000
+    update_rate: 250
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -27,15 +27,13 @@ nmpc_wbc_controller:
       - RL_calf_joint
     hardware_mode: gazebo
     legacy_joy_y_right: true
-    # Validate NMPC/WBC against Gazebo truth before enabling the estimator.
-    use_sim_ground_truth: true
+    # Shared NMPC/WBC profile for hardware and Fortress motor-PD physics.
+    # Truth is available to independent simulation evaluation only.
+    use_sim_ground_truth: false
     ground_truth_timeout_s: 0.10
-    # Two SQP iterations at 50 Hz keep the hard contact constraints converged;
-    # WBC is still evaluated by the 1 kHz ros2_control loop.
-    mpc_frequency_hz: 50.0
-    # Gazebo and its GUI share a non-realtime desktop scheduler. Real hardware
-    # always keeps the stricter two-NMPC-cycle watchdog in the controller.
-    simulation_policy_timeout_cycles: 4.0
+    mpc_frequency_hz: 20.0
+    mpc_solver_threads: 2
+    simulation_policy_timeout_cycles: 2.0
     command_timeout_s: 0.30
     joy_timeout_s: 0.30
     # Prevent NMPC from chasing a velocity trajectory far ahead of the
@@ -44,7 +42,7 @@ nmpc_wbc_controller:
     max_reference_lead_yaw_rad_s: 0.40
     trot_entry_dwell_s: 0.15
     trot_exit_dwell_s: 0.30
-    # unitree_guide FixedStand structure, tuned for this 13.85 kg model.
+    # Original model-based gains, now sent as motor-side PD on both paths.
     # A slower, damped interpolation avoids saturating the simulated motors
     # while unfolding from the prone collision-settled pose.
     stand_up_duration_s: 2.50
@@ -84,11 +82,10 @@ nmpc_wbc_controller:
     simulation_passive_hip_kp: 20.0
     simulation_passive_leg_kp: 60.0
     simulation_passive_kd: 0.35
-    # High-speed command envelope. The staged simulation test must pass before
-    # these limits are used on hardware.
-    velocity_limit_x: 1.5
-    velocity_limit_y: 1.0
-    velocity_limit_yaw: 2.0
+    # Initial common low-speed envelope used by physics acceptance.
+    velocity_limit_x: 0.05
+    velocity_limit_y: 0.05
+    velocity_limit_yaw: 0.20
     acceleration_limit_xy: 0.2
     acceleration_limit_yaw: 1.0
     # Gazebo can push the folded, ground-contacting calf about 1.2 deg through

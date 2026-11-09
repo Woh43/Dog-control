@@ -1,5 +1,5 @@
 diff --git a/ocs2_pinocchio/ocs2_self_collision/CMakeLists.txt b/ocs2_pinocchio/ocs2_self_collision/CMakeLists.txt
-index c339d998e..01faeda07 100644
+index c339d99..01faeda 100644
 --- a/ocs2_pinocchio/ocs2_self_collision/CMakeLists.txt
 +++ b/ocs2_pinocchio/ocs2_self_collision/CMakeLists.txt
 @@ -9,30 +9,33 @@ find_package(ocs2_core REQUIRED)
@@ -85,7 +85,7 @@ index c339d998e..01faeda07 100644
  ament_export_dependencies(
    ${SELF_COLLISION_EXPORT_DEPS}
 diff --git a/ocs2_pinocchio/ocs2_self_collision/include/ocs2_self_collision/PinocchioGeometryInterface.h b/ocs2_pinocchio/ocs2_self_collision/include/ocs2_self_collision/PinocchioGeometryInterface.h
-index 1fa2784a4..570314df8 100644
+index 1fa2784..570314d 100644
 --- a/ocs2_pinocchio/ocs2_self_collision/include/ocs2_self_collision/PinocchioGeometryInterface.h
 +++ b/ocs2_pinocchio/ocs2_self_collision/include/ocs2_self_collision/PinocchioGeometryInterface.h
 @@ -33,7 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -101,7 +101,7 @@ index 1fa2784a4..570314df8 100644
  #include <urdf_model/model.h>
  
 diff --git a/ocs2_pinocchio/ocs2_self_collision/package.xml b/ocs2_pinocchio/ocs2_self_collision/package.xml
-index b7abfef43..d056100f7 100644
+index b7abfef..d056100 100644
 --- a/ocs2_pinocchio/ocs2_self_collision/package.xml
 +++ b/ocs2_pinocchio/ocs2_self_collision/package.xml
 @@ -15,8 +15,8 @@
@@ -116,19 +116,51 @@ index b7abfef43..d056100f7 100644
    <depend>boost</depend>
    <export>
 diff --git a/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp b/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
-index 35099a119..5918e0613 100644
+index 35099a1..46ed8ee 100644
 --- a/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
 +++ b/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp
-@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+@@ -40,9 +40,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  #include <pinocchio/parsers/urdf.hpp>
  
  #include <urdf_parser/urdf_parser.h>
 -#include <tinyxml2.h>
 +#include <tinyxml.h>
++#include <dlfcn.h>
++#include <stdexcept>
  
  namespace ocs2 {
++namespace {
++
++TiXmlDocument* exportUrdfWithHumbleLibrary(const urdf::ModelInterface& model) {
++  using ExportUrdf = TiXmlDocument* (*)(const urdf::ModelInterface&);
++  // SDFormat 12 embeds another urdfdom exporter with exactly the same ELF
++  // symbol but a tinyxml2::XMLDocument* return value. Return types are absent
++  // from C++ mangling, so a Gazebo-loaded controller cannot use global symbol
++  // lookup here. Resolve Humble's TinyXML-1 ABI from its own library handle.
++  static const ExportUrdf exportModel = []() -> ExportUrdf {
++    void* library = dlopen("liburdfdom_model.so.3.0", RTLD_NOW | RTLD_LOCAL);
++    if (!library) {
++      throw std::runtime_error(std::string("Cannot load Humble urdfdom: ") + dlerror());
++    }
++    dlerror();
++    void* symbol = dlsym(library, "_ZN4urdf10exportURDFERKNS_14ModelInterfaceE");
++    const char* error = dlerror();
++    if (error || !symbol) {
++      const std::string message = error ? error : "missing exportURDF symbol";
++      dlclose(library);
++      throw std::runtime_error("Cannot resolve Humble urdfdom exporter: " + message);
++    }
++    // Keep the handle alive: returned documents and their vtables belong to it.
++    return reinterpret_cast<ExportUrdf>(symbol);
++  }();
++  return exportModel(model);
++}
++
++}  // namespace
  
-@@ -95,10 +95,12 @@ void PinocchioGeometryInterface::buildGeomFromPinocchioInterface(const Pinocchio
+ /******************************************************************************************************/
+ /******************************************************************************************************/
+@@ -95,10 +125,12 @@ void PinocchioGeometryInterface::buildGeomFromPinocchioInterface(const Pinocchio
    }
  
    // TODO: Replace with pinocchio function that uses the ModelInterface directly.
@@ -139,7 +171,7 @@ index 35099a119..5918e0613 100644
 +  // Humble urdfdom exports a TinyXML document. Serialize it to the stream
 +  // consumed by Pinocchio without changing the model contents.
 +  const std::unique_ptr<TiXmlDocument> urdfAsXml(
-+      urdf::exportURDF(*pinocchioInterface.getUrdfModelPtr()));
++      exportUrdfWithHumbleLibrary(*pinocchioInterface.getUrdfModelPtr()));
 +  TiXmlPrinter printer;
 +  urdfAsXml->Accept(&printer);
    std::stringstream urdfAsStringStream;

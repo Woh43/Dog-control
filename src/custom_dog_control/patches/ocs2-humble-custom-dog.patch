@@ -42,3 +42,26 @@ index 01a6db6..68a991e 100644
  set(BLASFEO_EXAMPLES OFF CACHE BOOL "Examples enabled" FORCE)
  
  FetchContent_Declare(blasfeodownload
+@@ -18,3 +22,9 @@ FetchContent_Declare(blasfeodownload
+ FetchContent_MakeAvailable(blasfeodownload)
+-
++# The pinned BLASFEO CMake omits ARM LU helpers included by its own Makefile.
++if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
++  target_sources(blasfeo PRIVATE
++    "${blasfeodownload_SOURCE_DIR}/kernel/armv8a/kernel_dgetrf_pivot_lib4.c"
++  )
++endif()
++
+ # Install blasfeo target and headers into this package prefix
+diff --git a/ocs2_sqp/hpipm_catkin/CMakeLists.txt b/ocs2_sqp/hpipm_catkin/CMakeLists.txt
+index 6143416..7c86914 100644
+--- a/ocs2_sqp/hpipm_catkin/CMakeLists.txt
++++ b/ocs2_sqp/hpipm_catkin/CMakeLists.txt
+@@ -18,4 +18,7 @@ message(STATUS "BLASFEO_PATH: ${BLASFEO_PATH}")
+ # HPIPM settings
++if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
++  set(TARGET GENERIC CACHE STRING "HPIPM CPU architecture target" FORCE)
++endif()
+ set(BLASFEO_PATH ${BLASFEO_PATH} CACHE STRING "BLASFEO installation path" FORCE)
+ set(BLASFEO_INCLUDE_DIR ${BLASFEO_PATH}/include CACHE STRING "Path to BLASFEO header files." FORCE)
+ set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)

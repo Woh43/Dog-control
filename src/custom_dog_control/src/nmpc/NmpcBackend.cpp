@@ -1,10 +1,13 @@
 #include "custom_dog_control/nmpc/NmpcBackend.hpp"
+#include "custom_dog_control/nmpc/ModelCache.hpp"
+#include "custom_dog_control/control/ContactForceRamp.hpp"
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <cstdlib>
 #include <iostream>
 #include <limits>
 #include <mutex>
@@ -33,6 +36,29 @@ namespace {
 
 constexpr double kTwoPi = 6.28318530717958647692;
 
+// The pinned upstream constructor only loads settings. Namespace its AD cache
+// before setupOptimalControlProblem can load any generated model libraries.
+class ModelCachedLeggedInterface final : public legged::LeggedInterface {
+ public:
+  ModelCachedLeggedInterface(const std::string& task_file,
+                            const std::string& urdf_file,
+                            const std::string& reference_file)
+      : legged::LeggedInterface(task_file, urdf_file, reference_file, true) {
+    // Override only the cache root. The fingerprint still hashes the unchanged
+    // URDF/task/reference bytes and native ABI/compiler tag.
+    const char* cache_override = std::getenv("CUSTOM_DOG_CPPAD_CACHE_DIR");
+    const std::string cache_base =
+        cache_override && *cache_override ? cache_override : modelSettings_.modelFolderCppAd;
+    modelSettings_.modelFolderCppAd = ModelCacheDirectory(
+        cache_base, urdf_file, task_file, reference_file);
+    std::cerr << "[custom_dog_control] CppAD cache: "
+              << modelSettings_.modelFolderCppAd << std::endl;
+    std::cerr << "[custom_dog_control] Preparing NMPC/WBC model libraries. "
+                 "First initialization may compile native code; wait for 'CppAD models ready'."
+              << std::endl;
+  }
+};
+
 double SteadyNowSeconds() {
   return std::chrono::duration<double>(
              std::chrono::steady_clock::now().time_since_epoch())
@@ -44,11 +70,13 @@ double SteadyNowSeconds() {
 class GaitCommandModule final : public ocs2::SolverSynchronizedModule {
  public:
   explicit GaitCommandModule(
-      std::shared_ptr<ocs2::legged_robot::GaitSchedule> schedule)
-      : schedule_(std::move(schedule)) {}
+      std::shared_ptr<ocs2::legged_robot::GaitSchedule> schedule,
+      double period_s, double double_support_s)
+      : schedule_(std::move(schedule)), period_s_(period_s),
+        double_support_s_(double_support_s) {}
 
-  void Request(bool trot) {
-    if (trot == requested_trot_.load(std::memory_order_acquire) &&
+  void Request(bool trot, bool force = false) {
+    if (!force && trot == requested_trot_.load(std::memory_order_acquire) &&
         !pending_.load(std::memory_order_acquire)) {
       return;
     }
@@ -81,15 +109,14 @@ class GaitCommandModule final : public ocs2::SolverSynchronizedModule {
         }
       }
     }
-    const std::size_t second_diagonal =
-        first_diagonal == kTrotFrRlMode ? kTrotFlRrMode : kTrotFrRlMode;
+    const auto contact_schedule =
+        MakeTrotContactSchedule(period_s_, double_support_s_, first_diagonal);
     const ocs2::legged_robot::ModeSequenceTemplate gait =
         !trot
             ? ocs2::legged_robot::ModeSequenceTemplate(
-                  {0.0, kTrotPeriodSeconds}, {kStanceMode})
+                  {0.0, period_s_}, {kStanceMode})
             : ocs2::legged_robot::ModeSequenceTemplate(
-                  {0.0, kTrotHalfPeriodSeconds, kTrotPeriodSeconds},
-                  {first_diagonal, second_diagonal});
+                  contact_schedule.times, contact_schedule.modes);
     const double transition_start =
         next_event != active_schedule.eventTimes.end()
             ? *next_event
@@ -101,6 +128,8 @@ class GaitCommandModule final : public ocs2::SolverSynchronizedModule {
 
  private:
   std::shared_ptr<ocs2::legged_robot::GaitSchedule> schedule_;
+  const double period_s_;
+  const double double_support_s_;
   std::atomic_bool requested_trot_{false};
   std::atomic_bool pending_{true};
 };
@@ -115,10 +144,30 @@ class NmpcBackend::Impl {
     Stop();
     config = new_config;
     try {
-      interface = std::make_unique<legged::LeggedInterface>(
-          config.task_file, config.urdf_file, config.reference_file, true);
+      if (!std::isfinite(config.frequency_hz) || config.frequency_hz <= 0.0 ||
+          config.solver_threads < 0 || config.solver_threads > 8) {
+        throw std::invalid_argument("invalid MPC frequency or thread count");
+      }
+      if (!std::isfinite(config.trot_period_s) || config.trot_period_s < 0.2 ||
+          config.trot_period_s > 2.0) {
+        throw std::invalid_argument("trot_period_s must be in [0.2, 2.0]");
+      }
+      MakeTrotContactSchedule(
+          config.trot_period_s, config.trot_double_support_s, kTrotFrRlMode);
+      if (!std::isfinite(config.contact_force_ramp_s) ||
+          config.contact_force_ramp_s < 0.0 || config.contact_force_ramp_s > 1.0) {
+        throw std::invalid_argument("wbc_contact_force_ramp_s must be in [0, 1]");
+      }
+      contact_force_ramp.Reset();
+      const auto model_prepare_start = std::chrono::steady_clock::now();
+      interface = std::make_unique<ModelCachedLeggedInterface>(
+          config.task_file, config.urdf_file, config.reference_file);
       interface->setupOptimalControlProblem(
           config.task_file, config.urdf_file, config.reference_file, false);
+      std::cerr << "[custom_dog_control] CppAD models ready (loaded or compiled) in "
+                << std::chrono::duration<double>(
+                       std::chrono::steady_clock::now() - model_prepare_start).count()
+                << " s; validating the model and configuring NMPC/WBC." << std::endl;
       const auto validation = ModelValidator::Validate(
           interface->getPinocchioInterface(),
           interface->getCentroidalModelInfo());
@@ -140,13 +189,16 @@ class NmpcBackend::Impl {
           interface->getPinocchioInterface(), info, *end_effector_kinematics);
       wbc->loadTasksSetting(config.task_file, false);
 
+      auto sqp_settings = interface->sqpSettings();
+      if (config.solver_threads > 0) sqp_settings.nThreads = config.solver_threads;
       mpc = std::make_unique<ocs2::SqpMpc>(
-          interface->mpcSettings(), interface->sqpSettings(),
+          interface->mpcSettings(), sqp_settings,
           interface->getOptimalControlProblem(), interface->getInitializer());
       mpc->getSolverPtr()->setReferenceManager(
           interface->getReferenceManagerPtr());
       gait_module = std::make_shared<GaitCommandModule>(
-          interface->getSwitchedModelReferenceManagerPtr()->getGaitSchedule());
+          interface->getSwitchedModelReferenceManagerPtr()->getGaitSchedule(),
+          config.trot_period_s, config.trot_double_support_s);
       mpc->getSolverPtr()->addSynchronizedModule(gait_module);
 
       mrt = std::make_unique<ocs2::MPC_MRT_Interface>(*mpc);
@@ -166,6 +218,7 @@ class NmpcBackend::Impl {
       mrt->setCurrentObservation(observation);
       mrt->resetMpcNode(TargetFromCommand(VelocityCommand{}));
       configured_flag = true;
+      InvalidateObservation();
       solver_healthy.store(true, std::memory_order_release);
       last_policy_steady_seconds.store(-1.0, std::memory_order_release);
       last_error.clear();
@@ -194,42 +247,102 @@ class NmpcBackend::Impl {
       const auto period = std::chrono::duration<double>(
           1.0 / std::max(1.0, config.frequency_hz));
       auto next = std::chrono::steady_clock::now();
+      std::optional<std::uint64_t> failed_epoch;
+      std::optional<std::uint64_t> pacing_epoch;
+      double next_sim_solve = -1.0;
       while (running.load(std::memory_order_acquire)) {
+        if (config.use_sim_time) next = std::chrono::steady_clock::now();
         next += std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
+        if (config.use_sim_time) {
+          std::unique_lock<std::mutex> lock(worker_mutex);
+          const bool ready = worker_cv.wait_for(lock, std::chrono::milliseconds(20),
+              [this, &pacing_epoch, &next_sim_solve] {
+            return !running.load() ||
+                (observation_ready.load(std::memory_order_acquire) &&
+                 (!pacing_epoch || *pacing_epoch != requested_epoch.load(std::memory_order_acquire) ||
+                  latest_observation_time.load(std::memory_order_acquire) + 1e-9 >= next_sim_solve));
+          });
+          if (!running.load()) break;
+          if (!ready) continue;
+        }
+        if (!observation_ready.load(std::memory_order_acquire)) {
+          std::unique_lock<std::mutex> lock(worker_mutex);
+          worker_cv.wait_until(lock, next, [this] { return !running.load(); });
+          continue;
+        }
         const auto start = std::chrono::steady_clock::now();
+        std::uint64_t epoch = 0;
         try {
           std::optional<ocs2::TargetTrajectories> target;
           {
             std::lock_guard<std::mutex> lock(target_mutex);
-            if (pending_target) {
+            // Capture the epoch together with its target. Otherwise a reset
+            // can make an old solve consume the new epoch's only first target.
+            epoch = requested_epoch.load(std::memory_order_acquire);
+            if (pending_target && (!failed_epoch || *failed_epoch != epoch)) {
               target.emplace(std::move(*pending_target));
               pending_target.reset();
             }
           }
-          if (target) {
+          if (failed_epoch && *failed_epoch == epoch) {
+            std::unique_lock<std::mutex> lock(worker_mutex);
+            worker_cv.wait_until(lock, next, [this] { return !running.load(); });
+            continue;
+          }
+          if (epoch != completed_epoch.load(std::memory_order_acquire)) {
+            if (!target) {
+              std::unique_lock<std::mutex> lock(worker_mutex);
+              worker_cv.wait_until(lock, next, [this] { return !running.load(); });
+              continue;
+            }
+            // resetMpcNode resets SQP only, leaving MRT evaluation buffers
+            // untouched. The epoch barrier prevents consuming those buffers.
+            mrt->resetMpcNode(*target);
+            gait_module->Request(false, true);
+          } else if (target) {
             // ReferenceManager 只在求解线程更新，避免与 advanceMpc 并发修改。
             // 交换区只保留最新目标，控制循环无需等待每个旧目标被求解。
             mrt->getReferenceManager().setTargetTrajectories(
                 std::move(*target));
           }
+          const double solve_observation_time =
+              latest_observation_time.load(std::memory_order_acquire);
           mrt->advanceMpc();
+          if (config.use_sim_time) {
+            // Keep the nominal phase for 250 Hz / 20 Hz fractional periods,
+            // but never replay several missed solve deadlines in a burst.
+            if (!pacing_epoch || *pacing_epoch != epoch ||
+                solve_observation_time >= next_sim_solve + period.count()) {
+              next_sim_solve = solve_observation_time + period.count();
+            } else {
+              next_sim_solve += period.count();
+            }
+            pacing_epoch = epoch;
+          }
           const auto elapsed = std::chrono::duration<double, std::milli>(
               std::chrono::steady_clock::now() - start).count();
           last_solve_time_ms.store(elapsed, std::memory_order_release);
+          completed_epoch.store(epoch, std::memory_order_release);
           solver_healthy.store(true, std::memory_order_release);
+          failed_epoch.reset();
         } catch (const std::exception& exception) {
           {
             std::lock_guard<std::mutex> lock(error_mutex);
             last_error = exception.what();
           }
           solver_healthy.store(false, std::memory_order_release);
-          running.store(false, std::memory_order_release);
-          std::cerr << "[custom_dog_control NMPC] solver stopped: "
+          // Latch this epoch instead of destroying the worker. A new explicit
+          // calibration/reset epoch retries through resetMpcNode; no RT join.
+          failed_epoch = epoch;
+          std::cerr << "[custom_dog_control NMPC] solver paused until reset: "
                     << exception.what() << std::endl;
-          break;
         }
-        std::unique_lock<std::mutex> lock(worker_mutex);
-        worker_cv.wait_until(lock, next, [this] { return !running.load(); });
+        // Do not replay missed deadlines as a burst of back-to-back solves.
+        next = std::max(next, std::chrono::steady_clock::now());
+        if (!config.use_sim_time) {
+          std::unique_lock<std::mutex> lock(worker_mutex);
+          worker_cv.wait_until(lock, next, [this] { return !running.load(); });
+        }
       }
     });
   }
@@ -240,6 +353,20 @@ class NmpcBackend::Impl {
     if (worker.joinable()) {
       worker.join();
     }
+  }
+
+  void InvalidateObservation() {
+    contact_force_ramp.Reset();
+    std::lock_guard<std::mutex> lock(target_mutex);
+    observation_ready.store(false, std::memory_order_release);
+    latest_observation_time.store(-1.0, std::memory_order_release);
+    requested_epoch.fetch_add(1, std::memory_order_acq_rel);
+    active_policy_seconds = -1.0;
+    last_policy_steady_seconds.store(-1.0, std::memory_order_release);
+    has_yaw = false;
+    target_reference_initialized = false;
+    yaw_command_was_active = false;
+    pending_target.reset();
   }
 
   ocs2::TargetTrajectories TargetFromCommand(const VelocityCommand& command) {
@@ -326,6 +453,9 @@ class NmpcBackend::Impl {
     has_yaw = true;
     observation.mode = planned_mode;
     mrt->setCurrentObservation(observation);
+    latest_observation_time.store(observation.time, std::memory_order_release);
+    observation_ready.store(true, std::memory_order_release);
+    if (config.use_sim_time) worker_cv.notify_one();
     return measured;
   }
 
@@ -369,7 +499,10 @@ class NmpcBackend::Impl {
   }
 
   bool EvaluatePolicy(double now_seconds, PolicySample& output) {
-    if (!configured_flag || !mrt->initialPolicyReceived() ||
+    if (!configured_flag || !observation_ready.load(std::memory_order_acquire) ||
+        completed_epoch.load(std::memory_order_acquire) !=
+            requested_epoch.load(std::memory_order_acquire) ||
+        !mrt->initialPolicyReceived() ||
         !solver_healthy.load(std::memory_order_acquire)) {
       return false;
     }
@@ -438,6 +571,9 @@ class NmpcBackend::Impl {
       const ocs2::vector_t& measured_rbd_state,
       double period_seconds) {
     WbcOutput output;
+    if (!std::isfinite(period_seconds) || period_seconds <= 0.0 || period_seconds > 0.1) {
+      return output;
+    }
     ocs2::vector_t desired_state(kCentroidalStateDim);
     ocs2::vector_t desired_input(kCentroidalInputDim);
     for (std::size_t i = 0; i < kCentroidalStateDim; ++i) {
@@ -473,6 +609,11 @@ class NmpcBackend::Impl {
       desired_input(12 + slot) = joint_velocities(slot);
     }
 
+    const auto force_bounds = contact_force_ramp.Update(
+        ContactFlags(policy.mode), period_seconds, config.contact_force_ramp_s,
+        interface->getCentroidalModelInfo().robotMass * 9.81);
+    wbc->setContactNormalForceUpperBounds(Eigen::Map<const ocs2::vector_t>(
+        force_bounds.data(), force_bounds.size()));
     const auto start = std::chrono::steady_clock::now();
     const ocs2::vector_t solution = wbc->update(
         desired_state, desired_input, measured_rbd_state,
@@ -523,6 +664,10 @@ class NmpcBackend::Impl {
   bool configured_flag = false;
   std::atomic_bool running{false};
   std::atomic_bool solver_healthy{false};
+  std::atomic_bool observation_ready{false};
+  std::atomic<double> latest_observation_time{-1.0};
+  std::atomic<std::uint64_t> requested_epoch{0};
+  std::atomic<std::uint64_t> completed_epoch{0};
   std::atomic<double> last_solve_time_ms{0.0};
   std::atomic<double> last_policy_steady_seconds{-1.0};
   std::uint64_t policy_sequence = 0;
@@ -542,6 +687,7 @@ class NmpcBackend::Impl {
   std::unique_ptr<ocs2::CentroidalModelRbdConversions> rbd_conversions;
   std::unique_ptr<ocs2::PinocchioEndEffectorKinematics> end_effector_kinematics;
   std::unique_ptr<legged::WeightedWbc> wbc;
+  ContactForceRamp contact_force_ramp;
   std::array<int, kJointCount> model_joint_slots{};
   ocs2::SystemObservation observation;
   bool has_yaw = false;
@@ -561,6 +707,7 @@ ModelValidationResult NmpcBackend::Configure(const NmpcBackendConfig& config) {
 }
 void NmpcBackend::Start() { impl_->Start(); }
 void NmpcBackend::Stop() { impl_->Stop(); }
+void NmpcBackend::InvalidateObservation() { impl_->InvalidateObservation(); }
 ocs2::vector_t NmpcBackend::UpdateObservation(
     const EstimatedState& estimate, const JointSample& joints,
     double observation_time, std::size_t planned_mode) {
@@ -592,7 +739,12 @@ bool NmpcBackend::solverHealthy() const {
 double NmpcBackend::lastSolveTimeMs() const {
   return impl_->last_solve_time_ms.load(std::memory_order_acquire);
 }
-double NmpcBackend::policyAgeSeconds(double) const {
+double NmpcBackend::policyAgeSeconds(double now_seconds) const {
+  if (impl_->config.use_sim_time) {
+    const double stamp = impl_->active_policy_seconds;
+    return stamp < 0.0 || !std::isfinite(now_seconds) || now_seconds < stamp
+        ? std::numeric_limits<double>::infinity() : now_seconds - stamp;
+  }
   const double stamp =
       impl_->last_policy_steady_seconds.load(std::memory_order_acquire);
   return stamp < 0.0 ? std::numeric_limits<double>::infinity()

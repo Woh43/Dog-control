@@ -9,6 +9,7 @@
 
 #include "custom_dog_control/control/ControlTypes.hpp"
 #include "custom_dog_control/control/ContactTypes.hpp"
+#include "custom_dog_control/model/RobotModelConfig.hpp"
 
 namespace custom_dog_control {
 
@@ -46,10 +47,12 @@ class KinematicStateEstimator {
   KinematicStateEstimator(
       const ocs2::PinocchioInterface& interface,
       ocs2::CentroidalModelInfo info,
-      EstimatorNoise noise = {});
+      EstimatorNoise noise = {},
+      double flat_ground_foot_center_height_m = RobotModelConfig{}.foot_radius_m);
 
   // planned_contacts 是规划接触状态，不是触地传感器反馈。IMU 无效或
   // dt 不在 (0, 0.1] 秒时返回 valid=false；调用方仍需检查输出有效性。
+  // 平地 z=0 时，URDF 球足中心位于球半径高度，不是地面接触点。
   EstimatedState Update(
       const JointSample& joints,
       const ImuSample& imu,
@@ -76,6 +79,7 @@ class KinematicStateEstimator {
   ocs2::PinocchioInterface pinocchio_interface_;
   ocs2::CentroidalModelInfo info_;
   EstimatorNoise noise_;
+  double flat_ground_foot_center_height_m_;
   std::array<int, kJointCount> model_joint_slots_{};
 
   StateVector state_ = StateVector::Zero();

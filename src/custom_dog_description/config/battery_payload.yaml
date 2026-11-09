@@ -1,0 +1,9 @@
+# Battery mass is merged into the base inertial in all three URDF variants.
+# Centre confirmed by the owner; dimensions unavailable, so no intrinsic box inertia is invented.
+battery:
+  mass_kg: 1.30084
+  center_in_base_m: [0.0, 0.0, 0.0]
+  inertia_model: point_mass_approximation
+  intrinsic_inertia_measured: false
+unloaded_robot_mass_kg: 13.84916
+loaded_robot_mass_kg: 15.15

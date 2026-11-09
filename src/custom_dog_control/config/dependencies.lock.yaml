@@ -4,6 +4,13 @@ platform:
   architecture: arm64
 
 dependencies:
+  custom_dog_description:
+    repository: https://github.com/Woh43/custom_dog_stack.git
+    revision: 6c776de8deb76b8fd565cd80f16ac6a4cc8b635d
+    upstream_path: ros2/src/custom_dog_description
+    workspace_path: src/custom_dog_description
+    local_model_mass_kg: 15.15
+    local_modification: base-origin battery mass, center of mass, and parallel-axis inertia
   legged_control:
     repository: https://github.com/qiayuanl/legged_control.git
     revision: a7f381c0367e98e31c01336e678eef47e304d40d

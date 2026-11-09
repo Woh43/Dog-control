@@ -5,30 +5,11 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib/workspace.sh"
 script_dir="$DOG_SCRIPTS_DIR"
 workspace="$DOG_WORKSPACE"
-model_workspace="$DOG_MODEL_WS"
-model_source="$DOG_MODEL_SOURCE"
+model_package="$DOG_MODEL_SOURCE"
 
 dog_source_ros
 
-model_package="${model_workspace}/src/custom_dog_description"
-if [[ -f "${model_source}/package.xml" ]]; then
-  python3 "${script_dir}/prepare_simulation_model.py" "${model_source}" "${model_package}"
-elif [[ -f "${model_package}/package.xml" ]]; then
-  python3 "${script_dir}/prepare_simulation_model.py" "${model_package}" "${model_package}"
-else
-  echo "ERROR: Set CUSTOM_DOG_DESCRIPTION_DIR to the custom_dog_description source package."
-  echo "Searched: ${model_source} and ${model_package}"
-  exit 2
-fi
-
-echo "Updating custom_dog_description model underlay..."
-colcon --log-base "${model_workspace}/log" build \
-  --base-paths "${model_workspace}/src" \
-  --build-base "${model_workspace}/build" \
-  --install-base "${model_workspace}/install" \
-  --packages-select custom_dog_description
-
-dog_source "${model_workspace}/install/local_setup.bash"
+dog_build_local_model
 if [[ -d "${DOG_DEPS_WS}" ]]; then
   dog_source_dependencies
 fi
@@ -61,4 +42,6 @@ dog_source "${workspace}/install/local_setup.bash"
 if [[ "${CUSTOM_DOG_BUILD_ONLY:-0}" == "1" ]]; then
   exit 0
 fi
+dog_check_local_model
+dog_prepare_cppad_cache
 exec ros2 launch custom_dog_control gazebo.launch.py use_rviz:=false "$@"

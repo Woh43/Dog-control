@@ -21,6 +21,13 @@ struct NmpcBackendConfig {
   std::string urdf_file;
   // 后台 SQP 的目标频率；WBC 同步运行于 ros2_control update，频率独立配置。
   double frequency_hz = 50.0;
+  // Pace slower-than-real-time physics by observation time, so 20 Hz means
+  // twenty solves per simulated second rather than per wall-clock second.
+  bool use_sim_time = false;
+  int solver_threads = 0;  // 0 keeps task.info; real RK3588 overrides to 2.
+  double trot_period_s = kTrotPeriodSeconds;
+  double trot_double_support_s = 0.0;
+  double contact_force_ramp_s = 0.0;
   double target_horizon_s = 1.0;  // 速度指令生成两点参考轨迹的前视时间，不是求解器时域配置。
   double nominal_height_m = 0.28;
   // WBC 前先把 NMPC 关节目标投影到 URDF 限位内，并额外收紧髋关节活动范围。
@@ -57,6 +64,9 @@ class NmpcBackend {
   void Start();
   // 唤醒并 join 后台线程，可能阻塞；不在 update 的周期路径中调用。
   void Stop();
+  // Non-blocking zero-epoch barrier. Worker resets SQP on the first new
+  // observation + target; policies from an earlier epoch cannot be evaluated.
+  void InvalidateObservation();
 
   // 将硬件关节顺序转换为模型顺序并发布质心观测。返回供 WBC 使用的 36 维刚体状态：
   // [ZYX 欧拉角, 世界系位置, q_j, 世界系角速度, 世界系线速度, dq_j]。
@@ -87,8 +97,8 @@ class NmpcBackend {
   bool configured() const;
   bool solverHealthy() const;
   double lastSolveTimeMs() const;
-  // 按 steady_clock 计算距最近接收新策略的墙钟时间；尚无策略时返回 +inf。
-  // 当前实现保留 now_seconds 参数以兼容接口，不用 ROS/仿真时间计算策略年龄。
+  // 真机使用 steady_clock；仿真使用 ROS 仿真时间，与求解频率的时间基准一致。
+  // 尚无策略时返回 +inf。
   double policyAgeSeconds(double now_seconds) const;
   std::string lastError() const;
 

@@ -36,9 +36,6 @@ find_package(ocs2_sqp REQUIRED)
 find_package(pinocchio REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(qr_interfaces REQUIRED)
-find_package(qr_planning REQUIRED)
 find_package(coal REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(realtime_tools REQUIRED)
@@ -156,25 +153,19 @@ add_library(custom_dog_control_core STATIC
   src/model/StaticSupport.cpp
   src/model/RobotModel.cpp
   src/model/RobotModelConfig.cpp
-  src/precision/CoordinatedReference.cpp
-  src/precision/PrecisionConfig.cpp
-  src/precision/PrecisionPlanner.cpp
-  src/precision/PrecisionExecutionCore.cpp
-  src/precision/PrecisionModel.cpp
-  src/precision/PrecisionWbc.cpp
   src/model/ModelValidator.cpp
   src/nmpc/KinematicStateEstimator.cpp
+  src/nmpc/ModelCache.cpp
   src/nmpc/NmpcBackend.cpp
   src/safety/SafetyMonitor.cpp
 )
 set_target_properties(custom_dog_control_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(custom_dog_control_core PUBLIC include)
+target_include_directories(custom_dog_control_core PUBLIC include PRIVATE ${Boost_INCLUDE_DIRS})
 if(CUSTOM_DOG_CONTROL_MULTIARCH_LIB_DIRS)
   target_link_directories(custom_dog_control_core PUBLIC
     ${CUSTOM_DOG_CONTROL_MULTIARCH_LIB_DIRS})
 endif()
 ament_target_dependencies(custom_dog_control_core
-  qr_planning
   ament_index_cpp
   ocs2_centroidal_model
   ocs2_core
@@ -194,16 +185,7 @@ target_link_libraries(custom_dog_control_core coal::coal
   Eigen3::Eigen
   yaml-cpp)
 
-add_executable(precision_envelope tools/precision_envelope.cpp)
-target_link_libraries(precision_envelope custom_dog_control_core)
-install(TARGETS precision_envelope DESTINATION lib/${PROJECT_NAME})
-add_executable(precision_replay tools/precision_replay.cpp)
-target_link_libraries(precision_replay custom_dog_control_core)
-install(TARGETS precision_replay DESTINATION lib/${PROJECT_NAME})
-
 add_library(custom_dog_control_nmpc_wbc_controller SHARED
-  src/precision/PrecisionRosAdapter.cpp
-  src/precision/PrecisionRuntime.cpp
   src/controller/NmpcWbcController.cpp
   src/controller/ControllerLifecycle.cpp
   src/controller/ControllerInputs.cpp
@@ -213,9 +195,6 @@ add_library(custom_dog_control_nmpc_wbc_controller SHARED
 )
 target_include_directories(custom_dog_control_nmpc_wbc_controller PUBLIC include)
 ament_target_dependencies(custom_dog_control_nmpc_wbc_controller
-  qr_interfaces
-  qr_planning
-  rclcpp_action
   controller_interface
   diagnostic_msgs
   geometry_msgs
@@ -273,6 +252,7 @@ if(CUSTOM_DOG_CONTROL_BUILD_REAL_HARDWARE)
     ${UNITREE_ACTUATOR_SDK_INCLUDE_DIR}
   )
   ament_target_dependencies(custom_dog_control_unitree_system
+    urdf
     hardware_interface
     pluginlib
     rclcpp
@@ -291,6 +271,23 @@ endif()
 
 pluginlib_export_plugin_description_file(controller_interface custom_dog_control_controller_plugins.xml)
 
+# Optional native Fortress actuator model; real hardware builds also work on
+# machines without a simulator. The controller and NMPC/WBC targets are shared.
+find_package(gz_ros2_control QUIET)
+find_package(ignition-gazebo6 QUIET)
+if(gz_ros2_control_FOUND AND ignition-gazebo6_FOUND)
+  add_library(custom_dog_control_fortress_motor_system SHARED
+    src/hardware/FortressMotorSystem.cpp)
+  target_include_directories(custom_dog_control_fortress_motor_system PRIVATE
+    include ${gz_ros2_control_INCLUDE_DIRS})
+  ament_target_dependencies(custom_dog_control_fortress_motor_system
+    hardware_interface pluginlib rclcpp rclcpp_lifecycle)
+  target_link_libraries(custom_dog_control_fortress_motor_system
+    ignition-gazebo6::ignition-gazebo6)
+  pluginlib_export_plugin_description_file(gz_ros2_control custom_dog_control_simulation_plugins.xml)
+  install(TARGETS custom_dog_control_fortress_motor_system LIBRARY DESTINATION lib)
+endif()
+
 install(TARGETS
   custom_dog_control_qpoases
   custom_dog_control_legged_interface
@@ -304,8 +301,6 @@ install(TARGETS
 install(DIRECTORY include/custom_dog_control DESTINATION include)
 install(DIRECTORY config/nmpc DESTINATION share/${PROJECT_NAME}/config)
 install(FILES
-  config/precision_model.yaml
-  config/precision_control.yaml
   config/controllers.yaml
   config/dependencies.lock.yaml
   config/legged_control_upstream.sha256
@@ -315,6 +310,7 @@ install(FILES
 install(FILES README.md DESTINATION share/${PROJECT_NAME})
 install(FILES
   launch/gazebo.launch.py
+  launch/fortress.launch.py
   launch/real.launch.py
   DESTINATION share/${PROJECT_NAME}/launch
 )
@@ -342,6 +338,9 @@ endif()
 # Workspace-relative shell entry points are run from source, not ros2 run.
 install(PROGRAMS
   scripts/event2joy.py
+  scripts/fortress_odom_adapter.py
+  scripts/record_fortress_kinematics.py
+  scripts/record_control_diagnostics.py
   scripts/keyboard_teleop.py
   scripts/profile_runtime.py
   scripts/prepare_simulation_model.py
@@ -349,6 +348,9 @@ install(PROGRAMS
   scripts/simulation_envelope_test.py
   scripts/simulation_motion_test.py
   scripts/simulation_smoke_test.py
+  scripts/simulation_fortress_test.py
+  scripts/simulation_planar_test.py
+  scripts/simulation_motion_guard.py
   scripts/simulation_terrain_test.py
   DESTINATION lib/${PROJECT_NAME}
 )
@@ -357,6 +359,21 @@ install(DIRECTORY patches repos DESTINATION share/${PROJECT_NAME})
 if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(
+    NAME test_record_control_diagnostics
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_record_control_diagnostics.py
+  )
+  add_test(
+    NAME test_fortress_odom_adapter
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_fortress_odom_adapter.py
+  )
+  add_test(
+    NAME test_simulation_motion_guard
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_simulation_motion_guard.py
+  )
   add_test(
     NAME test_legged_control_provenance
     COMMAND ${Python3_EXECUTABLE}
@@ -370,18 +387,50 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
   ament_add_gtest(test_joint_command_utils test/test_joint_command_utils.cpp)
   target_include_directories(test_joint_command_utils PRIVATE include)
 
+  ament_add_gtest(test_simulation_effort_delay test/test_simulation_effort_delay.cpp)
+  target_include_directories(test_simulation_effort_delay PRIVATE include)
+
+  ament_add_gtest(test_contact_force_ramp test/test_contact_force_ramp.cpp)
+  target_include_directories(test_contact_force_ramp PRIVATE include)
+
+  if(TARGET custom_dog_control_fortress_motor_system)
+    ament_add_gtest(test_fortress_motor_system test/test_fortress_motor_system.cpp)
+    target_include_directories(test_fortress_motor_system PRIVATE
+      include ${gz_ros2_control_INCLUDE_DIRS})
+    ament_target_dependencies(test_fortress_motor_system hardware_interface pluginlib rclcpp)
+    target_link_libraries(test_fortress_motor_system ignition-gazebo6::ignition-gazebo6)
+  endif()
+
+  if(TARGET custom_dog_control_unitree_system)
+    # Exercises the actual plugin and SDK through PTYs; never opens hardware.
+    ament_add_gtest(test_unitree_motion_gate test/test_unitree_motion_gate.cpp)
+    ament_target_dependencies(test_unitree_motion_gate
+      hardware_interface rclcpp rclcpp_lifecycle)
+    target_link_libraries(test_unitree_motion_gate
+      custom_dog_control_unitree_system util pthread)
+    target_link_options(test_unitree_motion_gate PRIVATE -Wl,--export-dynamic)
+  endif()
+
   ament_add_gtest(test_sample_freshness test/test_sample_freshness.cpp)
   target_include_directories(test_sample_freshness PRIVATE include)
 
-  ament_add_gtest(test_latest_snapshot test/test_latest_snapshot.cpp TIMEOUT 15)
-  target_include_directories(test_latest_snapshot PRIVATE include)
-  target_link_libraries(test_latest_snapshot pthread)
+  ament_add_gtest(test_imu_freshness test/test_imu_freshness.cpp)
+  target_include_directories(test_imu_freshness PRIVATE include)
+
+  # Cache identity checks use only files and hashing, never instantiate OCS2 or
+  # invoke the code generator.
+  ament_add_gtest(test_model_cache
+    test/test_model_cache.cpp
+    src/nmpc/ModelCache.cpp)
+  target_include_directories(test_model_cache PRIVATE include ${Boost_INCLUDE_DIRS})
 
   ament_add_gtest(test_safety_monitor test/test_safety_monitor.cpp)
   target_include_directories(test_safety_monitor PRIVATE include)
   target_link_libraries(test_safety_monitor custom_dog_control_core)
 
-  set(CUSTOM_DOG_CONTROL_CANONICAL_URDF "" CACHE FILEPATH
+  get_filename_component(CUSTOM_DOG_LOCAL_CANONICAL_URDF
+      "${CMAKE_CURRENT_SOURCE_DIR}/../custom_dog_description/urdf/custom_dog.urdf" ABSOLUTE)
+  set(CUSTOM_DOG_CONTROL_CANONICAL_URDF "${CUSTOM_DOG_LOCAL_CANONICAL_URDF}" CACHE FILEPATH
       "Canonical custom dog URDF used by the model contract test")
   if(NOT CUSTOM_DOG_CONTROL_CANONICAL_URDF)
     find_package(custom_dog_description REQUIRED)
@@ -389,25 +438,6 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
     set(CUSTOM_DOG_CONTROL_CANONICAL_URDF
         "${CUSTOM_DOG_DESCRIPTION_SHARE}/urdf/custom_dog.urdf")
   endif()
-  ament_add_gtest(test_precision test/test_precision.cpp)
-  target_include_directories(test_precision PRIVATE include)
-  ament_target_dependencies(test_precision qr_planning)
-  target_link_libraries(test_precision custom_dog_control_core)
-  target_compile_definitions(test_precision PRIVATE CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}")
-  ament_add_gtest(test_precision_config test/test_precision_config.cpp)
-  target_include_directories(test_precision_config PRIVATE include)
-  ament_target_dependencies(test_precision_config qr_planning)
-  target_link_libraries(test_precision_config custom_dog_control_core)
-  target_compile_definitions(test_precision_config PRIVATE
-    CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}"
-    CUSTOM_DOG_CONTROL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-  ament_add_gtest(test_execution_faults test/test_execution_faults.cpp)
-  target_include_directories(test_execution_faults PRIVATE include)
-  target_link_libraries(test_execution_faults custom_dog_control_core)
-  target_compile_definitions(test_execution_faults PRIVATE
-    CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}"
-    CUSTOM_DOG_CONTROL_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
-
   ament_add_gtest(test_static_support test/test_static_support.cpp)
   target_include_directories(test_static_support PRIVATE include)
   target_link_libraries(test_static_support custom_dog_control_core)
@@ -426,6 +456,16 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
       test_model_validator PRIVATE
       CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}")
     target_link_libraries(test_model_validator custom_dog_control_core)
+    ament_add_gtest(test_kinematic_state_estimator test/test_kinematic_state_estimator.cpp)
+    target_include_directories(test_kinematic_state_estimator PRIVATE include)
+    target_compile_definitions(test_kinematic_state_estimator PRIVATE
+      CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}")
+    target_link_libraries(test_kinematic_state_estimator custom_dog_control_core)
+    ament_add_gtest(test_wbc_contact_force_bounds test/test_wbc_contact_force_bounds.cpp)
+    target_include_directories(test_wbc_contact_force_bounds PRIVATE include)
+    target_compile_definitions(test_wbc_contact_force_bounds PRIVATE
+      CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}")
+    target_link_libraries(test_wbc_contact_force_bounds custom_dog_control_core)
   else()
     message(FATAL_ERROR "Cannot run URDF contract test: ${CUSTOM_DOG_CONTROL_CANONICAL_URDF} does not exist")
   endif()

@@ -41,7 +41,9 @@ def check(package_root):
     backend = (package_root / 'src' / 'nmpc' / 'NmpcBackend.cpp').read_text()
     required = (
         '#include <legged_interface/LeggedInterface.h>',
-        'std::make_unique<legged::LeggedInterface>',
+        'class ModelCachedLeggedInterface final : public legged::LeggedInterface',
+        'legged::LeggedInterface(task_file, urdf_file, reference_file, true)',
+        'std::make_unique<ModelCachedLeggedInterface>',
         'std::make_unique<legged::WeightedWbc>',
     )
     for token in required:

@@ -27,7 +27,28 @@ void NmpcWbcController::TransitionTo(
       get_node()->get_logger(), "Control mode %s -> %s",
       ToString(mode_).data(), ToString(next).data());
   mode_ = next;
+  if (next == OperatingMode::PASSIVE || next == OperatingMode::CALIBRATION ||
+      next == OperatingMode::FAULT) {
+    simulation_effort_delay_.Reset();
+  }
+  if (next == OperatingMode::PASSIVE) {
+    // A fresh active interval must not inherit an unfinished overspeed dwell.
+    // FAULT can reach PASSIVE only through the explicit reset path below.
+    safety_monitor_->Reset();
+    controller_fault_reason_.clear();
+  }
   state_entered_seconds_ = now_seconds;
+  if (next == OperatingMode::PASSIVE || next == OperatingMode::STAND_UP) {
+    backend_->RequestGait(false);
+    backend_->InvalidateObservation();
+    last_policy_ = PolicySample{};
+    policy_buffer_.writeFromNonRT(PolicySample{});
+    last_target_update_seconds_ = -1.0;
+    target_command_was_moving_ = false;
+    trot_enabled_ = false;
+    gait_transition_ = GaitTransition::NONE;
+    gait_condition_since_seconds_ = -1.0;
+  }
   if (next == OperatingMode::STAND_UP) {
     consecutive_wbc_failures_ = 0;
     stand_start_positions_ = joints_state_.position;
@@ -36,8 +57,12 @@ void NmpcWbcController::TransitionTo(
     // Trot 停车后重复混合会把已落地的脚拖回初始姿态，转向后尤其容易破坏平衡。
     stance_handoff_active_ = previous == OperatingMode::STAND_UP;
     consecutive_wbc_failures_ = 0;
-    // 完成启动流程后允许自动行走；零速度仍由监督器维持为四足站立。
-    trot_enabled_ = true;
+    // Only the initial stand-up sets the default arming policy. A later
+    // automatic stop preserves arming; an explicit A/STANCE request keeps it
+    // disabled until X, even if a nonzero velocity command remains present.
+    if (previous == OperatingMode::STAND_UP) {
+      trot_enabled_ = !IsRealHardware() && !legacy_joy_layout_;
+    }
     backend_->RequestGait(false);
     // 起身 PD 会改变浮动基座位姿。接管时锚定实际达到的位置/朝向，
     // 避免追踪 Gazebo 尚未解除暂停时捕获的旧参考。
@@ -153,10 +178,15 @@ bool NmpcWbcController::ApplyStateMachine(
     double now_seconds, double dt, const JoyInput& joy,
     const PolicySample& policy, bool policy_available,
     HybridJointCommand& command, WbcOutput& wbc) {
-  const RequestedMode request =
-      now_seconds - joy.stamp_seconds <= joy_timeout_s_
-          ? joy.requested_mode
-          : RequestedMode::NONE;
+  const bool joy_fresh = now_seconds - joy.stamp_seconds <= joy_timeout_s_;
+  const RequestedMode request = joy_fresh ? joy.requested_mode : RequestedMode::NONE;
+  const bool startup_ready = !IsRealHardware() ||
+      startup_alignment_status_ == 0.0 || startup_alignment_status_ == 5.0;
+  const bool calibration_requested = startup_calibration_input_gate_.Allow(
+      startup_ready, joy.calibration_pressed,
+      !IsRealHardware() || startup_alignment_status_ == 0.0 ||
+          (joy_fresh && joy.calibration_button_valid)) &&
+      request == RequestedMode::CALIBRATE;
 
   if (request == RequestedMode::ESTOP) {
     TransitionTo(OperatingMode::FAULT, now_seconds);
@@ -173,23 +203,32 @@ bool NmpcWbcController::ApplyStateMachine(
   }
 
   if (request == RequestedMode::PASSIVE) {
+    if (IsRealHardware() && startup_alignment_status_ >= 1.0 &&
+        startup_alignment_status_ <= 4.0) {
+      // LT+B also cancels the one-shot startup assist; no automatic retry.
+      reset_calibration_pending_ = true;
+    }
     TransitionTo(OperatingMode::PASSIVE, now_seconds);
   }
-  if (mode_ == OperatingMode::PASSIVE &&
-      (request == RequestedMode::CALIBRATE_AND_STAND ||
-       request == RequestedMode::STANCE ||
-       request == RequestedMode::TROT)) {
-    if (IsRealHardware() && (requires_recalibration_ || !calibrated_)) {
+  if (mode_ == OperatingMode::PASSIVE) {
+    const bool explicit_start_flow = IsRealHardware() || legacy_joy_layout_;
+    if (explicit_start_flow && calibration_requested &&
+        (requires_recalibration_ || !calibrated_)) {
       TransitionTo(OperatingMode::CALIBRATION, now_seconds);
-    } else {
+    } else if (estimate_.valid && backend_->solverHealthy() &&
+               ((!explicit_start_flow &&
+                 (request == RequestedMode::CALIBRATE ||
+                  request == RequestedMode::STANCE || request == RequestedMode::TROT)) ||
+                (explicit_start_flow && calibrated_ && !requires_recalibration_ &&
+                 request == RequestedMode::STANCE))) {
       TransitionTo(OperatingMode::STAND_UP, now_seconds);
     }
   }
 
   if (mode_ == OperatingMode::CALIBRATION) {
-    if (calibrated_) {
+    if (calibrated_ && estimate_.valid) {
       requires_recalibration_ = false;
-      TransitionTo(OperatingMode::STAND_UP, now_seconds);
+      TransitionTo(OperatingMode::PASSIVE, now_seconds);
     }
     return true;
   }
@@ -243,7 +282,7 @@ bool NmpcWbcController::ApplyStateMachine(
         joints_settled &&
         estimate_.velocity_world.norm() <=
             stand_up_base_velocity_tolerance_m_s_ &&
-        policy_available) {
+        estimate_.valid && policy_available && policy.mode == kStanceMode) {
       TransitionTo(OperatingMode::MPC_STANCE, now_seconds);
     }
     return true;

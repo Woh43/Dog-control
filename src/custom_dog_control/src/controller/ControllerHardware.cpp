@@ -10,12 +10,12 @@ namespace custom_dog_control {
 
 controller_interface::InterfaceConfiguration
 NmpcWbcController::command_interface_configuration() const {
-  // 真机把五分量混合命令交给电机端 PD；Gazebo 只接受 effort，由本控制器合成 PD 力矩。
+  // 真机与 motor-PD 仿真传递相同五分量命令；旧 effort 仿真在主控合成。
   controller_interface::InterfaceConfiguration configuration;
   configuration.type =
       controller_interface::interface_configuration_type::INDIVIDUAL;
-  if (IsRealHardware()) {
-    configuration.names.reserve(kJointCount * 5 + 2);
+  if (IsRealHardware() || IsHybridSimulation()) {
+    configuration.names.reserve(kJointCount * 5 + 3);
     for (const auto& joint : joints_) {
       configuration.names.push_back(joint + "/position");
       configuration.names.push_back(joint + "/velocity");
@@ -23,8 +23,13 @@ NmpcWbcController::command_interface_configuration() const {
       configuration.names.push_back(joint + "/kp");
       configuration.names.push_back(joint + "/kd");
     }
-    configuration.names.push_back("custom_dog/calibrate");
-    configuration.names.push_back("custom_dog/emergency_stop");
+    if (IsRealHardware()) {
+      configuration.names.push_back("custom_dog/calibrate");
+      configuration.names.push_back("custom_dog/emergency_stop");
+      configuration.names.push_back("custom_dog/motion_enabled");
+    } else {
+      configuration.names.push_back("custom_dog/simulation_motor_mode");
+    }
   } else {
     configuration.names.reserve(kJointCount);
     for (const auto& joint : joints_) {
@@ -40,7 +45,7 @@ NmpcWbcController::state_interface_configuration() const {
   configuration.type =
       controller_interface::interface_configuration_type::INDIVIDUAL;
   if (IsRealHardware()) {
-    configuration.names.reserve(kJointCount * 5 + 5);
+    configuration.names.reserve(kJointCount * 5 + 6);
     for (const auto& joint : joints_) {
       configuration.names.push_back(joint + "/position");
       configuration.names.push_back(joint + "/velocity");
@@ -53,6 +58,7 @@ NmpcWbcController::state_interface_configuration() const {
     configuration.names.push_back("custom_dog/physical_estop");
     configuration.names.push_back("custom_dog/io_period_ms");
     configuration.names.push_back("custom_dog/io_timeout_count");
+    configuration.names.push_back("custom_dog/startup_alignment");
   } else {
     configuration.names.reserve(kJointCount * 3);
     for (const auto& joint : joints_) {
@@ -98,21 +104,24 @@ bool NmpcWbcController::ResolveInterfaceIndices() {
 
   bool valid = true;
   for (std::size_t joint = 0; joint < kJointCount; ++joint) {
-    if (IsRealHardware()) {
+    if (IsRealHardware() || IsHybridSimulation()) {
       for (std::size_t type = 0; type < real_command_types.size(); ++type) {
         valid = find_command(
                     joints_[joint] + "/" + real_command_types[type],
                     command_interface_indices_[joint][type]) && valid;
       }
+    } else {
+      valid = find_command(
+                  joints_[joint] + "/effort",
+                  command_interface_indices_[joint][0]) && valid;
+    }
+    if (IsRealHardware()) {
       for (std::size_t type = 0; type < real_state_types.size(); ++type) {
         valid = find_state(
                     joints_[joint] + "/" + real_state_types[type],
                     state_interface_indices_[joint][type]) && valid;
       }
     } else {
-      valid = find_command(
-                  joints_[joint] + "/effort",
-                  command_interface_indices_[joint][0]) && valid;
       for (std::size_t type = 0; type < simulation_state_types.size(); ++type) {
         valid = find_state(
                     joints_[joint] + "/" + simulation_state_types[type],
@@ -122,18 +131,23 @@ bool NmpcWbcController::ResolveInterfaceIndices() {
   }
 
   if (IsRealHardware()) {
-    const std::array<std::string, 2> system_commands = {
-        "custom_dog/calibrate", "custom_dog/emergency_stop"};
-    const std::array<std::string, 5> system_states = {
+    const std::array<std::string, 3> system_commands = {
+        "custom_dog/calibrate", "custom_dog/emergency_stop",
+        "custom_dog/motion_enabled"};
+    const std::array<std::string, 6> system_states = {
         "custom_dog/calibrated", "custom_dog/communication_ok",
         "custom_dog/physical_estop", "custom_dog/io_period_ms",
-        "custom_dog/io_timeout_count"};
+        "custom_dog/io_timeout_count", "custom_dog/startup_alignment"};
     for (std::size_t i = 0; i < system_commands.size(); ++i) {
       valid = find_command(system_commands[i], system_command_interface_indices_[i]) && valid;
     }
     for (std::size_t i = 0; i < system_states.size(); ++i) {
       valid = find_state(system_states[i], system_state_interface_indices_[i]) && valid;
     }
+  }
+  if (IsHybridSimulation()) {
+    valid = find_command("custom_dog/simulation_motor_mode",
+                         system_command_interface_indices_[0]) && valid;
   }
   return valid;
 }
@@ -152,6 +166,7 @@ void NmpcWbcController::ReadHardwareState() {
     physical_estop_ = state_interfaces_[system_state_interface_indices_[2]].get_value() > 0.5;
     io_period_ms_ = state_interfaces_[system_state_interface_indices_[3]].get_value();
     io_timeout_count_ = state_interfaces_[system_state_interface_indices_[4]].get_value();
+    startup_alignment_status_ = state_interfaces_[system_state_interface_indices_[5]].get_value();
     consecutive_io_failures_ =
         communication_ok_ ? 0 : consecutive_io_failures_ + 1;
   } else {
@@ -164,6 +179,7 @@ void NmpcWbcController::ReadHardwareState() {
       joints_state_.valid[i] = 1.0;
     }
     calibrated_ = true;
+    startup_alignment_status_ = 0.0;
     communication_ok_ = true;
     physical_estop_ = false;
     consecutive_io_failures_ = 0;
@@ -172,13 +188,20 @@ void NmpcWbcController::ReadHardwareState() {
 
 void NmpcWbcController::WriteHybridCommand(
     const HybridJointCommand& command) {
-  if (IsRealHardware()) {
+  if (IsRealHardware() || IsHybridSimulation()) {
     for (std::size_t i = 0; i < kJointCount; ++i) {
       command_interfaces_[command_interface_indices_[i][0]].set_value(command.position[i]);
       command_interfaces_[command_interface_indices_[i][1]].set_value(command.velocity[i]);
       command_interfaces_[command_interface_indices_[i][2]].set_value(command.effort[i]);
       command_interfaces_[command_interface_indices_[i][3]].set_value(command.kp[i]);
       command_interfaces_[command_interface_indices_[i][4]].set_value(command.kd[i]);
+    }
+    if (IsHybridSimulation()) {
+      const bool motion = mode_ == OperatingMode::STAND_UP ||
+          mode_ == OperatingMode::MPC_STANCE || mode_ == OperatingMode::MPC_TROT;
+      command_interfaces_[system_command_interface_indices_[0]].set_value(
+          command_output_active_ && motion ? 2.0 : 1.0);
+      return;
     }
     double calibration = mode_ == OperatingMode::CALIBRATION ? 1.0 : 0.0;
     // 标定命令约定：1 请求标定，0 不请求，-1 清除旧标定；复位只发送一个周期。
@@ -189,20 +212,41 @@ void NmpcWbcController::WriteHybridCommand(
     command_interfaces_[system_command_interface_indices_[0]].set_value(calibration);
     command_interfaces_[system_command_interface_indices_[1]].set_value(
         mode_ == OperatingMode::FAULT ? 1.0 : 0.0);
+    const bool motion_enabled =
+        mode_ == OperatingMode::STAND_UP ||
+        mode_ == OperatingMode::MPC_STANCE ||
+        mode_ == OperatingMode::MPC_TROT;
+    command_interfaces_[system_command_interface_indices_[2]].set_value(
+        motion_enabled ? 1.0 : 0.0);
   } else {
-    const auto& effort_limits = safety_monitor_->limits().effort_limit;
-    // 仿真与真机保持同一 tau_ff + kp*(q_des-q) + kd*(dq_des-dq) 语义，
-    // 合成后再按 URDF 力矩上限截断，避免把 PD 项遗漏在限幅之外。
-    for (std::size_t i = 0; i < kJointCount; ++i) {
-      command_interfaces_[command_interface_indices_[i][0]].set_value(
-          BoundedEquivalentEffort(command, joints_state_, i, effort_limits[i]));
-    }
+    WriteSimulationEffort(command, true);
+  }
+}
+
+void NmpcWbcController::WriteSimulationEffort(
+    const HybridJointCommand& command, bool allow_delay) {
+  const auto& effort_limits = safety_monitor_->limits().effort_limit;
+  SimulationEffortDelay::Effort effort;
+  // Delay the final saturated torque, including PD evaluated from this cycle's
+  // sample. Delaying only q_des or feedforward would model a different plant.
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    effort[i] = BoundedEquivalentEffort(command, joints_state_, i, effort_limits[i]);
+  }
+  const bool motion_mode =
+      mode_ == OperatingMode::STAND_UP || mode_ == OperatingMode::MPC_STANCE ||
+      mode_ == OperatingMode::MPC_TROT;
+  const auto output = simulation_effort_delay_.Process(
+      effort, allow_delay && command_output_active_ && motion_mode);
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    command_interfaces_[command_interface_indices_[i][0]].set_value(output[i]);
   }
 }
 
 void NmpcWbcController::WriteSafeCommand(bool reset_calibration) {
-  // 默认零前馈、零位置刚度，仅施加阻尼；只有仿真 PASSIVE 可选固定趴姿保持。
-  // FAULT 不使用该姿态保持分支，且会通过 WriteHybridCommand 向真机传递急停状态。
+  simulation_effort_delay_.Reset();
+  // 真机 PASSIVE/CALIBRATION/FAULT 关闭常规 motion_enabled。
+  // 仅启动预对位有硬件内部固定小力矩例外；FAULT 仍取消该过程并退零。
+  // 仿真可用阻尼，且只有仿真 PASSIVE 可选固定趴姿保持。
   HybridJointCommand command;
   const bool hold_simulation_pose =
       !IsRealHardware() && mode_ == OperatingMode::PASSIVE &&
@@ -223,7 +267,12 @@ void NmpcWbcController::WriteSafeCommand(bool reset_calibration) {
   }
   // 合并请求而非覆盖，保留尚未发送到硬件的标定复位脉冲。
   reset_calibration_pending_ = reset_calibration_pending_ || reset_calibration;
-  WriteHybridCommand(command);
+  if (IsRealHardware() || IsHybridSimulation()) {
+    WriteHybridCommand(command);
+  } else {
+    // Safety output takes effect this cycle; never enqueue it behind motion.
+    WriteSimulationEffort(command, false);
+  }
 }
 
 }  // namespace custom_dog_control

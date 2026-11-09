@@ -5,7 +5,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <string_view>
+#include <vector>
 
 namespace custom_dog_control {
 
@@ -17,8 +19,8 @@ constexpr std::size_t kCentroidalInputDim = 24;
 constexpr std::size_t kStanceMode = 15U;
 constexpr std::size_t kTrotFrRlMode = 9U;
 constexpr std::size_t kTrotFlRrMode = 6U;
-// A single fixed contact schedule avoids changing the OCS2 mode sequence
-// while the solver is running. Zero velocity is handled as full stance.
+// Default contact period; a configured period stays fixed for one lifecycle.
+// Gait changes are applied by the solver's synchronized module.
 constexpr double kTrotPeriodSeconds = 0.25;
 constexpr double kTrotHalfPeriodSeconds = 0.125;
 
@@ -90,12 +92,17 @@ inline double LegacyJoyLateralToRep103(double lateral, bool legacy_y_right) {
   return legacy_y_right ? -lateral : lateral;
 }
 
-inline std::size_t TrotModeAtTime(double time_seconds) {
-  double phase = std::fmod(time_seconds, kTrotPeriodSeconds);
-  if (phase < 0.0) {
-    phase += kTrotPeriodSeconds;
+inline std::size_t TrotModeAtTime(
+    double time_seconds, double period_seconds = kTrotPeriodSeconds) {
+  if (!std::isfinite(time_seconds) || !std::isfinite(period_seconds) ||
+      period_seconds <= 0.0) {
+    throw std::invalid_argument("Trot time must be finite and period positive");
   }
-  if (phase < kTrotHalfPeriodSeconds) {
+  double phase = std::fmod(time_seconds, period_seconds);
+  if (phase < 0.0) {
+    phase += period_seconds;
+  }
+  if (phase < 0.5 * period_seconds) {
     return kTrotFrRlMode;
   }
   return kTrotFlRrMode;
@@ -103,6 +110,29 @@ inline std::size_t TrotModeAtTime(double time_seconds) {
 
 inline bool IsTrotMode(std::size_t mode) {
   return mode == kTrotFrRlMode || mode == kTrotFlRrMode;
+}
+
+struct TrotContactSchedule {
+  std::vector<double> times;
+  std::vector<std::size_t> modes;
+};
+
+// Called by the solver's synchronized gait module, never by the motor loop.
+// Full-stance intervals provide planned load-transfer overlap, not measured contact.
+inline TrotContactSchedule MakeTrotContactSchedule(
+    double period, double double_support, std::size_t first_diagonal) {
+  if (!std::isfinite(period) || !std::isfinite(double_support) || period <= 0.0 ||
+      double_support < 0.0 || 0.5 * period - double_support < 0.05 ||
+      !IsTrotMode(first_diagonal)) {
+    throw std::invalid_argument("invalid Trot period, overlap or diagonal");
+  }
+  const auto second = first_diagonal == kTrotFrRlMode ? kTrotFlRrMode : kTrotFrRlMode;
+  if (double_support == 0.0) {
+    return {{0.0, 0.5 * period, period}, {first_diagonal, second}};
+  }
+  return {{0.0, 0.5 * period - double_support, 0.5 * period,
+           period - double_support, period},
+          {first_diagonal, kStanceMode, second, kStanceMode}};
 }
 
 // 进入用任一轴超过高阈值，退出用所有轴低于低阈值，形成迟滞区间。
@@ -165,6 +195,20 @@ struct ImuSample {
   double stamp_seconds = 0.0;
   bool valid = false;
 };
+
+inline bool FiniteImuSample(const ImuSample& sample) {
+  double quaternion_norm_squared = 0.0;
+  for (const double value : sample.orientation_wxyz) {
+    if (!std::isfinite(value)) return false;
+    quaternion_norm_squared += value * value;
+  }
+  for (const double value : sample.angular_velocity)
+    if (!std::isfinite(value)) return false;
+  for (const double value : sample.linear_acceleration)
+    if (!std::isfinite(value)) return false;
+  return std::isfinite(sample.stamp_seconds) &&
+      std::isfinite(quaternion_norm_squared) && quaternion_norm_squared > 1e-12;
+}
 
 // OCS2 布局：state=[归一化质心动量(6), 基座 xyz/ZYX(6), 关节位置(12)]；
 // input=[四足世界系接触力(12), 关节速度(12)]，关节部分采用模型顺序。

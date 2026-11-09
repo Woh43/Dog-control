@@ -4,6 +4,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <set>
 #include <string>
@@ -12,6 +13,7 @@
 
 #include "custom_dog_control/hardware/ActuatorTypes.hpp"
 #include "custom_dog_control/hardware/Calibration.hpp"
+#include "custom_dog_control/hardware/StartupAlignment.hpp"
 #include "serialPort/SerialPort.h"
 #include "unitreeMotor/unitreeMotor.h"
 
@@ -33,10 +35,14 @@ class IOSDK final {
   // 未激活时直接返回，不刷新状态。Deactivate 不应与本函数并发执行。
   void SendReceive(
       const LowLevelCommand& command, LowLevelState& state,
-      bool calibration_requested);
+      bool calibration_requested, bool startup_alignment_allowed = false);
   void Activate();
   void Deactivate();
   void ResetCalibration() { calibrated_ = false; }
+  void CancelStartupAlignment();
+  StartupAlignment::Stage StartupAlignmentStage() const {
+    return startup_alignment_.stage();
+  }
   bool IsCalibrated() const { return calibrated_; }
   bool CommunicationOk() const { return last_cycle_failures_.load() == 0; }
   int LastCycleFailures() const { return last_cycle_failures_.load(); }
@@ -46,6 +52,8 @@ class IOSDK final {
   }
 
  private:
+  bool StartupForcePacketAllowed();
+  void LogStartupAlignmentTransition(StartupAlignment::Stage previous) const;
   void OpenSerialPorts();
   void InitializeMotorMetadata();
   void StartWorkers();
@@ -58,13 +66,21 @@ class IOSDK final {
   void SendDirectLegCommand(
       int leg, const std::array<ActuatorCommand, kJointsPerLeg>& commands);
   std::array<ActuatorCommand, kJointsPerLeg> BuildZeroTorqueCommand() const;
-  void SendReceiveLeg(int leg, const LowLevelCommand& command, LowLevelState& state);
-  void PopulateMotorCommand(int leg, int joint, const ActuatorCommand& command);
+  void ExchangeCycle(const LowLevelCommand& command, LowLevelState& state,
+                     bool internal_alignment_frame);
+  void SendReceiveLeg(int leg, const LowLevelCommand& command, LowLevelState& state,
+                      bool internal_alignment_frame = false);
+  bool ExchangeMotor(int leg, int joint, bool internal_alignment_frame = false);
+  void PopulateMotorCommand(int leg, int joint, const ActuatorCommand& command,
+                            bool internal_alignment_frame = false);
   void UpdateMotorStateFromFeedback(int leg, int joint, LowLevelState& state);
   void MarkMotorOffline(int leg, int joint, LowLevelState& state) const;
   float GearRatioForJoint(int joint) const;
 
-  std::vector<SerialPort*> serials_;
+  class SerialPortOwnership;
+  // Destruction order matters: close SDK fds before releasing tty exclusivity.
+  std::array<std::unique_ptr<SerialPortOwnership>, kLegCount> port_ownership_;
+  std::vector<std::unique_ptr<SerialPort>> serials_;
   std::array<std::string, kLegCount> serial_ports_;
   std::array<MotorCmd, kJointCount> motor_commands_;
   std::array<MotorData, kJointCount> motor_data_;
@@ -76,6 +92,7 @@ class IOSDK final {
   std::condition_variable completed_cv_;
   const LowLevelCommand* active_command_ = nullptr;
   LowLevelState* active_state_ = nullptr;
+  bool active_alignment_frame_ = false;
   std::size_t dispatch_epoch_ = 0;
   std::size_t completed_workers_ = 0;
   bool workers_stopping_ = false;
@@ -89,6 +106,15 @@ class IOSDK final {
   float calf_total_gear_ratio_ = 12.66F;
   std::array<float, kJointCount> motor_directions_{};
   std::array<double, kJointsPerLeg> calibration_pose_{};
+  StartupAlignment startup_alignment_;
+  bool have_valid_feedback_ = false;
+  double last_valid_feedback_seconds_ = 0.0;
+  // Written before worker dispatch and unchanged until the completion barrier.
+  double startup_round_deadline_seconds_ = 0.0;
+  double startup_feedback_deadline_seconds_ = 0.0;
+  double startup_force_deadline_seconds_ = 0.0;
+  std::atomic<bool> startup_cycle_cancelled_{false};
+  std::atomic<bool> startup_cycle_force_expired_{false};
 };
 
 }  // namespace custom_dog_control

@@ -33,6 +33,9 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>python3-evdev</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
   <depend>realtime_tools</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
@@ -43,10 +46,13 @@
   <depend>yaml-cpp</depend>
 
   <exec_depend>controller_manager</exec_depend>
-  <exec_depend>custom_dog_description</exec_depend>
+  <depend>custom_dog_description</depend>
   <exec_depend>fdilink_ahrs</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>gazebo_ros2_control</exec_depend>
+  <depend>gz_ros2_control</depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>launch</exec_depend>
@@ -56,13 +62,9 @@
   <exec_depend>xacro</exec_depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
-  <test_depend>custom_dog_description</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
   </export>
-  <depend>qr_interfaces</depend>
-  <depend>qr_planning</depend>
-  <depend>rclcpp_action</depend>
   <depend>coal</depend>
 </package>

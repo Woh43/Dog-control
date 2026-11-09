@@ -9,7 +9,8 @@ namespace custom_dog_control {
 
 inline constexpr double kDegreesToRadians =
     3.14159265358979323846 / 180.0;
-// 手动折腿、Gazebo 初始姿态和 START 标定共用的 hip/thigh/calf 输出侧角度。
+// 真机人工参考趴姿对应的 URDF hip/thigh/calf 输出侧角度。
+// 仿真另有外展髋关节的碰撞稳定初始姿态，不能拿它替代机械标定姿态。
 inline constexpr std::array<double, kJointsPerLeg> kProneCalibrationPose = {
     0.0, 71.8 * kDegreesToRadians, -161.8 * kDegreesToRadians};
 

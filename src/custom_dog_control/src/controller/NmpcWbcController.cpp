@@ -2,7 +2,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 #include <pluginlib/class_list_macros.hpp>
+
+#include "custom_dog_control/control/ImuFreshness.hpp"
 
 namespace custom_dog_control {
 namespace {
@@ -24,45 +28,63 @@ double LimitAcceleratingReference(
 
 controller_interface::return_type NmpcWbcController::update(
     const rclcpp::Time& time, const rclcpp::Duration& period) {
-  const double now_seconds = time.seconds();
   // 估计、限速及 WBC 使用有界步长；诊断仍记录真实周期，以免掩盖调度抖动或超时。
   const double dt = std::clamp(period.seconds(), 1e-4, 0.02);
   control_period_ms_ = period.seconds() * 1000.0;
   control_timing_.Add(control_period_ms_);
   ReadHardwareState();
-  joints_state_.stamp_valid = !IsRealHardware();
-  if (joints_state_.stamp_valid) joints_state_.stamp_seconds = now_seconds;
   if (IsRealHardware()) {
     io_timing_.Add(io_period_ms_);
   }
   // 回调只更新输入缓冲；本周期读取快照后统一仲裁速度、推进状态和写入硬件。
   imu_sample_ = *imu_buffer_.readFromRT();
   const JoyInput joy = *joy_buffer_.readFromRT();
-  if (precision_) {
-    HybridJointCommand output;
-    const bool stop = physical_estop_ || joy.requested_mode == RequestedMode::ESTOP;
-    if (precision_->Update(now_seconds, dt, joints_state_, imu_sample_, stop, output)) {
-      WriteHybridCommand(output);
-    } else {
-      output = HybridJointCommand{};
-      // Discard a partially computed torque before entering damping fallback.
-      // Do not command the flat stand-up pose after a precision fault.
-      for (std::size_t i = 0; i < kJointCount; ++i) {
-        output.position[i] = std::isfinite(joints_state_.position[i])
-                                 ? joints_state_.position[i] : 0.0;
-        output.kd[i] = safe_damping_;
-      }
-      WriteHybridCommand(output);
-    }
-    return controller_interface::return_type::OK;
-  }
+  // A real IMU callback can arrive after the manager captured this cycle's
+  // time. Read the same ROS clock only AFTER copying the input snapshot;
+  // otherwise a newly received sample can be mistaken for a future sample.
+  // Simulation retains the physics update timestamp and its clock domain.
+  const rclcpp::Time state_time =
+      IsRealHardware() ? get_node()->get_clock()->now() : time;
+  const double now_seconds = state_time.seconds();
+  joints_state_.stamp_valid = !IsRealHardware();
+  if (joints_state_.stamp_valid) joints_state_.stamp_seconds = now_seconds;
   const VelocityCommand command = SelectVelocityCommand(now_seconds, dt);
+
+  const bool estimation_ready = !IsRealHardware() ||
+      (calibrated_ && !reset_calibration_pending_ &&
+       mode_ != OperatingMode::FAULT &&
+       (!requires_recalibration_ || mode_ == OperatingMode::CALIBRATION));
+  if (calibration_gate_.Update(estimation_ready)) {
+    simulation_effort_delay_.Reset();
+    estimator_->Reset(nominal_height_m_);
+    backend_->InvalidateObservation();
+    estimate_ = EstimatedState{};
+    last_policy_ = PolicySample{};
+    policy_buffer_.writeFromNonRT(PolicySample{});
+    measured_rbd_state_.resize(0);
+    last_target_update_seconds_ = -1.0;
+    target_command_was_moving_ = false;
+  }
 
   // 估计器先使用上一份有效策略的接触计划；首次获得策略前按四足支撑初始化。
   // planned contacts 是模型假设，不能当作真实足端触地测量。
   std::size_t planned_mode = last_policy_.valid ? last_policy_.mode : kStanceMode;
   const auto contacts = ContactFlags(planned_mode);
-  if (!IsRealHardware() && use_sim_ground_truth_) {
+  const auto imu_freshness = EvaluateImuFreshness(
+      imu_sample_, now_seconds, safety_monitor_->limits().imu_timeout_s);
+  const bool imu_fresh = imu_freshness == ImuFreshnessStatus::Fresh;
+  const char* estimate_invalid_reason = "kinematic estimator returned invalid state";
+  if (!estimation_ready) {
+    estimate_invalid_reason = "calibration/operating-mode gate is closed";
+    estimate_ = EstimatedState{};
+  } else if (IsRealHardware() && !communication_ok_) {
+    estimate_invalid_reason = "motor communication is invalid";
+    estimate_ = EstimatedState{};
+  } else if (IsRealHardware() && !imu_fresh) {
+    estimate_invalid_reason = ImuFreshnessReason(imu_freshness);
+    estimate_ = EstimatedState{};
+  } else if (!IsRealHardware() && use_sim_ground_truth_) {
+    estimate_invalid_reason = "simulation ground truth is invalid or stale";
     estimate_ = *ground_truth_buffer_.readFromRT();
     estimate_.valid =
         estimate_.valid &&
@@ -146,15 +168,50 @@ controller_interface::return_type NmpcWbcController::update(
     }
   }
   last_policy_ = *policy_buffer_.readFromRT();
-  const bool policy_available = last_policy_.valid;
-  // 后端按单调墙钟计算策略年龄，仿真时钟暂停不会把陈旧策略误判为新鲜。
+  // 真机用单调墙钟；仿真用仿真时钟，与对应的求解节拍和物理推进保持一致。
   const double policy_age = backend_->policyAgeSeconds(now_seconds);
+  const bool solver_healthy = backend_->solverHealthy();
+  const bool policy_available = last_policy_.valid && solver_healthy &&
+      policy_age <= safety_monitor_->limits().max_policy_age_s;
 
-  // 起身和 MPC 活动模式执行安全检查；求解器/策略时效检查由 dynamic_mode 限定为 Trot。
+  // 起身和 MPC 活动模式都检查估计及求解健康；策略时效用于 MPC 站立和 Trot。
   // 安全故障先于本周期的步态监督处理，防止继续发出正常运动切换请求。
   if (mode_ != OperatingMode::PASSIVE &&
       mode_ != OperatingMode::CALIBRATION &&
       mode_ != OperatingMode::FAULT) {
+    if (!estimate_.valid || !solver_healthy) {
+      // Preserve the triggering snapshot: the next FAULT cycle intentionally
+      // invalidates estimation/policy, so its diagnostics cannot explain why
+      // this transition occurred. Do not replace this with later consequences.
+      std::ostringstream reason;
+      reason << std::setprecision(17)
+             << (!estimate_.valid ? "State estimate invalid: " : "NMPC solver failure: ")
+             << (!estimate_.valid ? estimate_invalid_reason : "backend unhealthy")
+             << "; cycle_time=" << time.seconds()
+             << "; check_time=" << now_seconds
+             << "; imu_stamp=" << imu_sample_.stamp_seconds
+             << "; imu_age_s=" << now_seconds - imu_sample_.stamp_seconds
+             << "; imu_valid=" << imu_sample_.valid
+             << "; communication_ok=" << communication_ok_
+             << "; io_failures=" << consecutive_io_failures_
+             << "; solver_healthy=" << solver_healthy
+             << "; mpc_error=" << backend_->lastError()
+             << "; estimate_position=" << estimate_.position.transpose()
+             << "; estimate_velocity=" << estimate_.velocity_world.transpose();
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        if (joints_state_.valid[i] < 0.5 ||
+            !std::isfinite(joints_state_.position[i]) ||
+            !std::isfinite(joints_state_.velocity[i])) {
+          reason << "; invalid_joint=" << i
+                 << ",valid=" << joints_state_.valid[i]
+                 << ",q=" << joints_state_.position[i]
+                 << ",dq=" << joints_state_.velocity[i];
+        }
+      }
+      controller_fault_reason_ = reason.str();
+      RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+      TransitionTo(OperatingMode::FAULT, now_seconds);
+    }
     SafetyInput safety_input;
     safety_input.joints = joints_state_;
     safety_input.imu = imu_sample_;
@@ -162,11 +219,13 @@ controller_interface::return_type NmpcWbcController::update(
     safety_input.policy_age_s = policy_age;
     safety_input.roll = estimate_.euler_zyx.z();
     safety_input.pitch = estimate_.euler_zyx.y();
+    safety_input.horizontal_speed_m_s = estimate_.velocity_world.head<2>().norm();
     safety_input.consecutive_io_failures = consecutive_io_failures_;
     safety_input.communication_ok = communication_ok_;
     safety_input.physical_estop = physical_estop_;
-    safety_input.solver_valid = backend_->solverHealthy();
-    safety_input.dynamic_mode = mode_ == OperatingMode::MPC_TROT;
+    safety_input.solver_valid = solver_healthy;
+    safety_input.dynamic_mode = mode_ == OperatingMode::MPC_TROT ||
+                                mode_ == OperatingMode::MPC_STANCE;
     if (!safety_monitor_->Evaluate(safety_input)) {
       RCLCPP_ERROR(
           get_node()->get_logger(), "Safety fault: %s",
@@ -195,7 +254,7 @@ controller_interface::return_type NmpcWbcController::update(
     WriteHybridCommand(hybrid_command);
   }
 
-  PublishDiagnostics(time, estimate_, last_policy_, wbc);
+  PublishDiagnostics(state_time, estimate_, last_policy_, wbc, planned_mode);
   // FAULT 由内部模式和安全命令处理；这里的 OK 表示完成 update，不表示机器人无故障。
   return controller_interface::return_type::OK;
 }

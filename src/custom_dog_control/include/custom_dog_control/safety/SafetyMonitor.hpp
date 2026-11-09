@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <limits>
+#include <optional>
 #include <string>
 
 #include "custom_dog_control/control/ControlTypes.hpp"
@@ -13,6 +15,15 @@ struct SafetyLimits {
   double max_roll_pitch_rad = 0.75;
   double max_policy_age_s = 0.10;
   double joint_position_tolerance_rad = 0.005;
+  // Infinity leaves the commissioning overspeed guards disabled until their
+  // physical/simulation envelope is explicitly configured.
+  std::array<double, kJointCount> velocity_limit = [] {
+    std::array<double, kJointCount> limits;
+    limits.fill(std::numeric_limits<double>::infinity());
+    return limits;
+  }();
+  double max_horizontal_speed_m_s = std::numeric_limits<double>::infinity();
+  double overspeed_duration_s = 0.10;
   int max_consecutive_io_failures = 3;
   std::array<double, kJointCount> lower_position{};
   std::array<double, kJointCount> upper_position{};
@@ -29,6 +40,7 @@ struct SafetyInput {
   double policy_age_s = 0.0;
   double roll = 0.0;
   double pitch = 0.0;
+  double horizontal_speed_m_s = 0.0;
   int consecutive_io_failures = 0;
   bool communication_ok = true;
   bool physical_estop = false;
@@ -57,6 +69,9 @@ class SafetyMonitor {
   SafetyLimits limits_;
   bool faulted_ = false;
   std::string reason_;
+  std::optional<double> joint_overspeed_since_;
+  std::optional<double> base_overspeed_since_;
+  std::optional<double> last_speed_check_seconds_;
 };
 
 }  // namespace custom_dog_control

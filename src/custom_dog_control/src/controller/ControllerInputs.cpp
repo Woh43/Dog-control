@@ -4,17 +4,6 @@
 #include <cmath>
 
 namespace custom_dog_control {
-namespace {
-
-bool Button(const sensor_msgs::msg::Joy& message, std::size_t index) {
-  return index < message.buttons.size() && message.buttons[index] != 0;
-}
-
-double Axis(const sensor_msgs::msg::Joy& message, std::size_t index) {
-  return index < message.axes.size() ? message.axes[index] : 0.0;
-}
-
-}  // namespace
 
 void NmpcWbcController::ImuCallback(
     const sensor_msgs::msg::Imu::SharedPtr message) {
@@ -36,8 +25,7 @@ void NmpcWbcController::ImuCallback(
       sensor_stamp.nanoseconds() > 0
           ? sensor_stamp.seconds()
           : get_node()->get_clock()->now().seconds();
-  sample.valid = std::isfinite(message->orientation.w) &&
-                 std::isfinite(message->linear_acceleration.x);
+  sample.valid = FiniteImuSample(sample) && message->orientation_covariance[0] != -1.0;
   imu_buffer_.writeFromNonRT(sample);
 }
 
@@ -77,32 +65,9 @@ void NmpcWbcController::GroundTruthCallback(
 
 void NmpcWbcController::JoyCallback(
     const sensor_msgs::msg::Joy::SharedPtr message) {
-  JoyInput input;
-  input.stamp_seconds = get_node()->get_clock()->now().seconds();
-  input.velocity.vx = Axis(*message, 1) * velocity_limits_.vx;
-  input.velocity.vy = LegacyJoyLateralToRep103(
-      Axis(*message, 0) * velocity_limits_.vy, legacy_joy_y_right_);
-  input.velocity.yaw = Axis(*message, 3) * velocity_limits_.yaw;
-  input.velocity.stamp_seconds = input.stamp_seconds;
-  input.velocity.active = true;
-
-  // 同一消息按急停、被动、标定起立、Trot、站立的顺序裁决按钮冲突。
-  if (Button(*message, 3)) {
-    input.requested_mode = RequestedMode::ESTOP;
-  } else if (Button(*message, 1)) {
-    input.requested_mode = RequestedMode::PASSIVE;
-  } else if (Button(*message, 7)) {
-    input.requested_mode = RequestedMode::CALIBRATE_AND_STAND;
-  } else if (Button(*message, 2)) {
-    input.requested_mode = RequestedMode::TROT;
-  } else if (Button(*message, 0)) {
-    input.requested_mode = RequestedMode::STANCE;
-  }
-  const double magnitude =
-      std::max({std::abs(input.velocity.vx), std::abs(input.velocity.vy),
-                std::abs(input.velocity.yaw)});
-  // 模式请求与速度通道独立：仅按按钮时，零摇杆不抢占 /cmd_vel。
-  input.active = magnitude > 0.01;
+  const JoyInput input = MapJoystickInput(
+      message->axes, message->buttons, velocity_limits_, legacy_joy_layout_,
+      legacy_joy_y_right_, get_node()->get_clock()->now().seconds());
   joy_buffer_.writeFromNonRT(input);
 }
 

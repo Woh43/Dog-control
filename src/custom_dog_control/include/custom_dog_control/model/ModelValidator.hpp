@@ -33,7 +33,7 @@ public:
   // 会改写 interface.getData() 的运动学缓存，须在配置阶段串行调用；不修改模型。
   static ModelValidationResult Validate(ocs2::PinocchioInterface &interface,
                                         const ocs2::CentroidalModelInfo &info,
-                                        double expected_mass_kg = 13.84916,
+                                        double expected_mass_kg = 15.15,
                                         double mass_tolerance_kg = 1e-5);
 };
 

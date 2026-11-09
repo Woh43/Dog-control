@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <stdexcept>
 #include <ocs2_centroidal_model/AccessHelperFunctions.h>
 #include <ocs2_centroidal_model/ModelHelperFunctions.h>
 #include <pinocchio/algorithm/centroidal.hpp>
@@ -30,6 +32,20 @@ WbcBase::WbcBase(const PinocchioInterface& pinocchioInterface, CentroidalModelIn
   numDecisionVars_ = numPhysicalDecisionVars_ + numJointLimitSlacks_;
   qMeasured_ = vector_t(info_.generalizedCoordinatesNum);
   vMeasured_ = vector_t(info_.generalizedCoordinatesNum);
+  contactNormalForceUpperBounds_ = vector_t::Constant(
+      info_.numThreeDofContacts, std::numeric_limits<scalar_t>::infinity());
+}
+
+void WbcBase::setContactNormalForceUpperBounds(const vector_t& bounds) {
+  if (bounds.size() != static_cast<Eigen::Index>(info_.numThreeDofContacts)) {
+    throw std::invalid_argument("wrong number of contact-force bounds");
+  }
+  for (Eigen::Index i = 0; i < bounds.size(); ++i) {
+    if (std::isnan(bounds(i)) || bounds(i) < 0.0) {
+      throw std::invalid_argument("contact-force bounds must be nonnegative or +infinity");
+    }
+  }
+  contactNormalForceUpperBounds_ = bounds;
 }
 
 vector_t WbcBase::update(const vector_t& stateDesired, const vector_t& inputDesired, const vector_t& rbdStateMeasured, size_t mode,
@@ -216,7 +232,12 @@ Task WbcBase::formulateFrictionConeTask() {
                      0, 1, -frictionCoeff_,
                      0,-1, -frictionCoeff_;  // clang-format on
 
-  matrix_t d(5 * numContacts_ + 3 * (info_.numThreeDofContacts - numContacts_), numDecisionVars_);
+  size_t boundedContacts = 0;
+  for (size_t i = 0; i < info_.numThreeDofContacts; ++i) {
+    boundedContacts += contactFlag_[i] && std::isfinite(contactNormalForceUpperBounds_(i));
+  }
+  const size_t coneRows = 5 * numContacts_ + 3 * (info_.numThreeDofContacts - numContacts_);
+  matrix_t d(coneRows + boundedContacts, numDecisionVars_);
   d.setZero();
   j = 0;
   for (size_t i = 0; i < info_.numThreeDofContacts; ++i) {
@@ -225,6 +246,13 @@ Task WbcBase::formulateFrictionConeTask() {
     }
   }
   vector_t f = Eigen::VectorXd::Zero(d.rows());
+  size_t boundRow = coneRows;
+  for (size_t i = 0; i < info_.numThreeDofContacts; ++i) {
+    if (contactFlag_[i] && std::isfinite(contactNormalForceUpperBounds_(i))) {
+      d(boundRow, info_.generalizedCoordinatesNum + 3 * i + 2) = 1.0;
+      f(boundRow++) = contactNormalForceUpperBounds_(i);
+    }
+  }
 
   return {a, b, d, f};
 }

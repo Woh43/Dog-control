@@ -17,11 +17,13 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include "custom_dog_control/control/ControlTypes.hpp"
+#include "custom_dog_control/control/CalibrationGate.hpp"
+#include "custom_dog_control/control/JoystickMapping.hpp"
+#include "custom_dog_control/control/SimulationEffortDelay.hpp"
 #include "custom_dog_control/control/TimingStatistics.hpp"
 #include "custom_dog_control/nmpc/KinematicStateEstimator.hpp"
 #include "custom_dog_control/nmpc/NmpcBackend.hpp"
 #include "custom_dog_control/safety/SafetyMonitor.hpp"
-#include "custom_dog_control/precision/PrecisionRuntime.hpp"
 
 namespace custom_dog_control {
 
@@ -45,21 +47,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
       const rclcpp::Time& time, const rclcpp::Duration& period) override;
 
  private:
-  enum class RequestedMode : std::uint8_t {
-    NONE,
-    PASSIVE,
-    CALIBRATE_AND_STAND,
-    STANCE,
-    TROT,
-    ESTOP,
-  };
-
-  struct JoyInput {
-    VelocityCommand velocity;
-    RequestedMode requested_mode = RequestedMode::NONE;
-    double stamp_seconds = 0.0;
-    bool active = false;
-  };
+  using RequestedMode = JoystickModeRequest;
+  using JoyInput = JoystickInput;
 
   // 步态请求与策略生效之间的等待阶段；不能把 requested_mode 直接当接触计划。
   enum class GaitTransition : std::uint8_t {
@@ -80,6 +69,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
       double now_seconds, const VelocityCommand& command, const JoyInput& joy,
       const PolicySample& policy, double policy_age_seconds);
   void WriteHybridCommand(const HybridJointCommand& command);
+  void WriteSimulationEffort(
+      const HybridJointCommand& command, bool allow_delay);
   void WriteSafeCommand(bool reset_calibration = false);
   bool ApplyStateMachine(
       double now_seconds, double dt, const JoyInput& joy,
@@ -87,8 +78,10 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
       HybridJointCommand& command, WbcOutput& wbc);
   void PublishDiagnostics(
       const rclcpp::Time& stamp, const EstimatedState& estimate,
-      const PolicySample& policy, const WbcOutput& wbc);
+      const PolicySample& policy, const WbcOutput& wbc,
+      std::size_t estimator_contact_mode);
   bool IsRealHardware() const { return hardware_mode_ == "real"; }
+  bool IsHybridSimulation() const { return hardware_mode_ == "fortress_hybrid"; }
 
   std::vector<std::string> joints_;
   std::string hardware_mode_ = "gazebo";
@@ -97,6 +90,7 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   std::string urdf_file_;
   std::string generated_urdf_file_;
   bool legacy_joy_y_right_ = true;
+  bool legacy_joy_layout_ = false;
   bool use_sim_ground_truth_ = true;
   double ground_truth_timeout_s_ = 0.10;
 
@@ -134,6 +128,9 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   double simulation_passive_hip_kp_ = 20.0;
   double simulation_passive_leg_kp_ = 60.0;
   double simulation_passive_kd_ = 3.0;
+  int simulation_command_delay_cycles_ = 0;
+  SimulationEffortDelay simulation_effort_delay_;
+  bool command_output_active_ = false;
   // 状态驻留和输入/目标节流使用 ROS 时间；observation_time_ 单独累加控制 dt，
   // 用于 OCS2 轨迹时间轴。策略陈旧度使用后端 steady_clock，见 NmpcBackend。
   double state_entered_seconds_ = 0.0;
@@ -148,13 +145,17 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   std::array<double, kJointCount> stand_start_positions_{};
   std::array<std::array<std::size_t, 5>, kJointCount> command_interface_indices_{};
   std::array<std::array<std::size_t, 5>, kJointCount> state_interface_indices_{};
-  std::array<std::size_t, 2> system_command_interface_indices_{};
-  std::array<std::size_t, 5> system_state_interface_indices_{};
+  std::array<std::size_t, 3> system_command_interface_indices_{};
+  std::array<std::size_t, 6> system_state_interface_indices_{};
 
   OperatingMode mode_ = OperatingMode::PASSIVE;
+  std::string controller_fault_reason_;
   bool requires_recalibration_ = true;
   bool reset_calibration_pending_ = false;
   bool calibrated_ = false;
+  double startup_alignment_status_ = 0.0;
+  StartupCalibrationInputGate startup_calibration_input_gate_;
+  CalibrationGate calibration_gate_;
   bool communication_ok_ = true;
   bool physical_estop_ = false;
   int consecutive_io_failures_ = 0;
@@ -178,8 +179,6 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   TimingWindow<512> io_timing_;
   TimingWindow<512> mpc_timing_;
 
-  std::unique_ptr<PrecisionRuntime> precision_;
-  bool precision_enabled_ = false;
   std::unique_ptr<NmpcBackend> backend_;
   std::unique_ptr<KinematicStateEstimator> estimator_;
   std::unique_ptr<SafetyMonitor> safety_monitor_;
@@ -201,6 +200,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
       contact_publisher_;
   rclcpp_lifecycle::LifecyclePublisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
       diagnostics_publisher_;
+  rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float64MultiArray>::SharedPtr
+      simulation_trace_publisher_;
   rclcpp_lifecycle::LifecyclePublisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 };

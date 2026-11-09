@@ -33,3 +33,6 @@ Makefile
 /external/model_ws/
 
 /external/perception_ws/
+
+# Persistent generated native model libraries
+/.cache/

@@ -13,9 +13,11 @@ struct DriveParameters {
   double base_gear_ratio = 6.33;
   double calf_total_gear_ratio = 12.66;
   bool use_parallel_leg_io = true;
+  bool startup_alignment_enabled = false;
+  // Legacy wiring transformed to this URDF's coordinates; hand-check before motion.
   std::array<double, kJointCount> motor_directions{
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-      1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+      1.0, -1.0, 1.0, 1.0, 1.0, -1.0,
+      -1.0, -1.0, 1.0, -1.0, 1.0, -1.0};
   std::array<double, kJointsPerLeg> calibration_pose{
       0.0, 1.2531464029319286, -2.8239427297268254};
 };

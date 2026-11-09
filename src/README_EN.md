@@ -2,19 +2,16 @@
 
 [中文](README.md) | **English**
 
-`custom_dog_control` contains the traditional NMPC/WBC controller, hardware adapter,
-and experimental precision tracking. `fdilink_ahrs` and `serial_ros2` provide the
-IMU driver and its serial dependency. The robot model is built in a separate underlay.
+This workspace contains the basic NMPC + WBC locomotion stack. Build instructions, operator controls, and validation limits are maintained in the [workspace README](../README_EN.md).
 
-The `qr_interfaces`, `qr_planning`, `qr_course`, `qr_bringup`, and `qr_validation`
-packages add contracts, planning primitives, known test geometry, Gazebo startup,
-and independent evaluation. QR precision control currently uses IMU and joint feedback
-to estimate contact; there are no sole contact sensors. It is simulation-only.
-See [QR development and validation](../docs/qr/README_EN.md).
+| Directory | Purpose |
+| --- | --- |
+| `custom_dog_control` | State estimation, NMPC, WBC, state machine, ros2_control hardware |
+| `custom_dog_description` | Complete 15.15 kg model, 17 STL files, joint and battery configuration |
+| `fdilink_ahrs` | Serial IMU driver publishing `/imu` |
+| `serial_ros2` | ROS package `serial`, used by the IMU driver |
+| `unitree_guide` | Historical reference excluded by `COLCON_IGNORE` |
 
-MID360 and FAST-LIO sources are isolated in `external/perception_ws`; see
-[source provenance and integration limits](../docs/qr/perception-source.md).
-RL deployment remains in the independent `himloco_custom_dog/deployment` repository.
-Historical `unitree_guide` code is excluded from colcon discovery.
+Motors use the Unitree SDK through [IOSDK.cpp](custom_dog_control/src/hardware/IOSDK.cpp). The old `src/qr_guide` path is obsolete; the desktop shortcut now uses `run_real.sh`.
 
-- `qr_simulation`: independent contact-slip integration at each physics step; never a controller input.
+Precision foothold control and its `qr_*` packages have been removed. The local `custom_dog_description` source package contains the complete 15.15 kg battery-corrected model; OCS2 builds separately in `external/ocs2_ws`. No RL runtime is loaded.

@@ -1,124 +1,96 @@
-# Dog-control · 传统 NMPC / WBC 运控
+# Dog-control · NMPC + WBC
 
 **简体中文** | [English](README_EN.md)
 
-自制 12 自由度四足机器人的传统运动控制工作区：**ROS 2 Humble + OCS2 NMPC + weighted WBC + Pinocchio**。
-仿真与真机共用控制器，目标系统为 Ubuntu 22.04，开发机支持 x86_64，真机目标为 ARM64 香橙派 5 Plus。
-
-本仓库只维护传统 NMPC/WBC 控制。RL 模型、真机控制器及 NX 部署工具统一维护在
-[himloco_custom_dog/deployment](https://github.com/hsc13576717115/himloco_custom_dog/tree/master/deployment)。
-该部署工作区包含独立硬件插件，不依赖本仓库。
-
-当前开发与远端同步分支统一为 **`RC2027`**。本阶段提交直接推送到 `origin/RC2027`；
-使用 PR 时，目标分支也选 `RC2027`，不默认合入 `main`。
-
-## 仓库分工与入口
-
-| 开发目标 | 对应仓库 / 目录 | 文档 |
-| --- | --- | --- |
-| 传统运控：状态估计、NMPC、WBC、步态状态机 | **本仓库** `src/custom_dog_control` | [控制包架构](src/custom_dog_control/README.md) |
-| 传统控制仿真、串口和 IMU 接入 | **本仓库** 的 launch、hardware、`fdilink_ahrs` / `serial_ros2` | [安装](docs/setup.md) · [硬件接入](docs/hardware.md) |
-| RL 训练、续训、模型评测与导出 | [himloco_custom_dog](https://github.com/hsc13576717115/himloco_custom_dog) | [训练 README](https://github.com/hsc13576717115/himloco_custom_dog/blob/master/README.md) |
-| RL 真机控制与 Jetson Orin NX 移植 | `himloco_custom_dog/deployment/ros2_ws` | [部署 README](https://github.com/hsc13576717115/himloco_custom_dog/blob/master/deployment/README.md) |
-
-此前放入本仓库的 `src/custom_dog_rl` 已迁出，RL 专用构建开关也已移除。
-传统控制仍保留自己的电机插件和 IMU 驱动；AHRS 姿态新鲜度检查等共用修复继续保留。
-两套控制器不共用安装目录，也不能同时接管同一组电机。机器人 URDF/网格来源可以相同，
-这不要求传统控制加载 RL 模型或训练环境。
+RC2027 当前只保留 12 自由度四足机器人的基础运动控制：ROS 2 Humble、OCS2 NMPC、Weighted WBC、状态估计和 Unitree 电机/IMU 驱动。精准落足及对应 `qr_*` 包已移除。目标设备是本机 Orange Pi 5 Plus / RK3588（Ubuntu 22.04 ARM64）。
 
 ## 当前验证状态
 
-[![自制四足实机平台演示](docs/media/custom-dog-platform-preview.gif)](docs/media/custom-dog-platform-demo.mp4)
+**构建、离线求解及串口通信检查不等于真机运动验收。当前尚未完成真实标定姿态、起身承重站立或 Trot 验收。** 当前操作与验证边界见 [真机说明](docs/hardware.md)。
 
-当前平地仿真已跑通起身、站立、Trot 和停车。实机通信、状态估计及落地行走仍需分阶段验收。
-历史高速包线与地形数据见 [验收基线](docs/validation-baselines.md)，
-最近的平地基础回归见 [2026-09-29 验证记录](docs/simulation-validation-20260929.md)；
-结构重构与依赖迁移记录见 [2026-09-23 验证记录](docs/simulation-validation-20260923.md)。
-2026-10-08 移出 RL 模块后，传统控制包重新构建成功，6 组 CTest 全部通过；
-本次迁移未重新运行整套 Gazebo 运动验收，也未增加真机验收结论。
+**01:25 更新：** 最新真机在切入 MPC_STANCE 约 0.201 秒后因 NMPC 策略超过 100 ms 门限而保护停机，故障前通信有效。该轮与本机物理仿真时间重叠，CPU 竞争影响未排除。旧 main 祖先的 6.2/0.2 是电机侧增益；当前45/55是换算前关节侧增益，起身力度不能按数字直接比较。后腿起身误差和交接条件仍需处理，详见上述真机说明。
 
-## 快速开始
+**2026-11-10 最新真机日志：** 用户报告起身时后部需托一下，随后能自行站住。01:03:54 这次启动在 MPC_STANCE 运行约 48 秒后，右后髋关节（RR ID 0）反馈失效而保护停机；当时 IMU 和 NMPC 正常。后部抬起困难发生得更早，原因尚未确定。只按 LT+X 而不推摇杆会保持站立，日志没有 Trot 切换。随后四路全零通信 60 秒共 72000/72000 有效回复，但不能排除承重控制中的偶发超时。已增加默认自动诊断记录及行走使能提示，见 [排查记录](docs/hardware.md)。
 
-推荐目录：
+此前估计器临时对象生命周期缺陷和 IMU 检查时刻竞争已修复，完整 15.15 kg 模型和持久 CppAD 缓存已在本工作区。当时控制包 18 项与模型包 1 项检查通过；关闭真值辅助、100 Hz IMU 的 Fortress 完成旧手柄起身、前后/左右 Trot、双向转向、停车恢复及最后 30 秒站立。该结果不替代真实起身困难的诊断或承重运动验收。
 
-```text
-Dog/
-├── Dog-control/                                 # 传统控制工程
-│   ├── src/                                    # 控制器与驱动
-│   ├── external/                               # 独立依赖工作区
-│   │   ├── ocs2_ws/                            # OCS2 源码及构建产物
-│   │   └── model_ws/                           # 生成的模型包及构建产物
-│   ├── docs/
-│   └── build/、install/、log/                    # 主工作区生成产物
-└── himloco_custom_dog/                          # RL 工程与原始模型来源
-```
+新增诊断后的安装版本已重新通过相同模型、100 Hz IMU 的起身/前进/停车恢复仿真，完整记录各阶段的 12 关节及控制器请求，测试期间源码与库保持不变。控制包首轮 18/19 项通过，模拟串口套件一次超时后单独重跑通过；记录器 ROS 集成和模型包检查通过。首次失败及中止的测试保留，详见上述排查记录。
 
-新工作区可按上述同级布局克隆；若已有机器人模型包，也可只克隆本仓库并设置
-`CUSTOM_DOG_DESCRIPTION_DIR`：
+本机已通过 **15.15 kg 模型、1000 Hz 主控的 Gazebo Fortress 平地低速物理仿真**：起身、WBC 站立、前后与侧向 Trot、转向、停车及恢复。关闭真值反馈、仅用 IMU 与关节估计时同样通过；保留原起身增益和步态。该轮使用 NMPC 20 Hz、2 求解线程，50 Hz 曾触发策略超时；软件标定完成 8 组模拟串口回归，当时控制包 45 项检查通过。详见 [本轮仿真与标定记录](docs/simulation-validation-20261102.md)。
 
-```bash
-mkdir -p Dog
-cd Dog
-git clone --branch RC2027 https://github.com/hsc13576717115/Dog-control.git
-git clone https://github.com/hsc13576717115/himloco_custom_dog.git
-git -C himloco_custom_dog lfs install --local
-git -C himloco_custom_dog lfs pull --include='assets/custom_dog_description/**'
-cd Dog-control
-```
+后续 **250 Hz 主机合成 PD、发送纯力矩**的对照是历史实验，见 [当时的记录](docs/real-control-validation-20261102.md)。当前已恢复电机侧五分量 PD，真机与 Fortress 共用 250 Hz 主控、20 Hz NMPC、2 求解线程、增益、步态及低速限制。**恢复启动预对位之前，关闭真值辅助的完整低速物理回归已通过**：使用旧手柄 START/组合键完成起身、前进、停车与恢复，后退、左右侧移、双向转向，以及最后 60 秒站立；全程未进入 FAULT。10 秒前进 0.551 m，6 秒恢复 0.326 m。此后新增硬件启动辅助、真实 START 等待和可视化，NMPC/WBC 算法配置未改，但构建指纹已经变化；旧结果不覆盖新增辅助的验收。完整结果见 [兼容移植验收记录](docs/compatibility-validation-20261103.md)；真机运动仍未验收。
 
-首次使用先按 [依赖安装说明](docs/setup.md) 安装系统依赖并构建 OCS2。
-后续命令均在本仓库根目录执行：
+并发 colcon 编译时曾发生策略超时，独立重跑上述场景通过，超时门限保持不变；这不构成有任意并发负载时的实时性保证。
+
+**11 月 3 日零输出通信复测中，FR 反馈已恢复。** 12 个电机顺序探测各 500/500，合计 6000/6000，CRC、ID、模式及电机错误均为 0。随后四路同时按每 ID 100 Hz 轮询约 5 秒，取得 6677/6678 个有效回复；结束快照记录 FR ID 2 一次未收齐回包/超时，原因未定位。因此不能称为全程零丢包或 250 Hz 控制周期验收通过。首次 IMU 捕获含一条较早的 AHRS 时间戳；仅清空主机 RX 队列后重新捕获，IMU/AHRS 各 500 帧、设备时间戳均为 100 Hz，CRC 为 0，时间戳异常未复现，原异常来源未确证。所有探针已停止并释放串口。证据见 [通信复测](log/communication-recheck-20261103-2347/summary.json)及[并发结果](log/communication-recheck-20261103-2347/parallel/result.json)。**这些探针只发送 mode0 全零命令，不能证明真实启动辅助、机械标定或承重站立行走已验收。**
+
+早期检查曾记录 FL/RR/RL 各 100/100、FR 各 0/100；旧 SDK typed 与 raw 2/20 ms 对照也未取得 FR 有效回复。这些历史结果保留，先前无反馈的原因没有由此次成功复测确定。原驱动已实际发布 Xbox 360 手柄输入；详细边界见 [兼容验收记录](docs/compatibility-validation-20261103.md)。
+
+本轮保留旧电机协议、IMU 数据变换与 START 采样零点流程，在 URDF 坐标下接入 NMPC/WBC，并恢复旧手柄布局。运行参数对照确认两条路径使用同一编译控制核心和模型/task，算法参数一致，差异限于时钟、硬件接口和仿真专用项。此前主机 PD、降频与延迟候选的修改属于控制时序选择，不能全部归因于电池增重。完整带负载时序仍待验证；本次通信探针没有触发起身或行走，用户期间自行启动过控制程序，不作为本次运动验收。历史 13.84916 kg 仿真和 15.15 kg 离线测试分别见 [验收基线](docs/validation-baselines.md) 与 [电池模型记录](docs/battery-model-validation-20261102.md)。
+
+机器人总质量为 **15.15 kg**：裸 CAD 13.84916 kg，加 base 中心电池 1.30084 kg。躯干质量、质心和平行轴惯量已同步；缺少电池尺寸，电池自身惯量暂按点质量近似。完整模型已纳入 [src/custom_dog_description](src/custom_dog_description/README.md)，包含三份 URDF、17 个实体 STL、标定约定和电池配置。来源固定为你的 `Woh43/custom_dog_stack` 仓库提交 `6c776de8`，并保留本项目已验证的电池修正；不再依赖相邻 RL 目录或旧模型 underlay。
+
+## 构建和启动
+
+在 `/home/orangepi/qr_ws` 执行：
 
 ```bash
-# 准备模型、构建并启动；默认两个编译任务
-src/custom_dog_control/scripts/build_simulation.sh
+# 只构建，不启动节点或打开电机串口
+src/custom_dog_control/scripts/build_real.sh
 
-# 只构建
-CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
-
-# 已构建时直接启动（不重新编译）
-src/custom_dog_control/scripts/run_simulation.sh
-
-# 无图形界面、无键盘
-src/custom_dog_control/scripts/run_simulation.sh gui:=false start_keyboard:=false
+# 查看启动参数，不启动控制节点
+src/custom_dog_control/scripts/run_real.sh --show-args
 ```
 
-脚本从同级 RL 仓库复制模型，在独立 underlay 中生成 Gazebo 点足 URDF：仅移除 thigh/calf
-碰撞体，保留规范模型与质量、惯量、视觉、关节限位。模型源码不会被修改。
-构建任一步失败即停止，不继续启动旧产物。
+构建脚本先在本工作区构建 `custom_dog_description`，再构建控制器。运行入口检查实际加载的模型属于本工作区，且与源码模型一致。OCS2 和 SDK 的其他目录布局可设置 `CUSTOM_DOG_CONTROL_DEPS_WS`、`UNITREE_ACTUATOR_SDK_ROOT`；模型固定使用本仓库源码，不再读取 `CUSTOM_DOG_DESCRIPTION_DIR` 或 `CUSTOM_DOG_MODEL_WS`。安装与构建依赖见 [setup.md](docs/setup.md)。
 
-其他终端需要使用 ROS 命令时，统一加载环境：
+标准运行入口将 NMPC 的 CppAD 模型库保存在 `.cache/cppad`，跨重启复用；按模型、配置和编译 ABI 的内容指纹隔离。首次生成可能持续数分钟，请等待 `CppAD models ready` 及控制器激活。此前 11 月 9–10 日的多次启动在 `/tmp` 冷编译完成前结束，尚未进入正常起身流程，详见 [启动排查](docs/hardware.md)。
 
-```bash
-source src/custom_dog_control/scripts/env.sh
-ros2 topic list
-```
+桌面 **Run Dog** 调用 `src/custom_dog_control/scripts/run_dog.sh`，无需输入 `YES`，并显式启用 `startup_alignment_enabled:=true`、`use_rviz:=true`。启动前自动停止本工具自身的 mode 0 通信监视进程，释放电机串口；`--help`/`--show-args` 仅查看信息，不停止监视。启动后控制器保持 PASSIVE，硬件在 12 路反馈有效、控制器已接管并持续写入后，自动执行一次约 0.9 秒的小力矩预对位。完成后重新按 START 采零，LT+A 请求起身，LT+X 使能 Trot。
 
-`env.sh` 按 ROS → 模型 → OCS2 → 控制工作区顺序加载环境，保留调用者的 shell 选项。
-所有源码入口按脚本位置定位工作区，可从其他目录调用；搬迁后仍需重建包含旧绝对路径的编译产物。
+预对位沿用旧版转子方向，关节侧力矩幅值为 hip/thigh/calf `0.95/0.63/1.52 N·m`：先 hip/thigh 300 ms，再三关节 300 ms，最后 mode0 释放 300 ms。辅助为非阻塞、单次执行；通信或 CRC 失败、软件急停、写入心跳过期、撤销控制器接管或过程中的标定复位会中止并退回零输出，不自动重试，须重启后恢复。它会在启动后、START 之前发送非零力矩，PASSIVE 不能一概理解为恒定 mode0；任一电机反馈不完整或陈旧时不会开始。**恢复后的 profile 已经 PTY 验证；本次通信探针没有发送该非零辅助，真实辅助执行仍未验收。**
 
-### 键盘操作
+真机 RViz 固定坐标系为 `base`，RobotModel 使用关节反馈，TF 显示足端正运动学结果。标定前编码器角尚未对齐 URDF 零位，显示姿态不代表机械标定已完成；足端 TF 也不是实测足底力。
 
-在运行仿真的终端输入：
+桌面入口通过 `require_physical_estop_confirmation:=false` 取消额外确认条件，不将 `physical_estop_verified` 写成已验证；直接调用 `run_real.sh` 仍默认要求该确认条件，并默认关闭启动辅助和 RViz。FR 反馈已恢复，并发结束快照的一次未收齐回包/超时仍有记录；通信恢复不能代替承重站立或行走验收。
 
-| 按键 | 功能 |
+真机手柄流程：
+
+| 按键 | 行为 |
 | --- | --- |
-| `1` | PASSIVE；FAULT 后确认复位 |
-| `2` | 起身并使能 NMPC-WBC；真机先标定 |
-| `W / S` | 增加 / 减少前向速度 |
-| `A / D` | 增加 / 减少侧向速度 |
-| `J / L` | 增加 / 减少偏航速度（`Q / E` 为别名） |
-| `Space` / `X` | 速度清零，受限减速并回到站立 |
-| `Esc` | 软件 FAULT 急停 |
-| `Ctrl+C` | 关闭仿真 |
+| START | 若启用启动辅助，先等其完成；随后在被动状态新按 START 采集零点，完成后回到 PASSIVE；不会自动起身 |
+| LT+A | 标定有效后，明确请求起身并进入 WBC 站立 |
+| LT+X | 已站立后使能 Trot；仍需有效速度指令和新步态策略 |
+| LT+B | 返回被动；故障后确认复位，随后需要重新标定 |
+| LT+Y | 软件急停，进入锁存 FAULT；替代已移除的旧 STEP_TEST |
+| 左摇杆前后 | 前后速度 |
+| 右摇杆左右 | 侧向速度 |
+| 左摇杆左右 | 转向速度 |
 
-每次速度按键改变对应上限的 5%；非零速度满足阈值与驻留条件后自动进入 Trot。
-单独运行键盘时，仿真设置 `start_keyboard:=false`，另一个已加载环境的终端执行
-`ros2 run custom_dog_control keyboard_teleop.py`。两个终端应使用相同的 `ROS_DOMAIN_ID`。
+LT 即旧 L2 扳机；单按 A/X 不切换状态。LT+X 只使能行走，摇杆回中仍站立，不原地踏步。三轴保留 0.08 死区，在 REP-103 下映射为 `vx=-LY、vy=-RX、yaw=-LX`。共享限速为前后/侧向各 0.05 m/s、偏航 0.2 rad/s。START 标定公式与旧流程在坐标变换后的等价关系见 [兼容验收记录](docs/compatibility-validation-20261103.md)。
 
-## 开发与验证
+真实启动默认在本次 ROS 日志目录保存 `control-diagnostics.jsonl`，自动记录约 10 Hz 的全 12 关节反馈、起身目标、控制器请求、手柄门限及故障，无需另开记录终端。控制器请求不是最终电机报文。每段最多 16 MiB，保留初始段和最近三个分段；`record_diagnostics:=false` 可关闭。
 
-修改代码后先运行“只构建”，再运行单元/契约测试：
+现有原始帧的设备时间戳证实 IMU/AHRS 当前各输出约 100 Hz，驱动没有固定 100 Hz 限频。用户之后自行调整设备输出率；本轮不发送 IMU 配置命令。
+
+旧 `src/qr_guide/src/interface/IOSDK.cpp` 已不属于当前分支。现在的电机入口是 [IOSDK.cpp](src/custom_dog_control/src/hardware/IOSDK.cpp)，请关闭 IDE 中的旧文件标签。
+
+## 软件结构
+
+| 目录 | 内容 |
+| --- | --- |
+| `src/custom_dog_control` | 控制器、NMPC/WBC、状态机、硬件插件及测试 |
+| `src/fdilink_ahrs` | IMU 驱动，发布 `/imu` |
+| `src/serial_ros2` | ROS 包 `serial`，供 IMU 使用；电机通信使用 Unitree SDK |
+| `src/unitree_guide` | 历史参考，`COLCON_IGNORE` 排除 |
+| `src/custom_dog_description` | 自包含的 15.15 kg URDF、完整 STL 与模型来源记录 |
+| `external/ocs2_ws` | 固定版本 OCS2 及 ARM64 构建依赖 |
+
+算法链路是：IMU/关节反馈 → 运动学状态估计 → NMPC 策略 → Weighted WBC → 目标位置/速度、前馈力矩、Kp/Kd 五分量 → 电机侧 PD。主机按当前采样的 `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)` 对前馈和两项增益共同缩放；这只约束采样时的贡献上界，不能保证反馈变化后的连续力矩上限。
+
+详细接口见 [控制包说明](src/custom_dog_control/README.md) 和 [架构说明](docs/architecture.md)。机器人只有 IMU 和编码器，没有足底接触传感器；接触计划和估计不能标为实测足底力。
+
+## 验证
 
 ```bash
 source src/custom_dog_control/scripts/env.sh
@@ -126,160 +98,22 @@ colcon test --packages-select custom_dog_control --event-handlers console_direct
 colcon test-result --verbose
 ```
 
-覆盖模型、坐标和关节顺序、步态相位、速度限幅、标定、安全锁存、上游源码来源，
-以及站立 PD 向 WBC 交接时的总力矩连续性。启用测试时，找不到规范 URDF 会明确报错，
-避免模型测试被静默跳过。
-
-一条命令运行完整基础仿真回归：
+本机原生 Fortress 入口（默认无界面；桌面终端可加 `gui:=true`）：
 
 ```bash
+src/custom_dog_control/scripts/run_fortress.sh
+```
+
+默认关闭真值辅助，使用公共 250 Hz/20 Hz 配置和 RK3588 大核；首次生成 AD 模型可能需要数分钟。当前默认电机 PD 仿真在每个 1 ms 物理步计算 PD，并模拟外环一周期与物理步相位延迟；这是理想伺服模型，没有测得真实电机带宽。复现本轮通过的旧手柄流程可加 `legacy_joy_layout:=true`。低速完整动作及 60 秒站立结果见 [兼容验收记录](docs/compatibility-validation-20261103.md)，此前 1000 Hz 的已通过结果见 [历史仿真记录](docs/simulation-validation-20261102.md)。
+
+有 Gazebo Classic 的开发机仍保留旧入口：
+
+```bash
+CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
+src/custom_dog_control/scripts/run_simulation.sh
 src/custom_dog_control/scripts/test_simulation.sh
-
-# 也可仅运行一组；输出目录必须尚不存在
-src/custom_dog_control/scripts/test_simulation.sh \
-  --scenario motion --output-dir log/my-motion-run
 ```
 
-- `motion`：起身 → 12 秒前进 → 停车，检查模式、位移、姿态和 WBC。
-- `matrix`：前进、侧移、转向，检查每段运动和停车后的站立。
-- 默认 `all`：两组分别冷启动 Gazebo，关闭 GUI/RViz/键盘。
-- 默认独立 ROS 域 `97`、仅本机通信、动态 Gazebo master 端口；并行运行时用 `--domain-id` 指定其他未使用域。
-- 日志写入 `log/simulation/<时间>/`：每组 `launch.log`、`test.log`、`result.json`，总入口写 `summary.json`。
-- 失败或超时返回非零退出码；退出时只清理本次创建的进程组。可用 `--startup-timeout`、`--test-timeout` 调整秒数。
+本轮使用 Fortress 进行当前配置回归；未验证上述 Classic 入口。
 
-基础回归不覆盖高速包线、地形或真机。相关独立测试命令和适用范围见 [验收说明](docs/validation-baselines.md)。
-
-## 软件结构
-
-```text
-src/custom_dog_control/
-├── include/custom_dog_control/   # 类型、控制器接口、纯计算工具
-├── src/controller/              # 主循环、生命周期、输入、状态机、硬件接口、诊断
-├── src/model/                   # 公共机器人模型、模型校验
-├── src/precision/               # 精确落足规划、执行核心、WBC 与 ROS 适配
-├── src/nmpc/                    # OCS2 后端、模型验证、状态估计
-├── src/safety/                  # 有效性/超时/限位检查和故障锁存
-├── src/hardware/                # Unitree 电机通信与 ros2_control 实机插件
-├── config/                     # 控制参数、NMPC 设置、依赖版本
-├── launch/                     # Gazebo / 真机启动
-├── scripts/                    # 工作区入口、运行工具、仿真验收
-├── test/                       # 单元与模型/来源契约测试
-└── third_party/                 # 固定版本的上游算法和 qpOASES
-```
-
-`fdilink_ahrs` 和 `serial_ros2` 提供 IMU/串口依赖；`unitree_guide` 是被 `COLCON_IGNORE`
-排除的历史参考。整体闭环如下，图中的频率为默认配置目标。
-
-```mermaid
-flowchart TB
-    operator["键盘 / 手柄 / 上层规划"] -->|"/joy · /cmd_vel"| input["输入仲裁、超时处理、速度与加速度限幅"]
-    model["custom_dog_description<br/>URDF · 网格 · 质量惯量 · 关节限位"] -.-> pin["Pinocchio 模型 / ModelValidator"]
-
-    subgraph controller["NmpcWbcController · ros2_control update · 1000 Hz"]
-        input --> fsm["状态机与步态监督<br/>起身 / 站立 / Trot / 故障"]
-        estimate["状态输入选择<br/>仿真真值 或 IMU + 运动学融合估计"] --> observation["观测状态与速度目标参考"]
-        input --> observation
-        fsm -->|"STAND_UP"| pd["关节 PD 插值起身"]
-        fsm -->|"MPC_STANCE / MPC_TROT"| wbc
-        policy["MRT 策略评估<br/>期望状态、输入、接触模式"] --> wbc["WeightedWbc · qpOASES<br/>全身动力学 QP"]
-        estimate -->|"实测基座与关节状态"| wbc
-        wbc --> output["状态机选择输出 / 起身交接<br/>HybridJointCommand"]
-        pd --> output
-        safety["SafetyMonitor + 故障锁存"] -->|"故障覆盖为安全输出"| output
-        estimate --> safety
-    end
-
-    observation --> mpc["NmpcBackend · 独立求解线程 · 50 Hz<br/>legged::LeggedInterface + OCS2 SqpMpc"]
-    fsm -->|"站立 / 固定周期 Trot 请求"| mpc
-    mpc -->|"MPC_MRT_Interface"| policy
-    policy -->|"新策略确认切换"| fsm
-    pin -.-> estimate
-    pin -.-> mpc
-    pin -.-> wbc
-
-    output -->|"等效力矩 + URDF 限幅"| sim["gazebo_ros2_control<br/>Gazebo Classic"]
-    output -->|"q_des · dq_des · tau_ff · kp · kd"| real["UnitreeSystemInterface → IOSDK<br/>Unitree SDK → 四路 RS485 → 12 电机"]
-    sim -->|"关节反馈 · /imu · /ground_truth/odom"| estimate
-    real -->|"关节反馈；fdilink_ahrs 提供 /imu"| estimate
-    real -->|"通信 / 温度 / 急停状态"| safety
-
-    classDef control fill:#e8f1ff,stroke:#4775ad,color:#172b4d;
-    classDef algorithm fill:#e5f5ec,stroke:#39815a,color:#193e2b;
-    classDef device fill:#fff3df,stroke:#ae7b2a,color:#503814;
-    classDef guard fill:#fce8e8,stroke:#b85454,color:#602626;
-    class input,fsm,observation,policy,output control;
-    class estimate,pin,mpc,wbc,pd algorithm;
-    class operator,model,sim,real device;
-    class safety guard;
-```
-
-实线表示运行时数据或控制流，虚线表示模型依赖。仿真与真机为二选一后端。
-仿真默认 `use_sim_ground_truth: true`；真机使用 IMU、关节反馈和计划接触相位驱动的
-运动学卡尔曼滤波。`/joint_states` 由 `joint_state_broadcaster` 发布，控制器直接读取
-ros2_control 状态接口；里程计、基座 TF、控制模式、接触计划与诊断由控制器发布。
-算法细节和动作切换见 [控制包框架图](src/custom_dog_control/README.md#算法链路)。
-
-控制器实现按职责分文件，仍共享同一个生命周期实例。参数、执行线程、状态机、接口和模型约定的
-详细说明见 [架构与维护入口](docs/architecture.md)。后续修改可按下表定位：
-
-| 目标 | 入口（相对 `src/custom_dog_control/`） |
-| --- | --- |
-| 起身 / 站立 / Trot 切换 | `src/controller/ControllerStateMachine.cpp` |
-| 输入超时和指令仲裁 | `src/controller/ControllerInputs.cpp` |
-| 控制参数及声明校验 | `config/controllers.yaml` + `src/controller/ControllerLifecycle.cpp` |
-| NMPC / WBC 算法适配 | `src/nmpc/NmpcBackend.cpp` + `config/nmpc/task.info` |
-| 观测诊断 | `src/controller/ControllerDiagnostics.cpp` |
-| 实机通信和标定 | `src/hardware/` |
-
-## 可配置路径
-
-在执行脚本或 source 环境前设置；自定义路径请使用绝对路径：
-
-| 环境变量 | 默认值 / 含义 |
-| --- | --- |
-| `CUSTOM_DOG_DESCRIPTION_DIR` | 同级 `himloco_custom_dog/assets/custom_dog_description` 模型源码包 |
-| `CUSTOM_DOG_MODEL_WS` | 本仓库 `external/model_ws` |
-| `CUSTOM_DOG_CONTROL_DEPS_WS` | 本仓库 `external/ocs2_ws`，也支持直接指向安装前缀 |
-| `CUSTOM_DOG_BUILD_ONLY` | `1` 表示构建后退出 |
-| `CMAKE_BUILD_PARALLEL_LEVEL` | 默认 `2`；内存不足可设 `1` |
-
-`env.sh`、构建/启动/回归脚本及 `fetch_ocs2.sh` 是**源码工作区入口**，通过上述路径调用。
-`keyboard_teleop.py`、`simulation_*_test.py`、`profile_runtime.py` 等运行工具通过 `ros2 run` 调用。
-所有编译、安装和日志产物均由 `.gitignore` 排除。
-`external/` 中两个工作区也不提交 Git，重建方式见 [external/README.md](external/README.md)。
-`external/COLCON_IGNORE` 防止主工作区递归发现第三方包；依赖在各自工作区内单独构建。
-
-## 真机与依赖来源
-
-ARM64 必须在目标设备重新编译。实机状态估计、12 电机 RS485 周期和物理急停需独立验收；
-仿真真值反馈下的结果不等于实机性能。构建参数、标定约定和调试顺序见 [真机说明](docs/hardware.md)。
-
-- 第三方版本：[dependencies.lock.yaml](src/custom_dog_control/config/dependencies.lock.yaml)。
-- 上游源码校验：[legged_control_upstream.sha256](src/custom_dog_control/config/legged_control_upstream.sha256)。
-- 本包及 vendored `legged_control` / WBC 使用 BSD-3-Clause；qpOASES 使用 LGPL-2.1，见各第三方目录许可证。
-- 迁移前代码保留在 `pre-ros2-nmpc-wbc` 标签；包级入口说明见 [包 README](src/custom_dog_control/README.md)。
-
-## QR 精确越障开发（RC2027 分支）
-
-**机器人当前只有 IMU 和关节反馈，没有足底接触传感器。** 新增 `qr_*` 模块用于已知支撑面的精确换步仿真，接触由关节力矩残差与运动学估计；精确模式默认关闭，禁止真机启动。架构、构建命令、阶段计划及实际验收状态见 [QR 开发文档](docs/qr/README.md)。M1 限定仿真验收已收尾（冻结版本 99/100）；M2 已扩展到带机身前进的 16 步换步、四脚 30/50 mm 平台转移和后续步序预检；完整困难障碍门槛仍未通过。当前结果与限制见 [M2 进展](docs/qr/m2-progress.md)。
-
-后续 MID360 驱动和 FAST-LIO ROS 2 固定取自你的 `ROBOCON_NBUT_R2` 仓库，
-通过 `tools/fetch_perception.sh` 获取到独立的 `external/perception_ws`。
-版本、接口、构建前提及待标定项目见 [感知依赖说明](docs/qr/perception-source.md)。
-当前已获取源码，未运行雷达或定位，也未接入控制闭环。
-
-2026-10-09：已知几何单步矩阵 **100/100 通过**，落点误差 P95 3.77 mm、最大 3.80 mm；完整故障覆盖仍待补齐。条件、早期失败及未执行项目见 [验证记录](docs/qr/validation.md)。
-
-QR 精确模式现已拆分规划器、执行核心与 ROS 适配层，模型不再经由 NMPC 后端获取。
-模型/控制/验收参数分开配置；统一验证入口为 `tools/validate_qr.py`。
-详见 [修改方案](docs/qr/refactoring.md) 与 [实际验证结果](docs/qr/refactoring-results.md)。
-
-M1 收尾进展及异常测试见 [精确换步收尾记录](docs/qr/m1-closeout.md)。
-新增的 `qr_simulation` 只承担独立物理评价；接触真值不会进入控制器。
-
-M2 当前能力、复现命令、保留的失败和下一阶段门槛见 [M2 进展](docs/qr/m2-progress.md)；历史入口数据见 [冻结记录](docs/qr/m2-entry.md)。
-
-M2 前次版本已通过 9 次连续试验（144 步）及最终 25 项回归；高墙完整步序和名义障碍协同执行仍未通过。详见 [结果与未通过门槛](docs/qr/m2-progress.md)。
-
-本次新增有容量限制的机身/姿态/足端协同参考执行接口，仍保留触地确认与故障保护；高墙完整步序和名义障碍动态闭环尚未验收。 [接口与测试记录](docs/qr/coordinated-reference.md)。
-协同套件 14/14 入口通过，覆盖平地、30/50 mm 直行序列和已知高平台初始化；仍非完整 M2 验收。
+精准落足源码可从 Git 历史恢复；移除前文档、工作区补丁及旧安装产物保存在 `/home/orangepi/qr_ws_backups/remove_precision_20261102/`。当前开发分支为 `RC2027`，远端为 `origin/RC2027`；未自动提交或推送本轮修改。

@@ -1,0 +1,425 @@
+{
+  "schema_version": 1,
+  "package": "custom_dog_description",
+  "upstream": {
+    "repository": "https://github.com/Woh43/custom_dog_stack.git",
+    "revision": "6c776de8deb76b8fd565cd80f16ac6a4cc8b635d",
+    "package_path": "ros2/src/custom_dog_description",
+    "upstream_robot_mass_kg": 13.84916,
+    "mesh_storage": "Git LFS; files in this package are materialized content, not pointers"
+  },
+  "author_and_license": {
+    "upstream_copyright": "Copyright (c) 2026 h43",
+    "original_package_maintainer": "hsc",
+    "original_package_license": "Proprietary",
+    "upstream_root_license": "MIT",
+    "upstream_license_copy": "LICENSE.upstream",
+    "declaration_inconsistency_preserved": true,
+    "interpretation": "Both upstream declarations are retained; this import does not resolve or replace them."
+  },
+  "model": {
+    "name": "custom_dog",
+    "base_link": "base",
+    "unloaded_mass_kg": 13.84916,
+    "loaded_mass_kg": 15.15,
+    "links": 17,
+    "joints": 16,
+    "actuated_joints": 12,
+    "canonical_urdf": "urdf/custom_dog.urdf",
+    "sdk_joint_order": [
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint"
+    ],
+    "foot_links": [
+      "FR_foot",
+      "FL_foot",
+      "RR_foot",
+      "RL_foot"
+    ]
+  },
+  "battery_adjustment": {
+    "source": "Local correction applied 2026-11-02 before model import; not present in upstream commit.",
+    "existing_patch": "src/custom_dog_control/patches/custom-dog-battery-model.patch",
+    "unloaded_base": {
+      "mass_kg": 6.55,
+      "com_m": [
+        -0.00425258944579,
+        0.00128121327661,
+        -0.00191914629703
+      ],
+      "inertia_kg_m2": [
+        [
+          0.03096610722,
+          -0.000244342692501,
+          0.000287791828508
+        ],
+        [
+          -0.000244342692501,
+          0.07351319892,
+          -4.19715992635e-05
+        ],
+        [
+          0.000287791828508,
+          -4.19715992635e-05,
+          0.0930083690894
+        ]
+      ]
+    },
+    "payload": {
+      "mass_kg": 1.30084,
+      "center_in_base_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "intrinsic_inertia_model": "point_mass_approximation",
+      "dimensions_available": false
+    },
+    "method": "Mass-weighted center of mass and parallel-axis theorem. Battery is already merged into base in all variants."
+  },
+  "variants": {
+    "custom_dog.urdf": {
+      "changed_collision_links": [],
+      "physical_changes_from_upstream": [
+        "base_inertial_battery_correction"
+      ],
+      "tested_stage_sha256": "bf01f817cfb7fe3d0112333b7c6e767c441a80c03bd78f73a82c5c3b36540741"
+    },
+    "custom_dog_gazebo_point_foot.urdf": {
+      "changed_collision_links": [
+        "FL_calf",
+        "FL_thigh",
+        "FR_calf",
+        "FR_thigh",
+        "RL_calf",
+        "RL_thigh",
+        "RR_calf",
+        "RR_thigh"
+      ],
+      "physical_changes_from_upstream": [
+        "base_inertial_battery_correction"
+      ],
+      "tested_stage_sha256": "e80eef8b84ef1db90b89fd04de8e5511ebb372ada3fbdd7c1ea17b0b064cd79f"
+    },
+    "custom_dog_selective_collision.urdf": {
+      "changed_collision_links": [
+        "FL_calf",
+        "FL_thigh",
+        "FR_calf",
+        "FR_thigh",
+        "RL_calf",
+        "RL_thigh",
+        "RR_calf",
+        "RR_thigh"
+      ],
+      "physical_changes_from_upstream": [
+        "base_inertial_battery_correction"
+      ],
+      "tested_stage_sha256": "247abf334d356016e1e7a8c1da2fed8d0a05be419a737e404bad30334f846616"
+    }
+  },
+  "import_baseline": {
+    "copied_from": "external/model_ws/src/custom_dog_description",
+    "all_model_payload_bytes_preserved": true,
+    "canonical_urdf_sha256": "bf01f817cfb7fe3d0112333b7c6e767c441a80c03bd78f73a82c5c3b36540741",
+    "prior_physics_record": "log/current-control-physics-20261103/run-result.json",
+    "scope": "Preserved model payload identity; this import is not a new physical simulation or hardware-motion acceptance."
+  },
+  "manifest_scope": "Locks complete config, launch, mesh and URDF payload plus package metadata and upstream license; local CMake, tests and README files are maintained in this repository.",
+  "local_integration_changes": [
+    "CMake installs provenance/license/README resources and registers an offline CTest.",
+    "package.xml declares existing display launch dependencies and offline test dependencies.",
+    "Added Chinese/English model documentation and static resource validation."
+  ],
+  "files": {
+    "LICENSE.upstream": {
+      "size_bytes": 1060,
+      "sha256": "68227423ab54f101df4e88c161a4b425e6ffa0d6aa5f4755cd64bb567aba8a90",
+      "upstream_path": "LICENSE",
+      "upstream_git_blob_oid": "81beeaab641adbd9e6df6ab5708ec0d1e21176b6",
+      "upstream_git_blob_sha256": "68227423ab54f101df4e88c161a4b425e6ffa0d6aa5f4755cd64bb567aba8a90",
+      "origin": "unchanged_upstream_file"
+    },
+    "config/battery_payload.yaml": {
+      "size_bytes": 377,
+      "sha256": "4bced1fc4b1114f10822e7bb18f3b630ab5be34f0675525755cec586589fcc23",
+      "upstream_path": null,
+      "origin": "local_battery_metadata"
+    },
+    "config/joint_contract.yaml": {
+      "size_bytes": 313,
+      "sha256": "adee666374b9efb0dd8a40cba578afcfd85830fdce8ed7b8807224d0bb26cdfb",
+      "upstream_path": "ros2/src/custom_dog_description/config/joint_contract.yaml",
+      "upstream_git_blob_oid": "576b6d6da4fd32115d752d39f4316911b1e40094",
+      "upstream_git_blob_sha256": "adee666374b9efb0dd8a40cba578afcfd85830fdce8ed7b8807224d0bb26cdfb",
+      "origin": "unchanged_upstream_file"
+    },
+    "launch/display.launch.py": {
+      "size_bytes": 1167,
+      "sha256": "0eaec47457bfd50a32a7d8ee74f42b23cb673af0003fbccf719f994d2e2cd91c",
+      "upstream_path": "ros2/src/custom_dog_description/launch/display.launch.py",
+      "upstream_git_blob_oid": "c3a2fb6ade8412b361254f6ccc17aecd386e052b",
+      "upstream_git_blob_sha256": "0eaec47457bfd50a32a7d8ee74f42b23cb673af0003fbccf719f994d2e2cd91c",
+      "origin": "unchanged_upstream_file"
+    },
+    "meshes/FL_calf.STL": {
+      "size_bytes": 169584,
+      "sha256": "d719959ddf5d117e54363c4fcd1ce41277d36b346868d1b8f32b8f7ae6e6a876",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FL_calf.STL",
+      "upstream_git_blob_oid": "d6e52d01fc9f37c1326cd833e6275f82282de596",
+      "upstream_git_blob_sha256": "d3295e0081560056bfe9b548f58a659a4589cad15cf0fb79f0575951bbae7416",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "d719959ddf5d117e54363c4fcd1ce41277d36b346868d1b8f32b8f7ae6e6a876",
+        "size_bytes": 169584
+      }
+    },
+    "meshes/FL_foot.STL": {
+      "size_bytes": 480884,
+      "sha256": "6125259157b36e0ec5d4accafb5c5ba29ad2e795b5ea3262f74dbe9f67131c96",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FL_foot.STL",
+      "upstream_git_blob_oid": "94caab5f4e2b81fc57f5afe060af0d55a79d007a",
+      "upstream_git_blob_sha256": "22510ea829ccd7e2b50b8453d3ff2611da92fd0943f035b93ddf550afcf31aa0",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "6125259157b36e0ec5d4accafb5c5ba29ad2e795b5ea3262f74dbe9f67131c96",
+        "size_bytes": 480884
+      }
+    },
+    "meshes/FL_hip.STL": {
+      "size_bytes": 2861784,
+      "sha256": "d3bda2776e250f4c1df0995d069c9e5a59d0c8e865627acc07f4ebab94c1a321",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FL_hip.STL",
+      "upstream_git_blob_oid": "cfe2e56ff23c9255e79e0be59118101a7f32b19a",
+      "upstream_git_blob_sha256": "2dce9c1741c30bb2eba40179819de6cd333db1e8b980f674ae5ed5f4bd1abfb6",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "d3bda2776e250f4c1df0995d069c9e5a59d0c8e865627acc07f4ebab94c1a321",
+        "size_bytes": 2861784
+      }
+    },
+    "meshes/FL_thigh.STL": {
+      "size_bytes": 3180984,
+      "sha256": "4fe41c8215edf1471e8396776a25504cfe0a7907a86c74e1aa703c01420ac2e8",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FL_thigh.STL",
+      "upstream_git_blob_oid": "e61d4587442383a0b5a10fc8ad916b9016a7dd55",
+      "upstream_git_blob_sha256": "a2cae84e9a4354b03a16197ef4402e8980c98b88fc3f0d4017cd1b7f1fe7a2f0",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "4fe41c8215edf1471e8396776a25504cfe0a7907a86c74e1aa703c01420ac2e8",
+        "size_bytes": 3180984
+      }
+    },
+    "meshes/FR_calf.STL": {
+      "size_bytes": 169584,
+      "sha256": "c1f114c026d0bcc27e68c9e774ffcebdae642359428e5ea5b4f7cbeaff5930e7",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FR_calf.STL",
+      "upstream_git_blob_oid": "ad9af6c0a9a09561f37667b63a5abae47496bb92",
+      "upstream_git_blob_sha256": "4cc3fb4488307f7b8ebdd9ef19d053bfb897ef23258067676222c420c76d4322",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "c1f114c026d0bcc27e68c9e774ffcebdae642359428e5ea5b4f7cbeaff5930e7",
+        "size_bytes": 169584
+      }
+    },
+    "meshes/FR_foot.STL": {
+      "size_bytes": 480884,
+      "sha256": "2687e45128d93ac801d297b5b879690cf7054720fe236f4731399eb5be3ec66f",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FR_foot.STL",
+      "upstream_git_blob_oid": "a8cf5cfb61404aef7ca54a8b193948275125ce45",
+      "upstream_git_blob_sha256": "3b981a06ea19f35c0b536eff37ea8fc3f3fa286b1d179c072c1329fd71f68489",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "2687e45128d93ac801d297b5b879690cf7054720fe236f4731399eb5be3ec66f",
+        "size_bytes": 480884
+      }
+    },
+    "meshes/FR_hip.STL": {
+      "size_bytes": 2861784,
+      "sha256": "fa6b10f0e9948773866b454c2beca830e2bfb322d439688e4c6e410e324d895a",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FR_hip.STL",
+      "upstream_git_blob_oid": "69d4f109b323b72756211cc23d403c587f189477",
+      "upstream_git_blob_sha256": "18cfeafd31c8dd97c862239124959305a0ae2e51403f1031098e191409e47e26",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "fa6b10f0e9948773866b454c2beca830e2bfb322d439688e4c6e410e324d895a",
+        "size_bytes": 2861784
+      }
+    },
+    "meshes/FR_thigh.STL": {
+      "size_bytes": 3180784,
+      "sha256": "b3bf00dbd8ed681cc27a3ad6a4cf8aa807cad8e1647c157c71115336c9114747",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/FR_thigh.STL",
+      "upstream_git_blob_oid": "1057c28aaeb3d98d70248a99dbcd640b94e2d2a6",
+      "upstream_git_blob_sha256": "f6a02fbbcb6c8801bbcff61a2dcb82fcff28ee84ed804cc426eec75a3e394071",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "b3bf00dbd8ed681cc27a3ad6a4cf8aa807cad8e1647c157c71115336c9114747",
+        "size_bytes": 3180784
+      }
+    },
+    "meshes/RL_calf.STL": {
+      "size_bytes": 169584,
+      "sha256": "58e34d963b1d1e4e8ec1b7e50df61617e017908ac253058793836410acfdd79c",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RL_calf.STL",
+      "upstream_git_blob_oid": "266b415bc58c9f731c30c1b65b102cfdd4e36259",
+      "upstream_git_blob_sha256": "3c28e69cb298ec0e0c7a56a488fe569c526243a76813767cc06090b37e7dc89e",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "58e34d963b1d1e4e8ec1b7e50df61617e017908ac253058793836410acfdd79c",
+        "size_bytes": 169584
+      }
+    },
+    "meshes/RL_foot.STL": {
+      "size_bytes": 480884,
+      "sha256": "6960046102035ab27352ca1528d763d8a5d10c6d99cb78783fb34d32688cfb63",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RL_foot.STL",
+      "upstream_git_blob_oid": "0df6fb3d2861fe378961b7dd7bf62b7be1e23e07",
+      "upstream_git_blob_sha256": "7113f8f905c79617f5a8462213101bc08a46d5efbffeb2ee625c0de7b24c036e",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "6960046102035ab27352ca1528d763d8a5d10c6d99cb78783fb34d32688cfb63",
+        "size_bytes": 480884
+      }
+    },
+    "meshes/RL_hip.STL": {
+      "size_bytes": 2861784,
+      "sha256": "89e3e14b982a6d9c4d31b1245f4a6895ce77ad4a38dbe876aa58065bc2ecbba8",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RL_hip.STL",
+      "upstream_git_blob_oid": "6a7dfdb39e64ea40f2c9ce2126c5641a61891bfd",
+      "upstream_git_blob_sha256": "a02a0dd75b0428f6c001617f339af49d490fdc17231592e189137fa60e76a5d0",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "89e3e14b982a6d9c4d31b1245f4a6895ce77ad4a38dbe876aa58065bc2ecbba8",
+        "size_bytes": 2861784
+      }
+    },
+    "meshes/RL_thigh.STL": {
+      "size_bytes": 3180984,
+      "sha256": "6c8130225e1db365796095f2a891b26a4c3690107a77ef73c63b8b3095e8da0f",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RL_thigh.STL",
+      "upstream_git_blob_oid": "b1771987b79667c9e538c00953c75ff04588df67",
+      "upstream_git_blob_sha256": "a1ac3e254aa8ae7031f0457cc7932b4b8b57566ac1e47cc20841da1200977a57",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "6c8130225e1db365796095f2a891b26a4c3690107a77ef73c63b8b3095e8da0f",
+        "size_bytes": 3180984
+      }
+    },
+    "meshes/RR_calf.STL": {
+      "size_bytes": 169584,
+      "sha256": "9ad0bf2b7c98dbb7aa91fb39853974cbd876c4255b2f1a6ed5be0cc6ae81403b",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RR_calf.STL",
+      "upstream_git_blob_oid": "fecf5c9b04938344c91720a512ecff648047a401",
+      "upstream_git_blob_sha256": "c4bbb0ab1dbc40318d67b7bf5d7749dbe3ac6c6bc666c0e501357d0885eefdb2",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "9ad0bf2b7c98dbb7aa91fb39853974cbd876c4255b2f1a6ed5be0cc6ae81403b",
+        "size_bytes": 169584
+      }
+    },
+    "meshes/RR_foot.STL": {
+      "size_bytes": 480884,
+      "sha256": "e4aada8b647a46c0d11df703d6ed2f15168b8b4154d77b1df853da398d75187c",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RR_foot.STL",
+      "upstream_git_blob_oid": "9ac9cb3e72e33fcba6ddb50c2c2d129da75c56fb",
+      "upstream_git_blob_sha256": "be5c7850f73ff66efed2150ed3e544346040114a8af5b5b6baf231bf97c46a77",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "e4aada8b647a46c0d11df703d6ed2f15168b8b4154d77b1df853da398d75187c",
+        "size_bytes": 480884
+      }
+    },
+    "meshes/RR_hip.STL": {
+      "size_bytes": 2861784,
+      "sha256": "c9db7e79eb9825ed9ee5083c9070589ffc8699ffe0368e8d7d24b57e2c0f4e87",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RR_hip.STL",
+      "upstream_git_blob_oid": "05523ab16fdf086f8d22ce824ba6e839b40649d8",
+      "upstream_git_blob_sha256": "bc6b4d1c86d0f7993f61ebd1fb24149858b217932f34a697c2dc0c15f8503546",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "c9db7e79eb9825ed9ee5083c9070589ffc8699ffe0368e8d7d24b57e2c0f4e87",
+        "size_bytes": 2861784
+      }
+    },
+    "meshes/RR_thigh.STL": {
+      "size_bytes": 3180784,
+      "sha256": "8d25dce56d3c37bffda79638f63b4d2958ccd4851e17610c992437436a00e916",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/RR_thigh.STL",
+      "upstream_git_blob_oid": "2f7cb901d1b70e5ac3faacabc5bd741be3e4c849",
+      "upstream_git_blob_sha256": "e901e1e1497f7e33fa7738bb75793bd87d906079292fdca572a58dc322aeb504",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "8d25dce56d3c37bffda79638f63b4d2958ccd4851e17610c992437436a00e916",
+        "size_bytes": 3180784
+      }
+    },
+    "meshes/base.STL": {
+      "size_bytes": 13287184,
+      "sha256": "a03b5c84320d582cbd411fa0db2cf9c08c5cb46b44d31b60896e8290885fd474",
+      "upstream_path": "ros2/src/custom_dog_description/meshes/base.STL",
+      "upstream_git_blob_oid": "b4245e1e9f08dca368bbf11252c52d6f3e77cea7",
+      "upstream_git_blob_sha256": "ea239271f44ee00f7a9e3fe366ca5d9f9d15b6a69fd7f542ea53215920e0f0c3",
+      "origin": "materialized_upstream_lfs",
+      "upstream_lfs": {
+        "oid_sha256": "a03b5c84320d582cbd411fa0db2cf9c08c5cb46b44d31b60896e8290885fd474",
+        "size_bytes": 13287184
+      }
+    },
+    "package.xml": {
+      "size_bytes": 782,
+      "sha256": "34fcd0b6eafd7c853d3f3e1f874c8196bce6d2826a7fdedbec51075a9a3c0207",
+      "upstream_path": "ros2/src/custom_dog_description/package.xml",
+      "upstream_git_blob_oid": "b0be653353d5151d1bc6641bddd879eb9004f4dc",
+      "upstream_git_blob_sha256": "703848f674cef1504874f7d5ebed64d5e54f97de8be005cdfa0524a078b2a329",
+      "origin": "upstream_package_with_local_dependency_metadata",
+      "local_changes": [
+        "Declared display launch Python dependencies and offline test dependencies; original maintainer and Proprietary license retained."
+      ]
+    },
+    "urdf/custom_dog.urdf": {
+      "size_bytes": 18128,
+      "sha256": "bf01f817cfb7fe3d0112333b7c6e767c441a80c03bd78f73a82c5c3b36540741",
+      "upstream_path": "ros2/src/custom_dog_description/urdf/custom_dog.urdf",
+      "upstream_git_blob_oid": "0ee3f946dcedda0ebc486ee574e0d06c88d5223e",
+      "upstream_git_blob_sha256": "43257604c8353ffc993937e7dcf4c93f1379299e5585d28bd24c832040c03fc6",
+      "origin": "upstream_model_with_local_battery_correction",
+      "local_changes": [
+        "Merged battery mass, center of mass and parallel-axis inertia into base."
+      ]
+    },
+    "urdf/custom_dog_gazebo_point_foot.urdf": {
+      "size_bytes": 16667,
+      "sha256": "e80eef8b84ef1db90b89fd04de8e5511ebb372ada3fbdd7c1ea17b0b064cd79f",
+      "upstream_path": "ros2/src/custom_dog_description/urdf/custom_dog_gazebo_point_foot.urdf",
+      "upstream_git_blob_oid": "dc6d639baf39ba479b2b34d8c485b24ef1f5cae8",
+      "upstream_git_blob_sha256": "18b69a515ddc16024adca07f4a5f936ecf1591369bc3b3d13970d70d36791fb0",
+      "origin": "upstream_model_with_local_battery_correction",
+      "local_changes": [
+        "Merged battery mass, center of mass and parallel-axis inertia into base.",
+        "Re-derived from canonical by removing eight thigh/calf collisions; XML serialization omits the battery comment."
+      ]
+    },
+    "urdf/custom_dog_selective_collision.urdf": {
+      "size_bytes": 18077,
+      "sha256": "247abf334d356016e1e7a8c1da2fed8d0a05be419a737e404bad30334f846616",
+      "upstream_path": "ros2/src/custom_dog_description/urdf/custom_dog_selective_collision.urdf",
+      "upstream_git_blob_oid": "021d94ca886f43b64e8cf6ca49d63ba6dbade3fc",
+      "upstream_git_blob_sha256": "1e3c2f4c8c05d38a5aca52cf38eef7648f7bf9cfe68265403555794bebf5ece7",
+      "origin": "upstream_model_with_local_battery_correction",
+      "local_changes": [
+        "Merged battery mass, center of mass and parallel-axis inertia into base."
+      ]
+    }
+  }
+}

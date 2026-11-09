@@ -1,0 +1,7 @@
+<library path="custom_dog_control_fortress_motor_system">
+  <class name="custom_dog_control/FortressMotorSystem"
+         type="custom_dog_control::FortressMotorSystem"
+         base_class_type="gz_ros2_control::GazeboSimSystemInterface">
+    <description>Five-field motor PD with an outer-cycle command pipeline in Fortress physics.</description>
+  </class>
+</library>

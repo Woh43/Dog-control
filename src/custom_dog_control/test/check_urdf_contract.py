@@ -17,7 +17,7 @@ EXPECTED_COLLISION_LINKS = {
     *(f'{leg}_calf' for leg in ('FR', 'FL', 'RR', 'RL')),
     *EXPECTED_FEET,
 }
-EXPECTED_MASS = 13.84916
+EXPECTED_MASS = 15.15
 
 
 def inertia_is_positive_definite(inertia):

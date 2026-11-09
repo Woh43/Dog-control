@@ -53,6 +53,8 @@ std::array<double, kJointCount> DefaultPassiveJointPositions() {
 }  // namespace
 
 NmpcWbcController::~NmpcWbcController() {
+  command_output_active_ = false;
+  simulation_effort_delay_.Reset();
   if (backend_) {
     backend_->Stop();
   }
@@ -69,16 +71,23 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
     auto_declare<std::string>("urdf_file", "");
     auto_declare<std::string>("task_file", "");
     auto_declare<std::string>("reference_file", "");
-    auto_declare<bool>("precision_enabled", false);
-    auto_declare<std::string>("precision_model_file", "");
-    auto_declare<std::string>("precision_control_file", "");
     auto_declare<bool>("legacy_joy_y_right", true);
+    auto_declare<bool>("legacy_joy_layout", false);
     auto_declare<bool>("use_sim_ground_truth", true);
+    auto_declare<bool>("simulation_control_trace", false);
     auto_declare<double>("ground_truth_timeout_s", 0.10);
     // MPC 在后台按此频率求解；WBC 则随 controller_manager 的 update 周期执行。
     // SQP 迭代数和求解时域由 task.info 配置，两层控制频率不要混用。
     auto_declare<double>("mpc_frequency_hz", 50.0);
+    auto_declare<int>("mpc_solver_threads", 0);
+    auto_declare<double>("trot_period_s", kTrotPeriodSeconds);
+    auto_declare<double>("trot_double_support_s", 0.0);
+    auto_declare<double>("wbc_contact_force_ramp_s", 0.0);
+    auto_declare<double>("safety_max_joint_velocity_rad_s", 15.0);
+    auto_declare<double>("safety_max_horizontal_speed_m_s", 3.0);
+    auto_declare<double>("safety_overspeed_duration_s", 0.1);
     auto_declare<double>("simulation_policy_timeout_cycles", 4.0);
+    auto_declare<int>("simulation_command_delay_cycles", 0);
     auto_declare<double>("command_timeout_s", 0.30);
     auto_declare<double>("joy_timeout_s", 0.30);
     auto_declare<double>("max_reference_lead_xy_m_s", 0.25);
@@ -139,13 +148,16 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
 
 controller_interface::CallbackReturn NmpcWbcController::on_configure(
     const rclcpp_lifecycle::State&) {
+  command_output_active_ = false;
+  simulation_effort_delay_.Reset();
   try {
     const auto node = get_node();
     joints_ = node->get_parameter("joints").as_string_array();
     hardware_mode_ = node->get_parameter("hardware_mode").as_string();
     if (joints_.size() != kJointCount ||
-        (hardware_mode_ != "real" && hardware_mode_ != "gazebo")) {
-      throw std::invalid_argument("joints must contain 12 entries and hardware_mode must be real or gazebo");
+        (hardware_mode_ != "real" && hardware_mode_ != "gazebo" &&
+         hardware_mode_ != "fortress_hybrid")) {
+      throw std::invalid_argument("joints must contain 12 entries and hardware_mode must be real, gazebo or fortress_hybrid");
     }
     for (std::size_t i = 0; i < kJointCount; ++i) {
       if (joints_[i] != kJointNames[i]) {
@@ -153,11 +165,8 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
       }
     }
 
-    precision_enabled_ = node->get_parameter("precision_enabled").as_bool();
-    if (precision_enabled_ && IsRealHardware()) {
-      throw std::invalid_argument("QR precision release is simulation-only: real effort/contact calibration not validated");
-    }
     legacy_joy_y_right_ = node->get_parameter("legacy_joy_y_right").as_bool();
+    legacy_joy_layout_ = node->get_parameter("legacy_joy_layout").as_bool();
     use_sim_ground_truth_ =
         node->get_parameter("use_sim_ground_truth").as_bool();
     ground_truth_timeout_s_ =
@@ -213,6 +222,10 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
         node->get_parameter("simulation_passive_leg_kp").as_double();
     simulation_passive_kd_ =
         node->get_parameter("simulation_passive_kd").as_double();
+    const auto command_delay_cycles =
+        node->get_parameter("simulation_command_delay_cycles").as_int();
+    simulation_effort_delay_.Configure(command_delay_cycles);
+    simulation_command_delay_cycles_ = static_cast<int>(command_delay_cycles);
     if (ground_truth_timeout_s_ <= 0.0 ||
         max_reference_lead_xy_m_s_ <= 0.0 ||
         max_reference_lead_yaw_rad_s_ <= 0.0 ||
@@ -274,11 +287,12 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
       reference_file_ = share + "/config/nmpc/reference.info";
     }
 
-    // 后端需要 URDF 文件路径；非空 robot_description 会生成进程临时文件，
-    // 覆盖 urdf_file，并在析构时删除。两者都未提供时回退到描述包默认模型。
+    // An explicit canonical file takes precedence over the simulator's decorated
+    // robot_description. Temporary plugin/config paths are not model dynamics
+    // and must not force a fresh AD cache on every simulator launch.
     const std::string robot_description =
         node->get_parameter("robot_description").as_string();
-    if (!robot_description.empty()) {
+    if (urdf_file_.empty() && !robot_description.empty()) {
       generated_urdf_file_ =
           "/tmp/custom_dog_control_robot_description_" + std::to_string(::getpid()) + ".urdf";
       std::ofstream urdf_stream(generated_urdf_file_);
@@ -296,11 +310,18 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     }
 
     NmpcBackendConfig backend_config;
+    backend_config.use_sim_time = node->get_parameter("use_sim_time").as_bool();
     backend_config.task_file = task_file_;
     backend_config.reference_file = reference_file_;
     backend_config.urdf_file = urdf_file_;
     backend_config.frequency_hz =
         node->get_parameter("mpc_frequency_hz").as_double();
+    backend_config.solver_threads = node->get_parameter("mpc_solver_threads").as_int();
+    backend_config.trot_period_s = node->get_parameter("trot_period_s").as_double();
+    backend_config.trot_double_support_s =
+        node->get_parameter("trot_double_support_s").as_double();
+    backend_config.contact_force_ramp_s =
+        node->get_parameter("wbc_contact_force_ramp_s").as_double();
     backend_config.target_horizon_s = 1.0;
     backend_config.nominal_height_m = nominal_height_m_;
     backend_config.max_hip_angle_rad =
@@ -315,33 +336,30 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
 
     // 先完成模型与求解器配置，再创建依赖相同模型布局的估计器和安全限值。
     // 配置失败直接拒绝生命周期切换，不能带着不完整映射进入 update。
-    precision_.reset();
     backend_.reset();
     estimator_.reset();
-    std::unique_ptr<RobotModel> precision_model;
-    std::string validation_summary;
-    if (precision_enabled_) {
-      if (use_sim_ground_truth_) throw std::invalid_argument("QR precision control forbids ground-truth state input");
-      const auto share = ament_index_cpp::get_package_share_directory("custom_dog_control");
-      auto model_file = node->get_parameter("precision_model_file").as_string();
-      auto control_file = node->get_parameter("precision_control_file").as_string();
-      if (model_file.empty()) model_file = share + "/config/precision_model.yaml";
-      if (control_file.empty()) control_file = share + "/config/precision_control.yaml";
-      const auto model_config = RobotModelConfig::Load(model_file);
-      const auto config = PrecisionConfig::Load(control_file);
-      precision_model = std::make_unique<RobotModel>(urdf_file_, model_config);
-      validation_summary = "validated shared model; precision WBC (NMPC not initialized)";
-      precision_ = std::make_unique<PrecisionRuntime>(node, *precision_model, urdf_file_, task_file_, model_config, config);
-    } else {
-      backend_ = std::make_unique<NmpcBackend>();
-      const auto validation = backend_->Configure(backend_config);
-      if (!validation.ok) throw std::runtime_error(validation.Summary());
-      validation_summary = validation.Summary();
-      estimator_ = std::make_unique<KinematicStateEstimator>(backend_->pinocchioInterface(), backend_->modelInfo());
-      estimator_->Reset(nominal_height_m_);
-    }
+    backend_ = std::make_unique<NmpcBackend>();
+    const auto validation = backend_->Configure(backend_config);
+    if (!validation.ok) throw std::runtime_error(validation.Summary());
+    const auto validation_summary = validation.Summary();
+    estimator_ = std::make_unique<KinematicStateEstimator>(
+        backend_->pinocchioInterface(), backend_->modelInfo());
+    estimator_->Reset(nominal_height_m_);
 
     SafetyLimits safety_limits;
+    const double max_joint_velocity =
+        node->get_parameter("safety_max_joint_velocity_rad_s").as_double();
+    safety_limits.max_horizontal_speed_m_s =
+        node->get_parameter("safety_max_horizontal_speed_m_s").as_double();
+    safety_limits.overspeed_duration_s =
+        node->get_parameter("safety_overspeed_duration_s").as_double();
+    if (!std::isfinite(max_joint_velocity) || max_joint_velocity <= 0.0 ||
+        !std::isfinite(safety_limits.max_horizontal_speed_m_s) ||
+        safety_limits.max_horizontal_speed_m_s <= 0.0 ||
+        !std::isfinite(safety_limits.overspeed_duration_s) ||
+        safety_limits.overspeed_duration_s < 0.0) {
+      throw std::invalid_argument("invalid motion overspeed safety limits");
+    }
     // 策略容许年龄按 MPC 周期换算为秒；实机固定两周期，仿真可配置更宽裕。
     const double policy_timeout_cycles =
         IsRealHardware()
@@ -359,7 +377,7 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     if (safety_limits.joint_position_tolerance_rad < 0.0) {
       throw std::invalid_argument("joint_limit_tolerance_rad must be non-negative");
     }
-    const auto& model = precision_model ? precision_model->pin.getModel() : backend_->pinocchioInterface().getModel();
+    const auto& model = backend_->pinocchioInterface().getModel();
     for (std::size_t i = 0; i < kJointCount; ++i) {
       const auto joint_id = model.getJointId(joints_[i]);
       const auto q_index = model.joints[joint_id].idx_q();
@@ -367,6 +385,8 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
       safety_limits.lower_position[i] = model.lowerPositionLimit(q_index);
       safety_limits.upper_position[i] = model.upperPositionLimit(q_index);
       safety_limits.effort_limit[i] = model.effortLimit(v_index);
+      safety_limits.velocity_limit[i] =
+          std::min(max_joint_velocity, model.velocityLimit(v_index));
       if (nominal_joint_positions_[i] <= safety_limits.lower_position[i] ||
           nominal_joint_positions_[i] >= safety_limits.upper_position[i]) {
         throw std::invalid_argument("nominal joint position violates URDF limit");
@@ -407,6 +427,15 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     diagnostics_publisher_ =
         node->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
             "~/diagnostics", 10);
+    simulation_trace_publisher_.reset();
+    if (node->get_parameter("simulation_control_trace").as_bool()) {
+      if (IsRealHardware()) {
+        throw std::invalid_argument("simulation_control_trace is simulation-only");
+      }
+      simulation_trace_publisher_ =
+          node->create_publisher<std_msgs::msg::Float64MultiArray>(
+              "~/simulation_control_trace", rclcpp::SensorDataQoS().keep_last(1));
+    }
     odom_publisher_ = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(node);
 
@@ -418,13 +447,11 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     RCLCPP_INFO(
         node->get_logger(), "Configured custom dog model: %s",
         validation_summary.c_str());
-    RCLCPP_INFO(node->get_logger(), "Algorithm backend: %s",
-        precision_enabled_ ? "shared RobotModel + PrecisionWbc (NMPC disabled)"
-                           : "legged::LeggedInterface + legged::WeightedWbc");
+    RCLCPP_INFO(node->get_logger(),
+        "Algorithm backend: legged::LeggedInterface + legged::WeightedWbc");
     return controller_interface::CallbackReturn::SUCCESS;
   } catch (const std::exception& exception) {
     RCLCPP_ERROR(get_node()->get_logger(), "Configuration failed: %s", exception.what());
-    precision_.reset();
     backend_.reset();
     estimator_.reset();
     return controller_interface::CallbackReturn::ERROR;
@@ -433,15 +460,24 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
 
 controller_interface::CallbackReturn NmpcWbcController::on_activate(
     const rclcpp_lifecycle::State&) {
+  command_output_active_ = false;
+  simulation_effort_delay_.Reset();
   // 激活只准备控制链路，仍从 PASSIVE 开始并要求标定；启动求解器本身
   // 不授予运动权限。接口索引必须在 controller_manager 分配句柄后解析。
   if (!ResolveInterfaceIndices()) {
     return controller_interface::CallbackReturn::ERROR;
   }
   mode_ = OperatingMode::PASSIVE;
+  controller_fault_reason_.clear();
   stance_handoff_active_ = false;
   requires_recalibration_ = true;
   reset_calibration_pending_ = false;
+  calibration_gate_.Reset();
+  startup_calibration_input_gate_.Reset();
+  estimator_->Reset(nominal_height_m_);
+  backend_->InvalidateObservation();
+  policy_buffer_.writeFromNonRT(PolicySample{});
+  last_policy_ = PolicySample{};
   observation_time_ = 0.0;
   last_target_update_seconds_ = -1.0;
   target_command_was_moving_ = false;
@@ -459,22 +495,24 @@ controller_interface::CallbackReturn NmpcWbcController::on_activate(
   if (safety_monitor_) {
     safety_monitor_->Reset();
   }
-  if (precision_) precision_->Activate();
-  else backend_->Start();
+  backend_->Start();
   mode_publisher_->on_activate();
   contact_publisher_->on_activate();
   diagnostics_publisher_->on_activate();
+  if (simulation_trace_publisher_) simulation_trace_publisher_->on_activate();
   odom_publisher_->on_activate();
   WriteSafeCommand();
+  command_output_active_ = true;
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn NmpcWbcController::on_deactivate(
     const rclcpp_lifecycle::State&) {
+  command_output_active_ = false;
+  simulation_effort_delay_.Reset();
   // 先把命令句柄切到安全输出，再等待求解线程退出；Stop 可能阻塞，
   // 因此放在生命周期路径，而不是周期控制路径。
   mode_ = OperatingMode::FAULT;
-  if (precision_) precision_->Deactivate();
   WriteSafeCommand();
   if (backend_) {
     backend_->Stop();
@@ -482,6 +520,7 @@ controller_interface::CallbackReturn NmpcWbcController::on_deactivate(
   mode_publisher_->on_deactivate();
   contact_publisher_->on_deactivate();
   diagnostics_publisher_->on_deactivate();
+  if (simulation_trace_publisher_) simulation_trace_publisher_->on_deactivate();
   odom_publisher_->on_deactivate();
   return controller_interface::CallbackReturn::SUCCESS;
 }

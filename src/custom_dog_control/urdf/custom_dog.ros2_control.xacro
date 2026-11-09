@@ -12,11 +12,16 @@
   <xacro:property name="sim_prone_thigh" value="1.2535642999"/>
   <xacro:property name="prone_calf" value="-2.8239427297"/>
   <xacro:arg name="physical_estop_verified" default="false"/>
+  <xacro:arg name="require_physical_estop_confirmation" default="true"/>
+  <xacro:arg name="startup_alignment_enabled" default="false"/>
   <xacro:arg name="fr_port" default="/dev/ttyS3"/>
   <xacro:arg name="fl_port" default="/dev/ttyS4"/>
   <xacro:arg name="rr_port" default="/dev/ttyS7"/>
   <xacro:arg name="rl_port" default="/dev/ttyS8"/>
-  <xacro:arg name="motor_directions" default="1 1 1 1 1 1 1 1 1 1 1 1"/>
+  <!-- Legacy motor wiring mapped into the URDF joint coordinates (FR FL RR RL).
+       Derived from legacy FK/Jacobians; still verify each sign by hand before motion. -->
+  <xacro:arg name="motor_directions" default="1 -1 1 1 1 -1 -1 -1 1 -1 1 -1"/>
+  <xacro:arg name="parallel_leg_io" default="true"/>
   <xacro:arg name="calibration_hip_deg" default="0.0"/>
   <xacro:arg name="calibration_thigh_deg" default="71.8"/>
   <xacro:arg name="calibration_calf_deg" default="-161.8"/>
@@ -28,6 +33,12 @@
   <xacro:macro name="sim_joint" params="name initial_position">
     <joint name="${name}">
       <command_interface name="effort"/>
+      <xacro:if value="${'$(arg hardware_mode)' == 'fortress_hybrid'}">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="kp"/>
+        <command_interface name="kd"/>
+      </xacro:if>
       <state_interface name="position">
         <param name="initial_value">${initial_position}</param>
       </state_interface>
@@ -56,6 +67,12 @@
       <xacro:if value="${'$(arg hardware_mode)' == 'gazebo'}">
         <plugin>gazebo_ros2_control/GazeboSystem</plugin>
       </xacro:if>
+      <xacro:if value="${'$(arg hardware_mode)' == 'fortress'}">
+        <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+      </xacro:if>
+      <xacro:if value="${'$(arg hardware_mode)' == 'fortress_hybrid'}">
+        <plugin>custom_dog_control/FortressMotorSystem</plugin>
+      </xacro:if>
       <xacro:if value="${'$(arg hardware_mode)' == 'real'}">
         <plugin>custom_dog_control/UnitreeSystemInterface</plugin>
         <param name="fr_port">$(arg fr_port)</param>
@@ -64,17 +81,19 @@
         <param name="rl_port">$(arg rl_port)</param>
         <param name="base_gear_ratio">6.33</param>
         <param name="calf_gear_ratio">12.66</param>
-        <param name="parallel_leg_io">true</param>
+        <param name="parallel_leg_io">$(arg parallel_leg_io)</param>
         <param name="motor_directions">$(arg motor_directions)</param>
         <param name="calibration_hip">${float('$(arg calibration_hip_deg)') * pi / 180.0}</param>
         <param name="calibration_thigh">${float('$(arg calibration_thigh_deg)') * pi / 180.0}</param>
         <param name="calibration_calf">${float('$(arg calibration_calf_deg)') * pi / 180.0}</param>
         <param name="physical_estop_verified">$(arg physical_estop_verified)</param>
+        <param name="require_physical_estop_confirmation">$(arg require_physical_estop_confirmation)</param>
+        <param name="startup_alignment_enabled">$(arg startup_alignment_enabled)</param>
         <param name="safe_damping">1.0</param>
       </xacro:if>
     </hardware>
 
-    <xacro:if value="${'$(arg hardware_mode)' == 'gazebo'}">
+    <xacro:if value="${'$(arg hardware_mode)' in ('gazebo', 'fortress', 'fortress_hybrid')}">
       <xacro:sim_joint name="FR_hip_joint" initial_position="${sim_prone_right_hip}"/>
       <xacro:sim_joint name="FR_thigh_joint" initial_position="${sim_prone_thigh}"/>
       <xacro:sim_joint name="FR_calf_joint" initial_position="${prone_calf}"/>
@@ -87,6 +106,11 @@
       <xacro:sim_joint name="RL_hip_joint" initial_position="${sim_prone_left_hip}"/>
       <xacro:sim_joint name="RL_thigh_joint" initial_position="${sim_prone_thigh}"/>
       <xacro:sim_joint name="RL_calf_joint" initial_position="${prone_calf}"/>
+    </xacro:if>
+    <xacro:if value="${'$(arg hardware_mode)' == 'fortress_hybrid'}">
+      <gpio name="custom_dog">
+        <command_interface name="simulation_motor_mode"/>
+      </gpio>
     </xacro:if>
     <xacro:if value="${'$(arg hardware_mode)' == 'real'}">
       <xacro:real_joint name="FR_hip_joint"/>
@@ -104,16 +128,21 @@
       <gpio name="custom_dog">
         <command_interface name="calibrate"/>
         <command_interface name="emergency_stop"/>
+        <command_interface name="motion_enabled"/>
         <state_interface name="calibrated"/>
         <state_interface name="communication_ok"/>
         <state_interface name="physical_estop"/>
         <state_interface name="io_period_ms"/>
         <state_interface name="io_timeout_count"/>
+        <!-- Host authorization applied to output, not motor-reported mode. -->
+        <state_interface name="motion_enabled"/>
+        <!-- 0 disabled, 1 waiting, 2 hip/thigh, 3 all, 4 release, 5 done, 6 aborted. -->
+        <state_interface name="startup_alignment"/>
       </gpio>
     </xacro:if>
   </ros2_control>
 
-  <xacro:if value="${'$(arg hardware_mode)' == 'gazebo'}">
+  <xacro:if value="${'$(arg hardware_mode)' in ('gazebo', 'fortress', 'fortress_hybrid')}">
     <!-- Folded calves must slide while the legs unfold. Foot friction matches
          the 0.5 coefficient used by the NMPC and WBC contact constraints. -->
     <xacro:macro name="gazebo_leg_friction" params="prefix">
@@ -134,6 +163,9 @@
     <xacro:gazebo_leg_friction prefix="FL"/>
     <xacro:gazebo_leg_friction prefix="RR"/>
     <xacro:gazebo_leg_friction prefix="RL"/>
+  </xacro:if>
+
+  <xacro:if value="${'$(arg hardware_mode)' == 'gazebo'}">
     <gazebo>
       <plugin filename="$(arg gazebo_control_plugin)" name="gazebo_ros2_control">
         <ros>
@@ -164,6 +196,42 @@
           </ros>
           <initial_orientation_as_reference>false</initial_orientation_as_reference>
         </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:if>
+
+  <xacro:if value="${'$(arg hardware_mode)' in ('fortress', 'fortress_hybrid')}">
+    <!-- Native Fortress systems; Classic ROS sensor plugins cannot load here. -->
+    <gazebo>
+      <plugin filename="gz_ros2_control-system"
+              name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>$(arg controllers_file)</parameters>
+      </plugin>
+      <plugin filename="ignition-gazebo-odometry-publisher-system"
+              name="ignition::gazebo::systems::OdometryPublisher">
+        <odom_frame>world</odom_frame>
+        <robot_base_frame>base</robot_base_frame>
+        <dimensions>3</dimensions>
+        <odom_publish_frequency>250</odom_publish_frequency>
+        <!-- Native linear twist is body-frame and angular twist is Euler
+             rates; the ROS adapter converts these to the existing world-frame
+             ground-truth input contract before the controller consumes them. -->
+        <odom_topic>/fortress/odom</odom_topic>
+        <tf_topic>/fortress/pose</tf_topic>
+        <gaussian_noise>0.0</gaussian_noise>
+      </plugin>
+    </gazebo>
+    <gazebo reference="base">
+      <sensor name="base_imu" type="imu">
+        <always_on>true</always_on>
+        <update_rate>250</update_rate>
+        <visualize>false</visualize>
+        <topic>/imu</topic>
+        <imu>
+          <orientation_reference_frame>
+            <localization>ENU</localization>
+          </orientation_reference_frame>
+        </imu>
       </sensor>
     </gazebo>
   </xacro:if>

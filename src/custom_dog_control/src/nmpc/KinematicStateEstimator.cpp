@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 #include <ocs2_robotic_tools/common/RotationDerivativesTransforms.h>
 #include <pinocchio/algorithm/frames.hpp>
@@ -33,8 +34,15 @@ Eigen::Vector3d EulerZyxFromRotation(const Eigen::Matrix3d& rotation) {
 KinematicStateEstimator::KinematicStateEstimator(
     const ocs2::PinocchioInterface& interface,
     ocs2::CentroidalModelInfo info,
-    EstimatorNoise noise)
-    : pinocchio_interface_(interface), info_(std::move(info)), noise_(noise) {
+    EstimatorNoise noise,
+    double flat_ground_foot_center_height_m)
+    : pinocchio_interface_(interface), info_(std::move(info)), noise_(noise),
+      flat_ground_foot_center_height_m_(flat_ground_foot_center_height_m) {
+  if (!std::isfinite(flat_ground_foot_center_height_m_) ||
+      flat_ground_foot_center_height_m_ < 0.0) {
+    throw std::invalid_argument(
+        "flat-ground foot-center height must be finite and non-negative");
+  }
   const auto& model = pinocchio_interface_.getModel();
   for (std::size_t i = 0; i < kJointCount; ++i) {
     const auto joint_id = model.getJointId(std::string(kJointNames[i]));
@@ -65,6 +73,7 @@ EstimatedState KinematicStateEstimator::Update(
   ContactSupport support;
   support.contact = planned_contacts;
   support.height_valid = planned_contacts;
+  support.foot_center_height.fill(flat_ground_foot_center_height_m_);
   return Update(joints, imu, support, dt);
 }
 
@@ -77,7 +86,7 @@ EstimatedState KinematicStateEstimator::Update(
   if (!std::isfinite(quaternion_norm) || quaternion_norm < 1e-6) return output;
   for (size_t i=0;i<kJointCount;++i)
     if(joints.valid[i]<.5 || !std::isfinite(joints.position[i]) || !std::isfinite(joints.velocity[i])) return output;
-  if (!imu.valid || dt <= 0.0 || dt > 0.1) {
+  if (!imu.valid || !FiniteImuSample(imu) || !std::isfinite(dt) || dt <= 0.0 || dt > 0.1) {
     return output;
   }
 
@@ -195,7 +204,9 @@ EstimatedState KinematicStateEstimator::Update(
   const ObservationCovariance innovation_covariance =
       observation * predicted_covariance * observation.transpose() +
       measurement_noise;
-  const auto kalman_gain =
+  // Materialize before the temporary LDLT decomposition is destroyed. An
+  // `auto` expression retains references and evaluates them on later lines.
+  const Eigen::Matrix<double, 18, 28> kalman_gain =
       predicted_covariance * observation.transpose() *
       innovation_covariance.ldlt().solve(ObservationCovariance::Identity());
   state_ = predicted_state +
@@ -220,7 +231,7 @@ EstimatedState KinematicStateEstimator::Update(
     covariance_ = correction * covariance_ * correction.transpose() + gain * r * gain.transpose();
   }
   // 消除浮点运算造成的非对称项，便于后续创新协方差的 LDLT 分解。
-  covariance_ = 0.5 * (covariance_ + covariance_.transpose());
+  covariance_ = (0.5 * (covariance_ + covariance_.transpose())).eval();
 
   output.position = state_.head<3>();
   output.velocity_world = state_.segment<3>(3);

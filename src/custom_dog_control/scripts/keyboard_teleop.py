@@ -14,8 +14,9 @@ from sensor_msgs.msg import Joy
 HELP = """
 Custom Dog keyboard control (unitree_guide-compatible layout)
 
-  1: PASSIVE        2: calibrate + stand up + arm locomotion
-  Zero velocity automatically holds MPC_STANCE; motion automatically starts TROT.
+  1: PASSIVE        2: calibrate only on real hardware (A/3 to stand)
+  3: stand / disable TROT       4: arm TROT after standing
+  Once TROT is armed, zero velocity holds MPC_STANCE.
   ESC: emergency stop
 
   W/S: increase/decrease forward speed
@@ -68,7 +69,9 @@ class KeyboardTeleop(Node):
     def handle_key(self, key):
         mode_buttons = {
             '1': 1,       # Unitree L2+B: PASSIVE / acknowledge FAULT
-            '2': 7,       # Unitree L2+A: calibrate and stand up
+            '2': 7,       # START: calibrate only on real hardware
+            '3': 0,       # A: explicit stand / disable TROT
+            '4': 2,       # X: arm TROT after standing
             '\x1b': 3,    # Software emergency stop
         }
         if key in mode_buttons:

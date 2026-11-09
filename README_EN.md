@@ -1,110 +1,94 @@
-# Dog-control · Traditional NMPC / WBC Locomotion
+# Dog-control · NMPC + WBC
 
 [简体中文](README.md) | **English**
 
-Traditional locomotion control for a custom 12-DoF quadruped: **ROS 2 Humble + OCS2 NMPC + weighted WBC + Pinocchio**. Simulation and hardware share the controller implementation. The target OS is Ubuntu 22.04, with x86_64 development and an ARM64 Orange Pi 5 Plus hardware target.
-
-This repository maintains traditional NMPC/WBC control. RL policies, the RL hardware controller and NX deployment tools live in [himloco_custom_dog/deployment](https://github.com/hsc13576717115/himloco_custom_dog/tree/master/deployment). That workspace has its own hardware plugin and does not depend on this repository.
-
-The active development and remote integration branch is **`RC2027`**. Push this work to
-`origin/RC2027`; pull requests for this work also target `RC2027`, not `main`.
-
-## Repository responsibilities
-
-| Development area | Repository / location | Documentation |
-| --- | --- | --- |
-| Traditional estimation, NMPC, WBC and gait state machine | **This repository**, `src/custom_dog_control` | [Controller architecture](src/custom_dog_control/README.md) |
-| Traditional simulation, serial and IMU integration | **This repository**, launch, hardware, `fdilink_ahrs` / `serial_ros2` | [Setup](docs/setup.md) · [Hardware](docs/hardware.md) |
-| RL training, refinement, evaluation and export | [himloco_custom_dog](https://github.com/hsc13576717115/himloco_custom_dog) | [English training README](https://github.com/hsc13576717115/himloco_custom_dog/blob/master/README_EN.md) |
-| RL hardware control and Jetson Orin NX deployment | `himloco_custom_dog/deployment/ros2_ws` | [Deployment README](https://github.com/hsc13576717115/himloco_custom_dog/blob/master/deployment/README.md) |
-
-The former `src/custom_dog_rl` package and RL-specific build switch have been removed. Traditional control retains its own motor plugin, IMU driver and shared fixes such as AHRS orientation freshness checks. The two controllers use separate installation directories and must not control the same motors simultaneously. They can share the source URDF/meshes without loading RL policies or a training environment into traditional control.
-
-Linked detailed guides currently use Chinese; this page provides the English workspace overview and operating commands.
+RC2027 now contains the basic locomotion stack for the 12-DOF quadruped: ROS 2 Humble, OCS2 NMPC, Weighted WBC, state estimation, and Unitree motor/IMU drivers. Precision foothold control and its `qr_*` packages have been removed. The target is the local Orange Pi 5 Plus / RK3588 running Ubuntu 22.04 ARM64.
 
 ## Validation status
 
-[![Custom quadruped platform demonstration](docs/media/custom-dog-platform-preview.gif)](docs/media/custom-dog-platform-demo.mp4)
+**Builds, offline solves, and serial communication checks do not establish hardware locomotion readiness. Physical calibration, loaded standing, and Trot have not been accepted.** See the current [hardware instructions](docs/hardware.md).
 
-Flat-ground simulation has exercised standing up, standing, trotting and stopping. Physical communication, state estimation and walking still require staged acceptance. Historical speed-envelope and terrain results are in the [validation baselines](docs/validation-baselines.md). See [2026-09-29](docs/simulation-validation-20260929.md) for recent basic flat-ground regression and [2026-09-23](docs/simulation-validation-20260923.md) for architecture/dependency migration checks.
+**01:25 update:** the latest hardware run faulted about 0.201 seconds after entering MPC_STANCE because its NMPC policy exceeded the 100 ms age limit; communication was valid immediately before the fault. It overlapped the local physics simulation, so CPU contention remains a confounding factor. Historical main-ancestor gains 6.2/0.2 were motor-side values, whereas current 45/55 gains are joint-side values before gear-ratio conversion. Rear-leg tracking and handoff criteria remain unresolved; see the hardware investigation above.
 
-After removing RL on 2026-10-08, the traditional controller rebuilt successfully and all six CTest groups passed. That migration did not rerun the complete Gazebo motion acceptance suite or establish additional hardware validation.
+**Latest hardware log, November 10, 2026:** the user reports needing to lift the rear during stand-up, followed by unsupported stance. The 01:03:54 launch ran in MPC_STANCE for about 48 seconds before invalid right-rear hip feedback (RR ID 0) triggered a communication fault; IMU and NMPC were healthy at that instant. The earlier rear-lift difficulty remains unexplained. LT+X with centered sticks retains stance, and this run never entered Trot. A subsequent 60-second all-zero communication check returned 72000/72000 valid replies, which does not exclude intermittent faults during loaded control. Automatic diagnostic recording and gait-arming notices have been added. See the [investigation](docs/hardware.md).
 
-## Quick start
+The earlier estimator expression-lifetime defect and IMU check-time race were fixed; the complete 15.15 kg model and persistent CppAD cache are local. At that stage, 18 control-package checks and one model check passed. Fortress with ground-truth assistance disabled and a 100 Hz IMU passed legacy-gamepad stand-up, forward/backward/lateral Trot, both yaw directions, stop/resume, and a final 30-second stance. This does not resolve or validate physical loaded stand-up.
 
-Recommended layout:
+The installed diagnostic update passed a new stand-up/forward/stop/resume physics run with the same model and a 100 Hz IMU, recording all 12 joints and controller requests with unchanged runtime fingerprints. Initially 18/19 control tests passed; the PTY suite passed separately after one receive timeout. Recorder ROS integration and the model check passed. Initial failures and the interrupted run remain recorded in the investigation above.
 
-```text
-Dog/
-├── Dog-control/                     # Traditional control
-│   ├── src/                        # Controller and drivers
-│   ├── external/                   # Separate dependency workspaces
-│   │   ├── ocs2_ws/                # OCS2 source and build products
-│   │   └── model_ws/               # Generated model package and build products
-│   ├── docs/
-│   └── build/, install/, log/      # Main workspace outputs
-└── himloco_custom_dog/              # RL project and source robot assets
-```
+The **15.15 kg model passed low-speed, flat-ground Gazebo Fortress physics tests with 1000 Hz control** on this board: stand-up, WBC stance, forward/backward/lateral Trot, positive yaw, stop, and resume. The IMU/joint estimator passed with ground-truth feedback disabled, retaining the original stand-up gains and gait. That round used 20 Hz NMPC and two solver threads; 50 Hz triggered a stale-policy fault. Eight software calibration regression groups and 45 control-package checks passed at that stage. See the [simulation and calibration report](docs/simulation-validation-20261102.md).
 
-Clone into sibling directories. If you already have a robot description package, you can clone only Dog-control and set `CUSTOM_DOG_DESCRIPTION_DIR` instead:
+The later **250 Hz host-side PD with torque-only output** comparisons are historical experiments; see the [historical report](docs/real-control-validation-20261102.md). The current implementation restores five-field motor-side PD. Hardware and Fortress share 250 Hz control, 20 Hz NMPC, two solver threads, gains, gait, and low-speed limits. **Before restoring startup alignment, the full low-speed physics regression passed with ground-truth assistance disabled**: legacy gamepad START/combinations, stand-up, forward motion, stop/resume, backward/lateral motion, both yaw directions, and a final 60-second stance without FAULT. Forward displacement was 0.551 m in 10 seconds and 0.326 m during the 6-second resume. Subsequent changes add hardware startup assistance, the real START wait, and visualization without changing the NMPC/WBC algorithm configuration. Build fingerprints have changed; those earlier results do not validate the new assistance. See the [compatibility validation report](docs/compatibility-validation-20261103.md). Hardware locomotion remains unaccepted.
 
-```bash
-mkdir -p Dog
-cd Dog
-git clone --branch RC2027 https://github.com/hsc13576717115/Dog-control.git
-git clone https://github.com/hsc13576717115/himloco_custom_dog.git
-git -C himloco_custom_dog lfs install --local
-git -C himloco_custom_dog lfs pull --include='assets/custom_dog_description/**'
-cd Dog-control
-```
+A policy timeout occurred during concurrent colcon compilation. The isolated repeat passed without relaxing the timeout threshold; this does not establish real-time performance under arbitrary concurrent workloads.
 
-Follow [setup](docs/setup.md) to install system dependencies and build OCS2 first. Run the remaining commands from this repository's root:
+**FR feedback recovered in the November 3 zero-output communication check.** Sequential probing returned 500/500 valid replies from each of the 12 motors, 6000/6000 in total, with zero CRC, ID, mode, or motor errors. Four simultaneous ports then polled each ID at 100 Hz for approximately five seconds, returning 6677/6678 valid replies; the final snapshot records one incomplete reply/timeout for FR ID 2, with its cause undetermined. This does not establish zero packet loss throughout the test or acceptance of a 250 Hz control cycle. The first IMU capture included one earlier AHRS timestamp. After clearing only the host RX queue, a fresh capture contained 500 IMU and 500 AHRS frames at 100 Hz by device timestamps, with zero CRC errors and no repeated timestamp anomaly; the original anomaly's source remains unconfirmed. All probes have stopped and released the serial ports. See the [sequential check](log/communication-recheck-20261103-2347/summary.json) and [parallel results](log/communication-recheck-20261103-2347/parallel/result.json). **These probes sent only mode0 commands with all fields zero; they do not validate physical startup assistance, mechanical calibration, loaded standing, or walking.**
+
+Earlier checks recorded 100/100 replies from each FL/RR/RL motor and 0/100 from each FR motor; old SDK typed and raw 2/20 ms comparisons also returned no valid FR replies. Those historical results remain recorded, and the successful repeat does not identify the earlier failure's cause. The original driver has published input from the Xbox 360 gamepad. See the [compatibility report](docs/compatibility-validation-20261103.md).
+
+The current migration keeps the existing motor protocol, IMU transforms, and START encoder-offset sampling, adapts them to the URDF coordinates required by NMPC/WBC, and restores the previous gamepad layout. Runtime comparison confirms the same compiled controller core, canonical model/task, and algorithm parameters on both paths; differences are limited to clocks, hardware interfaces, and simulation-specific settings. Earlier host-PD, rate, and delay changes were control-timing choices; the battery mass increase did not require all of them. Full loaded-cycle timing remains unverified. The communication probes did not request stand-up or walking; the user separately launched the control program, which is not part of this motion acceptance. Earlier results remain in the [historical baseline](docs/validation-baselines.md) and [battery model report](docs/battery-model-validation-20261102.md).
+
+The model mass is **15.15 kg**: 13.84916 kg CAD mass plus a 1.30084 kg battery at the base origin. Base mass, center of mass, and parallel-axis inertia have been updated. Battery dimensions are unavailable, so its intrinsic inertia remains a point-mass approximation. The complete model now lives in [src/custom_dog_description](src/custom_dog_description/README_EN.md): three URDFs, 17 full STL files, joint conventions, and battery configuration. Its source is pinned to your `Woh43/custom_dog_stack` commit `6c776de8`, with the previously verified local battery correction. It requires neither a neighboring RL repository nor the old model underlay.
+
+## Build and launch
+
+Run from `/home/orangepi/qr_ws`:
 
 ```bash
-# Prepare the model, build and launch; two compilation jobs by default
-src/custom_dog_control/scripts/build_simulation.sh
+# Build only; does not start nodes or open motor ports.
+src/custom_dog_control/scripts/build_real.sh
 
-# Build only
-CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
-
-# Launch an existing build without recompiling
-src/custom_dog_control/scripts/run_simulation.sh
-
-# No GUI or keyboard
-src/custom_dog_control/scripts/run_simulation.sh gui:=false start_keyboard:=false
+# Inspect arguments without starting control nodes.
+src/custom_dog_control/scripts/run_real.sh --show-args
 ```
 
-The script copies the robot assets from the sibling RL repository and generates a Gazebo point-foot URDF in a separate underlay. It removes thigh/calf collision bodies while retaining the canonical model, mass, inertia, visuals and joint limits. Source assets are not modified. Any build failure stops execution instead of launching stale outputs.
+Build scripts build `custom_dog_description` in this workspace before the controller. Runtime scripts verify that the resolved model belongs to this workspace and matches its source. Alternative OCS2/SDK locations can use `CUSTOM_DOG_CONTROL_DEPS_WS` and `UNITREE_ACTUATOR_SDK_ROOT`; model paths no longer use `CUSTOM_DOG_DESCRIPTION_DIR` or `CUSTOM_DOG_MODEL_WS`. Dependency instructions are in [setup.md](docs/setup.md).
 
-Load the environment in other terminals before using ROS commands:
+Standard runtime scripts keep NMPC's generated CppAD libraries in `.cache/cppad` across reboots, isolated by model/configuration content and compiler ABI fingerprints. First generation can take several minutes; wait for `CppAD models ready` and controller activation. Several November 9–10 launches ended before cold compilation in `/tmp` finished and never reached normal stand-up control; see the [startup investigation](docs/hardware.md).
 
-```bash
-source src/custom_dog_control/scripts/env.sh
-ros2 topic list
-```
+The desktop **Run Dog** shortcut invokes `src/custom_dog_control/scripts/run_dog.sh` without a `YES` prompt and explicitly selects `startup_alignment_enabled:=true` and `use_rviz:=true`. Before launching, it stops this tool's own mode 0 communication monitors to release the motor ports. `--help`/`--show-args` only inspect information and leave monitors running. The controller stays in PASSIVE while the hardware waits for valid feedback from all 12 motors, controller ownership, and ongoing command writes, then automatically performs one approximately 0.9-second alignment. Press START again after completion to capture offsets; LT+A requests stand-up and LT+X enables Trot.
 
-`env.sh` sources ROS → model → OCS2 → controller workspace, preserving the caller's shell options. Source entry scripts locate the workspace relative to themselves and can be invoked from another directory. Rebuild generated outputs after relocating the workspace because they can contain absolute paths.
+Alignment preserves the previous rotor directions and joint-side torque magnitudes of `0.95/0.63/1.52 N·m` for hip/thigh/calf: hip/thigh for 300 ms, all three joints for 300 ms, then mode0 release for 300 ms. It is nonblocking and runs once. Communication/CRC failure, software stop, stale command writes, released ownership, or a calibration reset during alignment aborts it to zero output, without automatic retry; recovery requires restarting. It sends nonzero torque before START, so PASSIVE is not always mode0 while assistance is active. Incomplete or stale feedback from any motor prevents it from starting. **The restored profile passed PTY validation; these communication probes did not send the nonzero assistance, and its physical execution remains unaccepted.**
 
-### Keyboard controls
+Hardware RViz uses fixed frame `base`, RobotModel joint feedback, and foot TF from forward kinematics. Before calibration, encoder angles are not aligned with the URDF zeros, so the displayed pose does not establish mechanical calibration. Foot TF does not measure foot forces.
 
-Use the terminal running the simulation:
+The desktop entry passes `require_physical_estop_confirmation:=false` to remove the extra confirmation condition; it does not claim `physical_estop_verified=true`. Calling `run_real.sh` directly retains the confirmation requirement and defaults to startup assistance and RViz disabled. FR feedback has recovered, with one incomplete reply/timeout recorded in the final parallel snapshot; restored communication does not validate loaded standing or walking.
 
-| Key | Action |
+| Hardware gamepad button | Behavior |
 | --- | --- |
-| `1` | PASSIVE; acknowledge reset after FAULT |
-| `2` | Stand up and enable NMPC-WBC; calibrate first on hardware |
-| `W / S` | Increase / decrease forward velocity |
-| `A / D` | Increase / decrease lateral velocity |
-| `J / L` | Increase / decrease yaw rate (`Q / E` are aliases) |
-| `Space` / `X` | Zero the command, decelerate within limits and return to standing |
-| `Esc` | Software FAULT emergency stop |
-| `Ctrl+C` | Close the simulation |
+| START | If assistance is enabled, wait for completion, then press START anew to capture offsets while passive; no automatic stand-up |
+| LT+A | Explicit stand-up request after valid calibration |
+| LT+X | Enable Trot from standing; valid velocity input and a new gait policy are still required |
+| LT+B | Return to passive; acknowledge a fault, then recalibrate |
+| LT+Y | Software emergency stop, latching FAULT; replaces the removed legacy STEP_TEST |
+| Left stick vertically | Forward/backward velocity |
+| Right stick horizontally | Lateral velocity |
+| Left stick horizontally | Yaw velocity |
 
-Each velocity key changes the command by 5% of its corresponding limit. Nonzero commands enter Trot after threshold and dwell conditions are met. To run the keyboard separately, launch with `start_keyboard:=false`, source the environment in another terminal and run `ros2 run custom_dog_control keyboard_teleop.py`. Both terminals must use the same `ROS_DOMAIN_ID`.
+LT is the previous L2 trigger. A/X alone do not change modes. LT+X arms walking; centered sticks retain stance without stepping in place. All three axes retain a 0.08 deadband and map to REP-103 as `vx=-LY, vy=-RX, yaw=-LX`. Shared speed limits are 0.05 m/s forward/lateral and 0.2 rad/s yaw. Calibration equivalence after the coordinate conversion is documented in the [compatibility report](docs/compatibility-validation-20261103.md).
 
-## Development and validation
+Hardware launches now save approximately 10 Hz diagnostics to `control-diagnostics.jsonl` beside `launch.log`, including all 12 joints, stand-up targets, controller requests, gamepad gates, and faults. Controller requests are not final motor packets. Each segment is limited to 16 MiB; the initial segment and latest three subsequent segments are retained. Set `record_diagnostics:=false` to disable recording.
 
-After a build-only run, execute unit and contract tests:
+Device timestamps in the existing raw capture confirm approximately 100 Hz each for IMU and AHRS output; the driver has no fixed 100 Hz cap. The user will adjust the device output rate later. No IMU configuration command is sent this round.
+
+`src/qr_guide/src/interface/IOSDK.cpp` is obsolete. The active motor implementation is [IOSDK.cpp](src/custom_dog_control/src/hardware/IOSDK.cpp).
+
+## Workspace
+
+| Directory | Purpose |
+| --- | --- |
+| `src/custom_dog_control` | Controller, NMPC/WBC, state machine, hardware plugin, tests |
+| `src/fdilink_ahrs` | IMU driver publishing `/imu` |
+| `src/serial_ros2` | ROS package `serial` for the IMU; motors use the Unitree SDK |
+| `src/unitree_guide` | Historical reference excluded by `COLCON_IGNORE` |
+| `src/custom_dog_description` | Self-contained 15.15 kg URDFs, full STL assets, and provenance |
+| `external/ocs2_ws` | Pinned OCS2 sources and ARM64 dependencies |
+
+Control flow: IMU/joints → kinematic state estimator → NMPC policy → Weighted WBC → five fields: desired position/velocity, feedforward torque, Kp/Kd → motor-side PD. At each host sample, `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)` determines a common scale for feedforward and both gains. This bounds their contributions at that sample, without guaranteeing continuous torque bounds as feedback changes.
+
+See the [controller guide](src/custom_dog_control/README.md) and [architecture](docs/architecture.md). The robot has IMU and joint feedback, without foot contact sensors; planned or estimated contacts are not measured foot forces.
+
+## Checks
 
 ```bash
 source src/custom_dog_control/scripts/env.sh
@@ -112,148 +96,22 @@ colcon test --packages-select custom_dog_control --event-handlers console_direct
 colcon test-result --verbose
 ```
 
-Coverage includes model/coordinate/joint ordering, gait phase, velocity limits, calibration, safety latching, upstream provenance and total torque continuity when handing over from standing PD to WBC. With testing enabled, a missing canonical URDF is an error instead of silently skipping model checks.
-
-Run the complete basic simulation regression:
+Native Fortress on this board (headless by default; add `gui:=true` in a desktop terminal):
 
 ```bash
+src/custom_dog_control/scripts/run_fortress.sh
+```
+
+The entry disables ground-truth assistance and uses the common 250 Hz/20 Hz profile on RK3588 large cores. Initial AD generation may take several minutes. The default motor-PD simulation evaluates PD every 1 ms physics step and models one outer-loop cycle plus physics-step phase delay. This ideal servo model is not a measurement of real motor bandwidth. Add `legacy_joy_layout:=true` to reproduce the accepted legacy gamepad flow. Full low-speed motion and 60-second stance results are in the [compatibility report](docs/compatibility-validation-20261103.md); the earlier 1000 Hz passes remain in the [historical simulation report](docs/simulation-validation-20261102.md).
+
+The previous Gazebo Classic entry remains available for development machines:
+
+```bash
+CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
+src/custom_dog_control/scripts/run_simulation.sh
 src/custom_dog_control/scripts/test_simulation.sh
-
-# Or select one scenario; the output directory must not already exist
-src/custom_dog_control/scripts/test_simulation.sh \
-  --scenario motion --output-dir log/my-motion-run
 ```
 
-- `motion`: stand up → move forward for 12 seconds → stop; check mode, displacement, attitude and WBC.
-- `matrix`: forward, lateral and turning segments, including standing after each stop.
-- Default `all`: cold-start Gazebo separately for each scenario, with GUI/RViz/keyboard disabled.
-- Default isolation: ROS domain `97`, localhost-only communication and a dynamically selected Gazebo master port. Use `--domain-id` with another unused domain for concurrent runs.
-- Output: `log/simulation/<timestamp>/`, with per-scenario `launch.log`, `test.log`, `result.json` and a top-level `summary.json`.
-- Failures/timeouts return a nonzero exit code. Cleanup only terminates process groups created by that run. Set `--startup-timeout` and `--test-timeout` in seconds as needed.
+This round uses Fortress for the current configuration; the Classic entry above was not tested.
 
-Basic regression does not cover high-speed envelopes, terrain or physical hardware. Separate tests and their scope are documented in the [validation baselines](docs/validation-baselines.md).
-
-## Software architecture
-
-```text
-src/custom_dog_control/
-├── include/custom_dog_control/   # Types, controller interfaces and pure computations
-├── src/controller/              # Main loop, lifecycle, inputs, FSM, hardware and diagnostics
-├── src/model/                   # shared robot model and validation
-├── src/precision/               # precision planning, execution core, WBC and ROS adapter
-├── src/nmpc/                    # OCS2 backend, model validation and state estimation
-├── src/safety/                  # Validity, timeout, limits and fault latching
-├── src/hardware/                # Unitree motor communication and ros2_control plugin
-├── config/                     # Controller/NMPC settings and dependency versions
-├── launch/                     # Gazebo and hardware launches
-├── scripts/                    # Workspace entry points and simulation acceptance
-├── test/                       # Unit, model and provenance tests
-└── third_party/                 # Pinned upstream algorithms and qpOASES
-```
-
-`fdilink_ahrs` and `serial_ros2` provide IMU/serial support. `unitree_guide` is historical reference code excluded by `COLCON_IGNORE`. Frequencies in the diagram are default configuration targets.
-
-```mermaid
-flowchart TB
-    operator["Keyboard / joystick / planner"] -->|"/joy · /cmd_vel"| input["Input arbitration, timeout, velocity and acceleration limits"]
-    model["custom_dog_description<br/>URDF, meshes, inertia and joint limits"] -.-> pin["Pinocchio / ModelValidator"]
-    subgraph controller["NmpcWbcController · ros2_control update · 1000 Hz"]
-        input --> fsm["State machine and gait supervisor<br/>Stand up / stance / trot / fault"]
-        estimate["State source<br/>Simulation truth or IMU + kinematic estimation"] --> observation["Observed state and velocity reference"]
-        input --> observation
-        fsm -->|"STAND_UP"| pd["Interpolated joint PD stand-up"]
-        fsm -->|"MPC_STANCE / MPC_TROT"| wbc
-        policy["MRT policy evaluation<br/>Desired state, input and contact mode"] --> wbc["WeightedWbc · qpOASES<br/>Whole-body dynamics QP"]
-        estimate -->|"Measured base and joint states"| wbc
-        wbc --> output["FSM output selection / stand-up handover<br/>HybridJointCommand"]
-        pd --> output
-        safety["SafetyMonitor + fault latch"] -->|"Safe-output override"| output
-        estimate --> safety
-    end
-    observation --> mpc["NmpcBackend · solver thread · 50 Hz<br/>legged::LeggedInterface + OCS2 SqpMpc"]
-    fsm -->|"Stance / fixed-period trot requests"| mpc
-    mpc -->|"MPC_MRT_Interface"| policy
-    policy -->|"New policy confirms transition"| fsm
-    pin -.-> estimate
-    pin -.-> mpc
-    pin -.-> wbc
-    output -->|"Equivalent torque + URDF limits"| sim["gazebo_ros2_control<br/>Gazebo Classic"]
-    output -->|"q_des · dq_des · tau_ff · kp · kd"| real["UnitreeSystemInterface → IOSDK<br/>Unitree SDK → four RS485 links → 12 motors"]
-    sim -->|"Joint feedback · /imu · /ground_truth/odom"| estimate
-    real -->|"Joint feedback; fdilink_ahrs supplies /imu"| estimate
-    real -->|"Communication / temperature / emergency-stop state"| safety
-    classDef control fill:#e8f1ff,stroke:#4775ad,color:#172b4d;
-    classDef algorithm fill:#e5f5ec,stroke:#39815a,color:#193e2b;
-    classDef device fill:#fff3df,stroke:#ae7b2a,color:#503814;
-    classDef guard fill:#fce8e8,stroke:#b85454,color:#602626;
-    class input,fsm,observation,policy,output control;
-    class estimate,pin,mpc,wbc,pd algorithm;
-    class operator,model,sim,real device;
-    class safety guard;
-```
-
-Solid arrows show runtime data/control flow; dashed arrows show model dependencies. Simulation and physical hardware are alternative backends. Simulation defaults to `use_sim_ground_truth: true`; hardware uses an IMU/kinematic Kalman filter driven by joint feedback and planned contact phases. `joint_state_broadcaster` publishes `/joint_states`, while the controller reads ros2_control state interfaces directly. The controller publishes odometry, base TF, control mode, contact plans and diagnostics. Algorithm details and transitions are in the [controller architecture](src/custom_dog_control/README.md#算法链路).
-
-Files are split by responsibility but share one controller lifecycle instance. See [architecture and maintenance](docs/architecture.md) for parameters, threads, state machines, interfaces and model contracts.
-
-| Change area | Entry relative to `src/custom_dog_control/` |
-| --- | --- |
-| Stand-up / stance / trot transitions | `src/controller/ControllerStateMachine.cpp` |
-| Input timeout and arbitration | `src/controller/ControllerInputs.cpp` |
-| Parameters and validation | `config/controllers.yaml` + `src/controller/ControllerLifecycle.cpp` |
-| NMPC / WBC integration | `src/nmpc/NmpcBackend.cpp` + `config/nmpc/task.info` |
-| Observation diagnostics | `src/controller/ControllerDiagnostics.cpp` |
-| Hardware communication and calibration | `src/hardware/` |
-
-## Configurable paths
-
-Set these before running scripts or sourcing the environment. Use absolute paths for overrides:
-
-| Environment variable | Default / meaning |
-| --- | --- |
-| `CUSTOM_DOG_DESCRIPTION_DIR` | Sibling `himloco_custom_dog/assets/custom_dog_description` source package |
-| `CUSTOM_DOG_MODEL_WS` | This repository's `external/model_ws` |
-| `CUSTOM_DOG_CONTROL_DEPS_WS` | This repository's `external/ocs2_ws`; an installation prefix is also supported |
-| `CUSTOM_DOG_BUILD_ONLY` | `1` exits after building |
-| `CMAKE_BUILD_PARALLEL_LEVEL` | `2`; reduce to `1` when memory is limited |
-
-`env.sh`, build/launch/regression scripts and `fetch_ocs2.sh` are source-workspace entry points invoked by path. Runtime tools such as `keyboard_teleop.py`, `simulation_*_test.py` and `profile_runtime.py` use `ros2 run`.
-
-Build, install and log outputs are ignored by Git. The two generated dependency workspaces under `external/` are also excluded; see [external/README.md](external/README.md) for reconstruction. `external/COLCON_IGNORE` prevents the main workspace from discovering those packages recursively; dependencies build in their own workspaces.
-
-## Hardware and dependency provenance
-
-Recompile on the ARM64 target. Physical state estimation, RS485 timing for all 12 motors and the emergency-stop circuit require separate acceptance; simulation results with ground-truth feedback do not establish hardware performance. Build flags, calibration conventions and commissioning steps are in [hardware setup](docs/hardware.md).
-
-- Pinned versions: [dependencies.lock.yaml](src/custom_dog_control/config/dependencies.lock.yaml).
-- Upstream hashes: [legged_control_upstream.sha256](src/custom_dog_control/config/legged_control_upstream.sha256).
-- This package and vendored `legged_control` / WBC use BSD-3-Clause; qpOASES uses LGPL-2.1. See the corresponding third-party licenses.
-- Pre-migration code is retained under the `pre-ros2-nmpc-wbc` tag. See also the [package README](src/custom_dog_control/README.md).
-
-## QR precision development (RC2027)
-
-The experimental Gazebo-only precision branch uses IMU and joint feedback; the robot has no sole contact sensors. Contact is estimated, not measured. See [architecture, build instructions and actual validation status](docs/qr/README_EN.md). Physical deployment and competition autonomy are not validated.
-
-MID360 and ROS 2 FAST-LIO sources are pinned to your `ROBOCON_NBUT_R2` repository.
-`tools/fetch_perception.sh` exports them into the isolated `external/perception_ws`.
-See [provenance, build prerequisites and integration limits](docs/qr/perception-source.md).
-Sources have been retrieved; lidar operation, localization and controller integration have not been tested.
-
-2026-10-09: **100/100 known-fixture step trials passed**, with 3.77 mm P95 and 3.80 mm maximum foot-placement error. Complete fault coverage remains outstanding; see [validation conditions and retained failures](docs/qr/validation.md).
-
-QR precision mode separates planning, execution and ROS adaptation, and loads
-its model without initializing NMPC. Model/control/acceptance configurations
-are separate. Use `tools/validate_qr.py` for unified checks; see the
-[refactoring plan](docs/qr/refactoring.md) and [actual results](docs/qr/refactoring-results.md).
-
-See [M1 closeout evidence](docs/qr/m1-closeout.md) for the latest fault-handling work.
-The new `qr_simulation` plugin is an independent physics evaluator, never a contact
-sensor input for the controller.
-
-M1 scoped simulation closeout reached 99/100 on frozen commit `55f7dd5`.
-M2 adds 16-step body-following sequences, complete four-foot transfers onto 30/50 mm platforms, and read-only whole-sequence preflight before fresh per-step approval. Planning runs on a dedicated non-real-time executor. A joint-limit IK convergence bug found by dense candidate replay has been corrected; repeated tests are rerun after the fix. Offline coordinated searches include rear-leg follow-up, but their trajectories are not executable action plans. The full M2 gate remains open, especially the wall path and coordinated dynamic execution. See [current M2 evidence and limits](docs/qr/m2-progress.md), or the [historical entry record](docs/qr/m2-entry.md).
-
-The preceding M2 version passed 9 repeated closed-loop runs (144 steps) and a final 25-entry regression suite. Full M2 acceptance remains false: the complete wall sequence and nominal-obstacle coordinated execution are still missing. See [results and open gates](docs/qr/m2-progress.md).
-
-Bounded body/orientation/foot reference execution is now available for simulation, with contact confirmation and fault handling retained. The complete wall sequence and nominal-obstacle dynamic gates remain open. [Contract and test evidence](docs/qr/coordinated-reference.md).
-The coordinated suite passed 14/14 entries, including flat walking, straight 30/50 mm platform sequences and known raised-plane initialization; this is not full M2 acceptance.
+Removed precision sources remain recoverable from Git history. Prior documents, the worktree patch, and retired artifacts are archived at `/home/orangepi/qr_ws_backups/remove_precision_20261102/`. The working branch remains `RC2027`, tracking `origin/RC2027`; these changes have not been automatically committed or pushed.

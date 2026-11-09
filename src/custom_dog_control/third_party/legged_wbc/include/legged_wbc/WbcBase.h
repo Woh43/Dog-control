@@ -30,6 +30,8 @@ class WbcBase {
   bool lastSolverSucceeded() const { return lastSolverSucceeded_; }
   scalar_t lastEqualityResidual() const { return lastEqualityResidual_; }
   scalar_t lastInequalityViolation() const { return lastInequalityViolation_; }
+  // Local adapter: optional QP bounds for planned touchdown load transfer.
+  void setContactNormalForceUpperBounds(const vector_t& bounds);
 
  protected:
   void updateMeasured(const vector_t& rbdStateMeasured);
@@ -64,6 +66,7 @@ class WbcBase {
 
   // Task Parameters:
   vector_t torqueLimits_;
+  vector_t contactNormalForceUpperBounds_;
   scalar_t frictionCoeff_{}, swingKp_{}, swingKd_{};
   vector3_t basePositionKp_ = vector3_t::Zero();
   vector3_t basePositionKd_ = vector3_t::Zero();

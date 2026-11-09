@@ -112,7 +112,7 @@ ModelValidator::Validate(ocs2::PinocchioInterface &interface,
     }
   }
   if (std::abs(result.total_mass_kg - expected_mass_kg) > mass_tolerance_kg) {
-    result.errors.emplace_back("total mass differs from CAD contract");
+    result.errors.emplace_back("total mass differs from configured model contract");
   }
 
   if (model.lowerPositionLimit.size() != model.nq ||
