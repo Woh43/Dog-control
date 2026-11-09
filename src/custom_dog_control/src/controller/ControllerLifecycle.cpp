@@ -108,6 +108,8 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
     auto_declare<double>("handoff_duration_s", 1.0);
     auto_declare<double>("wbc_joint_stiffness", 0.0);
     auto_declare<double>("wbc_hip_stiffness", 0.0);
+    // -1 preserves the previous shared thigh/calf stiffness for older profiles.
+    auto_declare<double>("wbc_calf_stiffness", -1.0);
     auto_declare<double>("wbc_joint_damping", 3.0);
     auto_declare<double>("locomotion_max_hip_angle_rad", 0.20);
     auto_declare<double>("locomotion_joint_limit_margin_rad", 0.03);
@@ -203,6 +205,14 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
         node->get_parameter("wbc_joint_stiffness").as_double();
     wbc_hip_stiffness_ =
         node->get_parameter("wbc_hip_stiffness").as_double();
+    const double configured_wbc_calf_stiffness =
+        node->get_parameter("wbc_calf_stiffness").as_double();
+    wbc_calf_stiffness_ = configured_wbc_calf_stiffness == -1.0
+        ? wbc_joint_stiffness_ : configured_wbc_calf_stiffness;
+    if (!std::isfinite(wbc_calf_stiffness_) || wbc_calf_stiffness_ < 0.0) {
+      throw std::invalid_argument(
+          "wbc_calf_stiffness must be finite and nonnegative, or -1 to use wbc_joint_stiffness");
+    }
     wbc_joint_damping_ = node->get_parameter("wbc_joint_damping").as_double();
     stance_reanchor_distance_m_ =
         node->get_parameter("stance_reanchor_distance_m").as_double();

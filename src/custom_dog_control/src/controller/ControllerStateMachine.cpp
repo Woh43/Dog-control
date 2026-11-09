@@ -316,8 +316,11 @@ bool NmpcWbcController::ApplyStateMachine(
   command = wbc.command;
   for (std::size_t i = 0; i < kJointCount; ++i) {
     // NMPC 提供位置/速度，WBC 提供前馈力矩；这里补齐控制器配置的关节阻抗。
+    const std::size_t joint_in_leg = i % kJointsPerLeg;
     command.kp[i] =
-        i % kJointsPerLeg == 0 ? wbc_hip_stiffness_ : wbc_joint_stiffness_;
+        joint_in_leg == 0 ? wbc_hip_stiffness_
+                          : (joint_in_leg == 1 ? wbc_joint_stiffness_
+                                               : wbc_calf_stiffness_);
     command.kd[i] = wbc_joint_damping_;
   }
   if (mode_ == OperatingMode::MPC_STANCE && stance_handoff_active_) {

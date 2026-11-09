@@ -116,6 +116,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   bool stance_handoff_active_ = false;
   double wbc_joint_stiffness_ = 0.0;
   double wbc_hip_stiffness_ = 0.0;
+  // Resolved joint-side calf Kp; an omitted parameter follows thigh Kp.
+  double wbc_calf_stiffness_ = 0.0;
   double wbc_joint_damping_ = 3.0;
   double stance_reanchor_distance_m_ = 1.0;
   double trot_entry_dwell_s_ = 0.15;

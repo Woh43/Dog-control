@@ -39,7 +39,7 @@ NMPC 状态为 24 维（归一化质心动量、基座位姿和关节位置）�
 
 当前输出保持 `q_des、dq_des、tau_ff、kp、kd` 五分量，真机由电机侧计算 `tau_ff + kp*(q_des-q) + kd*(dq_des-dq)`。发送前按当前反馈计算各项绝对值贡献之和 `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)`，必要时共同缩放该关节前馈与两个增益，保留位置/速度目标。它只保证当前采样时的贡献上界，不能声明采样之间连续实际力矩始终小于 URDF effort 限制。
 
-真机与 Fortress 从 `controllers.yaml` 共用 250 Hz/20 Hz、2 求解线程、起身 Kp 45→55、Kd 1.5→2.5，以及 WBC、步态和速度限制（前后/侧向各 0.05 m/s、偏航 0.2 rad/s）。当前 Fortress 模型在每个 1 ms 物理步执行电机侧 PD，保留外环一周期及物理步相位延迟；它是理想伺服模型，不是真实电机带宽、时延或连续力矩饱和的测量。以前的 250 Hz 主机 PD 纯力矩实验是另一种时序，保留在 [历史链路记录](../../docs/real-control-validation-20261102.md)，不作为当前架构的验收结论。
+真机与 Fortress 从 `controllers.yaml` 共用 250 Hz/20 Hz、2 求解线程、髋/大腿起身 Kp 45→55、小腿60→80、Kd 1.5→2.5；WBC 的髋/大腿/小腿 Kp 分别50/20/40、Kd2。小腿通过 `wbc_calf_stiffness` 独立配置，省略或设为-1时继承大腿值。共享速度限制为前后/侧向各0.05 m/s、偏航0.2 rad/s。最新增益的验证范围见 [真机说明](../../docs/hardware.md)。当前 Fortress 模型在每个 1 ms 物理步执行电机侧 PD，保留外环一周期及物理步相位延迟；它是理想伺服模型，不是真实电机带宽、时延或连续力矩饱和的测量。以前的 250 Hz 主机 PD 纯力矩实验是另一种时序，保留在 [历史链路记录](../../docs/real-control-validation-20261102.md)，不作为当前架构的验收结论。
 
 启动辅助恢复前的实际运行参数对照确认同一编译控制核心、规范 URDF 与 NMPC task/reference；当时 73 项参数中 64 项相同，差异仅是时钟、IO 插件和仿真专用项，controller_manager 两路均为 250 Hz。该参数计数及指纹属于当时版本，完整差异见 [兼容验收记录](../../docs/compatibility-validation-20261103.md)。
 
