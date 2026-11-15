@@ -1,6 +1,9 @@
 #include "custom_dog_control/nmpc/NmpcBackend.hpp"
 #include "custom_dog_control/nmpc/ModelCache.hpp"
 #include "custom_dog_control/control/ContactForceRamp.hpp"
+#include "custom_dog_control/control/JointVelocityReferenceLimiter.hpp"
+#include "custom_dog_control/control/NominalJointReference.hpp"
+#include "custom_dog_control/control/BoundedCrossTrackAnchor.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -154,11 +157,49 @@ class NmpcBackend::Impl {
       }
       MakeTrotContactSchedule(
           config.trot_period_s, config.trot_double_support_s, kTrotFrRlMode);
+      if (!std::isfinite(config.max_cross_track_error_m) ||
+          config.max_cross_track_error_m < 0.0 ||
+          config.max_cross_track_error_m > 0.10) {
+        throw std::invalid_argument("nmpc_cross_track_position_error_limit_m must be in [0, 0.10]");
+      }
       if (!std::isfinite(config.contact_force_ramp_s) ||
           config.contact_force_ramp_s < 0.0 || config.contact_force_ramp_s > 1.0) {
         throw std::invalid_argument("wbc_contact_force_ramp_s must be in [0, 1]");
       }
       contact_force_ramp.Reset();
+      if (!std::isfinite(config.joint_velocity_acceleration_limit) ||
+          config.joint_velocity_acceleration_limit < 0.0 ||
+          config.joint_velocity_acceleration_limit > 5000.0 ||
+          !std::isfinite(config.max_nominal_height_correction_mps2) ||
+          config.max_nominal_height_correction_mps2 < 0.0 ||
+          config.max_nominal_height_correction_mps2 > 5.0) {
+        throw std::invalid_argument("invalid WBC reference or PD-reservation configuration");
+      }
+      if (!std::isfinite(config.motor_pd_window_model.horizon_seconds) ||
+          config.motor_pd_window_model.horizon_seconds < 0.0 ||
+          config.motor_pd_window_model.horizon_seconds > 0.1 ||
+          !std::isfinite(config.motor_pd_window_model.nominal_time_seconds) ||
+          config.motor_pd_window_model.nominal_time_seconds < 0.0 ||
+          config.motor_pd_window_model.nominal_time_seconds > config.motor_pd_window_model.horizon_seconds ||
+          !std::isfinite(config.motion_joint_kd) || config.motion_joint_kd < 0.0 ||
+          config.motion_joint_kd > 10.0) {
+        throw std::invalid_argument("invalid motor PD window or damping");
+      }
+      if (config.host_total_torque_command &&
+          (config.motor_pd_window_model.horizon_seconds != 0.0 ||
+           config.motor_pd_window_model.nominal_time_seconds != 0.0)) {
+        throw std::invalid_argument(
+            "host total-torque command requires zero motor-PD window and execution center");
+      }
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        if (!std::isfinite(config.motion_joint_kp[i]) || config.motion_joint_kp[i] < 0.0 ||
+            config.motion_joint_kp[i] > 200.0 ||
+            !std::isfinite(config.motor_pd_window_model.assumed_acceleration_bound_rad_s2[i]) ||
+            config.motor_pd_window_model.assumed_acceleration_bound_rad_s2[i] < 0.0 ||
+            config.motor_pd_window_model.assumed_acceleration_bound_rad_s2[i] > 5000.0) {
+          throw std::invalid_argument("invalid motor PD gain or acceleration assumption");
+        }
+      }
       const auto model_prepare_start = std::chrono::steady_clock::now();
       interface = std::make_unique<ModelCachedLeggedInterface>(
           config.task_file, config.urdf_file, config.reference_file);
@@ -188,6 +229,9 @@ class NmpcBackend::Impl {
       wbc = std::make_unique<legged::WeightedWbc>(
           interface->getPinocchioInterface(), info, *end_effector_kinematics);
       wbc->loadTasksSetting(config.task_file, false);
+      wbc->setUseJointAccelerationDecision(config.use_joint_acceleration_decision);
+      wbc->setNominalHeightFeedback(
+          config.nominal_height_m, config.max_nominal_height_correction_mps2);
 
       auto sqp_settings = interface->sqpSettings();
       if (config.solver_threads > 0) sqp_settings.nThreads = config.solver_threads;
@@ -357,6 +401,7 @@ class NmpcBackend::Impl {
 
   void InvalidateObservation() {
     contact_force_ramp.Reset();
+    ResetWbcReferenceHistory();
     std::lock_guard<std::mutex> lock(target_mutex);
     observation_ready.store(false, std::memory_order_release);
     latest_observation_time.store(-1.0, std::memory_order_release);
@@ -366,6 +411,7 @@ class NmpcBackend::Impl {
     has_yaw = false;
     target_reference_initialized = false;
     yaw_command_was_active = false;
+    target_cross_track_error_m = 0.0;
     pending_target.reset();
   }
 
@@ -480,15 +526,44 @@ class NmpcBackend::Impl {
     if (reanchor_heading) {
       target_heading_yaw = observation.state(9);
     }
-    if (moving) {
-      // 移动目标每次从最新实测位置出发，只在参考预瞄区间外推。
-      // 独立积分世界系目标会累积打滑/速度误差，使机器人追赶不可达的位置。
-      target_position_world = observation.state.segment<2>(6);
-    }
     if (yaw_command_active || yaw_command_was_active) {
       // 转向参考相对最新航向生成；松开转向的第一帧捕获实际航向，随后保持。
       target_heading_yaw = observation.state(9);
     }
+    target_cross_track_error_m = 0.0;
+    if (moving) {
+      if (!reanchor_position && config.max_cross_track_error_m > 0.0 &&
+          std::hypot(command.vx, command.vy) > 1e-3) {
+        // Use the same heading as TargetFromCommand. Keep only bounded
+        // perpendicular position memory; along-command targets never integrate.
+        const double c = std::cos(target_heading_yaw);
+        const double s = std::sin(target_heading_yaw);
+        const std::array<double, 2> observed{
+            observation.state(6), observation.state(7)};
+        const auto anchor = BoundedCrossTrackAnchor(
+            {target_position_world.x(), target_position_world.y()}, observed,
+            {c * command.vx - s * command.vy,
+             s * command.vx + c * command.vy},
+            config.max_cross_track_error_m);
+        if (!anchor) {
+          {
+            std::lock_guard<std::mutex> lock(error_mutex);
+            last_error = "invalid bounded cross-track reference";
+          }
+          solver_healthy.store(false, std::memory_order_release);
+          return;
+        }
+        target_position_world << (*anchor)[0], (*anchor)[1];
+        target_cross_track_error_m = std::hypot(
+            observed[0] - (*anchor)[0], observed[1] - (*anchor)[1]);
+      } else {
+        // Disabled, explicit reanchor and pure yaw preserve the original
+        // full-XY moving reference. No unbounded along-track target integral.
+        target_position_world = observation.state.segment<2>(6);
+      }
+    }
+    // A caller entering a stop requests reanchor_position to capture actual
+    // XY. With no such request, stationary updates retain the existing anchor.
     yaw_command_was_active = yaw_command_active;
     target_heading_update_time = observation.time;
     auto target = TargetFromCommand(command);
@@ -521,25 +596,38 @@ class NmpcBackend::Impl {
       ocs2::vector_t state;
       ocs2::vector_t input;
       std::size_t mode = kStanceMode;
+      const double evaluation_time = observation.time;
       mrt->evaluatePolicy(
-          observation.time, observation.state, state, input, mode);
-      if (mode == kStanceMode) {
-        // 本机四足受约束站立时，SQP 反馈易给出过大的关节速度修正。
-        // 在名义状态上重评估以取前馈输入；对角 Trot 仍使用实际状态反馈。
-        ocs2::vector_t feedforward_state;
-        ocs2::vector_t feedforward_input;
-        std::size_t feedforward_mode = mode;
-        mrt->evaluatePolicy(
-            observation.time, state, feedforward_state,
-            feedforward_input, feedforward_mode);
-        if (feedforward_mode == mode) {
-          input = std::move(feedforward_input);
-        }
-      }
+          evaluation_time, observation.state, state, input, mode);
       if (state.size() != kCentroidalStateDim ||
           input.size() != kCentroidalInputDim ||
           !state.allFinite() || !input.allFinite()) {
         return false;
+      }
+      if (mode == kStanceMode) {
+        // Preserve the existing stance force/feedforward behavior. Trot keeps
+        // the contact-force feedback action computed from observation.state.
+        ocs2::vector_t feedforward_state;
+        ocs2::vector_t feedforward_input;
+        std::size_t feedforward_mode = mode;
+        mrt->evaluatePolicy(
+            evaluation_time, state, feedforward_state,
+            feedforward_input, feedforward_mode);
+        if (feedforward_mode == mode && feedforward_input.size() == kCentroidalInputDim &&
+            feedforward_input.allFinite()) {
+          input = std::move(feedforward_input);
+        }
+      }
+      if (config.nominal_joint_reference) {
+        // One active policy/time/side for both nominal q and nominal input dq.
+        // No updatePolicy() occurs between evaluatePolicy and this snapshot.
+        const auto nominal = SampleNominalJointReference(
+            mrt->getPolicy(), evaluation_time, mode);
+        if (!nominal) return false;
+        for (std::size_t slot = 0; slot < kJointCount; ++slot) {
+          state(12 + slot) = nominal->position_model_rad[slot];
+          input(12 + slot) = nominal->velocity_model_rad_s[slot];
+        }
       }
       for (std::size_t i = 0; i < kCentroidalStateDim; ++i) {
         output.state[i] = state(i);
@@ -566,98 +654,223 @@ class NmpcBackend::Impl {
     }
   }
 
+  void ResetWbcReferenceHistory() {
+    velocity_reference_limiter.Reset();
+    if (wbc) wbc->resetInputHistory();
+  }
+
   WbcOutput ComputeWbc(
       const PolicySample& policy,
       const ocs2::vector_t& measured_rbd_state,
       double period_seconds) {
     WbcOutput output;
-    if (!std::isfinite(period_seconds) || period_seconds <= 0.0 || period_seconds > 0.1) {
+    const auto reject = [this, &output]() {
+      output.valid = false;
+      ResetWbcReferenceHistory();
       return output;
-    }
-    ocs2::vector_t desired_state(kCentroidalStateDim);
-    ocs2::vector_t desired_input(kCentroidalInputDim);
-    for (std::size_t i = 0; i < kCentroidalStateDim; ++i) {
-      desired_state(i) = policy.state[i];
-    }
-    for (std::size_t i = 0; i < kCentroidalInputDim; ++i) {
-      desired_input(i) = policy.input[i];
-    }
-
-    // 在 WBC 前投影 NMPC 目标到关节安全区间，并收紧髋外展角以避免交叉落足。
-    // 位置被截断时同步清零该关节目标速度，避免继续朝越界方向运动。
-    auto joint_positions = ocs2::centroidal_model::getJointAngles(
-        desired_state, interface->getCentroidalModelInfo());
-    auto joint_velocities = ocs2::centroidal_model::getJointVelocities(
-        desired_input, interface->getCentroidalModelInfo());
-    const auto& model = interface->getPinocchioInterface().getModel();
-    for (std::size_t i = 0; i < kJointCount; ++i) {
-      const auto joint_id = model.getJointId(std::string(kJointNames[i]));
-      const auto q_index = model.joints[joint_id].idx_q();
-      const std::size_t slot = static_cast<std::size_t>(model_joint_slots[i]);
-      double lower = model.lowerPositionLimit(q_index) + config.joint_limit_margin_rad;
-      double upper = model.upperPositionLimit(q_index) - config.joint_limit_margin_rad;
-      if (i % kJointsPerLeg == 0) {
-        lower = std::max(lower, -config.max_hip_angle_rad);
-        upper = std::min(upper, config.max_hip_angle_rad);
+    };
+    try {
+      if (!configured_flag || !interface || !wbc || !policy.valid ||
+          measured_rbd_state.size() != static_cast<Eigen::Index>(2 * (6 + kJointCount)) ||
+          !measured_rbd_state.allFinite() || !std::isfinite(policy.observation_time) ||
+          !std::isfinite(period_seconds) || period_seconds <= 0.0 || period_seconds > 0.1) {
+        return reject();
       }
-      const double projected = std::clamp(joint_positions(slot), lower, upper);
-      if (projected != joint_positions(slot)) {
-        joint_positions(slot) = projected;
-        joint_velocities(slot) = 0.0;
+      ocs2::vector_t desired_state(kCentroidalStateDim);
+      ocs2::vector_t desired_input(kCentroidalInputDim);
+      for (std::size_t i = 0; i < kCentroidalStateDim; ++i) {
+        desired_state(i) = policy.state[i];
       }
-      desired_state(12 + slot) = joint_positions(slot);
-      desired_input(12 + slot) = joint_velocities(slot);
-    }
+      for (std::size_t i = 0; i < kCentroidalInputDim; ++i) {
+        desired_input(i) = policy.input[i];
+      }
+      if (!desired_state.allFinite() || !desired_input.allFinite()) {
+        return reject();
+      }
+      output.desired_base_z_m = desired_state(8);
 
-    const auto force_bounds = contact_force_ramp.Update(
-        ContactFlags(policy.mode), period_seconds, config.contact_force_ramp_s,
-        interface->getCentroidalModelInfo().robotMass * 9.81);
-    wbc->setContactNormalForceUpperBounds(Eigen::Map<const ocs2::vector_t>(
-        force_bounds.data(), force_bounds.size()));
-    const auto start = std::chrono::steady_clock::now();
-    const ocs2::vector_t solution = wbc->update(
-        desired_state, desired_input, measured_rbd_state,
-        policy.mode, period_seconds);
-    output.solve_time_ms = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - start).count();
-    output.equality_residual = wbc->lastEqualityResidual();
-    output.inequality_violation = wbc->lastInequalityViolation();
-    // 求解器返回成功还不足以使用结果：同时检查有限性和约束残差，
-    // 再逐关节复核力矩。失败时由上层决定短时回退或锁存故障。
-    output.valid = wbc->lastSolverSucceeded() &&
-                   solution.size() >= static_cast<Eigen::Index>(kJointCount) &&
-                   solution.allFinite() &&
-                   std::isfinite(output.equality_residual) &&
-                   std::isfinite(output.inequality_violation) &&
-                   output.equality_residual <= 1e-3 &&
-                   output.inequality_violation <= 1e-4;
-    if (!output.valid) {
+      // 在 WBC 前投影 NMPC 目标到关节安全区间，并收紧髋外展角以避免交叉落足。
+      // 位置被截断时同步清零该关节目标速度，避免继续朝越界方向运动。
+      auto joint_positions = ocs2::centroidal_model::getJointAngles(
+          desired_state, interface->getCentroidalModelInfo());
+      auto joint_velocities = ocs2::centroidal_model::getJointVelocities(
+          desired_input, interface->getCentroidalModelInfo());
+      std::array<bool, kJointCount> projected_joint{};
+      const auto& model = interface->getPinocchioInterface().getModel();
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        const auto joint_id = model.getJointId(std::string(kJointNames[i]));
+        const auto q_index = model.joints[joint_id].idx_q();
+        const std::size_t slot = static_cast<std::size_t>(model_joint_slots[i]);
+        double lower = model.lowerPositionLimit(q_index) + config.joint_limit_margin_rad;
+        double upper = model.upperPositionLimit(q_index) - config.joint_limit_margin_rad;
+        if (i % kJointsPerLeg == 0) {
+          lower = std::max(lower, -config.max_hip_angle_rad);
+          upper = std::min(upper, config.max_hip_angle_rad);
+        }
+        if (!std::isfinite(lower) || !std::isfinite(upper) || lower > upper) {
+          return reject();
+        }
+        const double projected = std::clamp(joint_positions(slot), lower, upper);
+        if (projected != joint_positions(slot)) {
+          projected_joint[i] = true;
+          joint_positions(slot) = projected;
+          joint_velocities(slot) = 0.0;
+        }
+        desired_state(12 + slot) = joint_positions(slot);
+        desired_input(12 + slot) = joint_velocities(slot);
+      }
+
+      std::array<double, kJointCount> raw_velocity{}, acceleration_limits{};
+      acceleration_limits.fill(config.joint_velocity_acceleration_limit);
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        raw_velocity[i] = desired_input(12 + model_joint_slots[i]);
+        if (projected_joint[i]) acceleration_limits[i] = 0.0;
+      }
+      if (!config.nominal_joint_reference) {
+        // The compatibility path retains the existing dq-only input shaping.
+        // Nominal q/dq bypass it together; safety projection above remains explicit.
+        const auto limited_velocity = velocity_reference_limiter.Update(
+            raw_velocity, acceleration_limits, period_seconds);
+        if (!limited_velocity) return reject();
+        for (std::size_t i = 0; i < kJointCount; ++i) {
+          desired_input(12 + model_joint_slots[i]) = (*limited_velocity)[i];
+          output.velocity_reference_limited_joints += (*limited_velocity)[i] != raw_velocity[i];
+        }
+      }
+      HybridJointCommand pd_reference;
+      JointSample measured_joints;
+      std::array<double, kJointCount> effort_limits{};
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        const auto slot = model_joint_slots[i];
+        pd_reference.position[i] = desired_state(12 + slot);
+        pd_reference.velocity[i] = desired_input(12 + slot);
+        pd_reference.kp[i] = config.motion_joint_kp[i];
+        pd_reference.kd[i] = config.motion_joint_kd;
+        measured_joints.position[i] = measured_rbd_state(6 + slot);
+        measured_joints.velocity[i] = measured_rbd_state(24 + slot);
+        measured_joints.valid[i] = 1.0;
+        const auto joint_id = model.getJointId(std::string(kJointNames[i]));
+        effort_limits[i] = model.effortLimit(model.joints[joint_id].idx_v());
+      }
+      ocs2::vector_t feedforward_bounds = ocs2::vector_t::Constant(
+          kJointCount, std::numeric_limits<double>::infinity());
+      ocs2::vector_t pd_nominal = ocs2::vector_t::Zero(kJointCount);
+      ocs2::vector_t pd_lower = pd_nominal, pd_upper = pd_nominal;
+      std::array<double, kJointCount> host_sample_pd{};
+      output.joint_pd_gain_scale.fill(1.0);
+      if (config.host_total_torque_command) {
+        // The QP tail is the actual fixed total request: leave EOM PD bias
+        // zero and cap that total directly. Save same-sample PD only to expose
+        // an internal residual FF after solving, never as a second actuator.
+        for (std::size_t i = 0; i < kJointCount; ++i) {
+          host_sample_pd[i] = EquivalentEffort(pd_reference, measured_joints, i);
+          if (!std::isfinite(host_sample_pd[i])) {
+            return reject();
+          }
+        }
+      } else if (config.motor_pd_window_model.horizon_seconds > 0.0) {
+        SignedMotorPdBudget pd_budget;
+        if (!ComputeSignedMotorPdBudget(pd_reference, measured_joints, effort_limits,
+                config.motor_pd_window_model, pd_budget) ||
+            !pd_budget.all_feedforward_intervals_feasible) {
+          return reject();
+        }
+        for (std::size_t i = 0; i < kJointCount; ++i) {
+          const auto slot = model_joint_slots[i];
+          pd_nominal(slot) = pd_budget.pd_nominal_nm[i];
+          pd_lower(slot) = pd_budget.pd_min_nm[i];
+          pd_upper(slot) = pd_budget.pd_max_nm[i];
+          output.pd_window_reservation_nm[i] =
+              std::max(std::abs(pd_lower(slot)), std::abs(pd_upper(slot)));
+        }
+      }
+      // Host-total mode keeps this PD model zero: the decision already is the
+      // total actuator request. All other tasks still use the same q/dq pair.
+      // With inner motor PD and H>0 the
+      // decision torque is FF, while rigid-body dynamics sees FF + nominal PD.
+      // D>0 uses a constant-velocity execution-PD center and holds the current
+      // M/J/contact model: a zeroth-order dynamics approximation, not rollout.
+      // The hard inequalities additionally cover the signed PD window, rather
+      // than shrinking useful support by an unsigned PD reserve.
+      wbc->setMotorPdTorqueModel(pd_nominal, pd_lower, pd_upper);
+      wbc->setJointTorqueUpperBounds(feedforward_bounds);
+
+      const auto force_bounds = contact_force_ramp.Update(
+          ContactFlags(policy.mode), period_seconds, config.contact_force_ramp_s,
+          interface->getCentroidalModelInfo().robotMass * 9.81);
+      wbc->setContactNormalForceUpperBounds(Eigen::Map<const ocs2::vector_t>(
+          force_bounds.data(), force_bounds.size()));
+      const auto start = std::chrono::steady_clock::now();
+      const ocs2::vector_t solution = wbc->update(
+          desired_state, desired_input, measured_rbd_state,
+          policy.mode, period_seconds);
+      output.solve_time_ms = std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - start).count();
+      output.equality_residual = wbc->lastEqualityResidual();
+      output.inequality_violation = wbc->lastInequalityViolation();
+      output.raw_base_az_task_rhs_mps2 = wbc->lastBaseVerticalAccelerationTarget();
+      output.nominal_height_correction_mps2 = wbc->lastNominalHeightCorrection();
+      // 求解器返回成功还不足以使用结果：同时检查有限性和约束残差，
+      // 再逐关节复核力矩。失败时由上层决定短时回退或锁存故障。
+      output.valid = wbc->lastSolverSucceeded() &&
+                     solution.size() >= static_cast<Eigen::Index>(kJointCount) &&
+                     solution.allFinite() &&
+                     std::isfinite(output.equality_residual) &&
+                     std::isfinite(output.inequality_violation) &&
+                     output.equality_residual <= 1e-3 &&
+                     output.inequality_violation <= 1e-4;
+      if (!output.valid) {
+        return reject();
+      }
+      // WbcBase uses q=[world xyz, ZYX, joints], so solution(2) is world z
+      // acceleration. Read the existing solution without recomputing any task.
+      output.qp_base_az_mps2 = solution(2);
+      output.joint_acceleration_coupling_az_mps2 =
+          wbc->lastBaseVerticalJointAccelerationCoupling().dot(solution.segment(6, kJointCount));
+      output.task_base_az_mps2 = output.raw_base_az_task_rhs_mps2 -
+          output.joint_acceleration_coupling_az_mps2;
+      output.qp_base_az_residual_mps2 =
+          output.qp_base_az_mps2 - output.task_base_az_mps2;
+
+      const auto command_joint_positions =
+          ocs2::centroidal_model::getJointAngles(
+              desired_state, interface->getCentroidalModelInfo());
+      const auto command_joint_velocities =
+          ocs2::centroidal_model::getJointVelocities(
+              desired_input, interface->getCentroidalModelInfo());
+      // QP 解的尾部是模型顺序力矩；q/dq 取通过全部验收的同一参考。
+      // 在这里统一转换回硬件顺序，kp/kd 留给控制器的模式与交接逻辑设置。
+      const auto joint_torques = solution.tail(kJointCount);
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        const auto joint_id = model.getJointId(std::string(kJointNames[i]));
+        const std::size_t model_slot =
+            static_cast<std::size_t>(model_joint_slots[i]);
+        if (std::abs(joint_torques(model_slot)) >
+            model.effortLimit(model.joints[joint_id].idx_v()) + 1e-6) {
+          return reject();
+        }
+        output.command.position[i] = command_joint_positions(model_slot);
+        output.command.velocity[i] = command_joint_velocities(model_slot);
+        output.command.effort[i] = config.host_total_torque_command
+            ? joint_torques(model_slot) - host_sample_pd[i]
+            : joint_torques(model_slot);
+        // In host mode this residual can exceed the physical field cap: only
+        // residual+PD is sent, after final handoff and total bounding. The QP
+        // total above, rather than this unsent decomposition, was validated.
+        if (!std::isfinite(output.command.effort[i])) {
+          return reject();
+        }
+        output.command.kp[i] = pd_reference.kp[i];
+        output.command.kd[i] = pd_reference.kd[i];
+      }
       return output;
-    }
-
-    const auto command_joint_positions =
-        ocs2::centroidal_model::getJointAngles(
-            desired_state, interface->getCentroidalModelInfo());
-    const auto command_joint_velocities =
-        ocs2::centroidal_model::getJointVelocities(
-            desired_input, interface->getCentroidalModelInfo());
-    // QP 解的尾部是模型顺序力矩；q/dq 仍取投影后的 NMPC 目标。
-    // 在这里统一转换回硬件顺序，kp/kd 留给控制器的模式与交接逻辑设置。
-    const auto joint_torques = solution.tail(kJointCount);
-    for (std::size_t i = 0; i < kJointCount; ++i) {
-      const auto joint_id = model.getJointId(std::string(kJointNames[i]));
-      const std::size_t model_slot =
-          static_cast<std::size_t>(model_joint_slots[i]);
-      if (std::abs(joint_torques(model_slot)) >
-          model.effortLimit(model.joints[joint_id].idx_v()) + 1e-6) {
-        output.valid = false;
-        return output;
+    } catch (const std::exception& exception) {
+      {
+        std::lock_guard<std::mutex> lock(error_mutex);
+        last_error = exception.what();
       }
-      output.command.position[i] = command_joint_positions(model_slot);
-      output.command.velocity[i] = command_joint_velocities(model_slot);
-      output.command.effort[i] = joint_torques(model_slot);
+      return reject();
     }
-    return output;
   }
 
   NmpcBackendConfig config;
@@ -688,12 +901,14 @@ class NmpcBackend::Impl {
   std::unique_ptr<ocs2::PinocchioEndEffectorKinematics> end_effector_kinematics;
   std::unique_ptr<legged::WeightedWbc> wbc;
   ContactForceRamp contact_force_ramp;
+  JointVelocityReferenceLimiter velocity_reference_limiter;
   std::array<int, kJointCount> model_joint_slots{};
   ocs2::SystemObservation observation;
   bool has_yaw = false;
   double previous_yaw = 0.0;
   bool target_reference_initialized = false;
   bool yaw_command_was_active = false;
+  double target_cross_track_error_m = 0.0;
   Eigen::Vector2d target_position_world = Eigen::Vector2d::Zero();
   double target_heading_yaw = 0.0;
   double target_heading_update_time = 0.0;
@@ -753,6 +968,9 @@ double NmpcBackend::policyAgeSeconds(double now_seconds) const {
 std::string NmpcBackend::lastError() const {
   std::lock_guard<std::mutex> lock(impl_->error_mutex);
   return impl_->last_error;
+}
+double NmpcBackend::targetCrossTrackErrorMeters() const {
+  return impl_->target_cross_track_error_m;
 }
 const ocs2::PinocchioInterface& NmpcBackend::pinocchioInterface() const {
   if (!impl_->interface) {

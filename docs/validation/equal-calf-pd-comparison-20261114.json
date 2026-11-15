@@ -1,0 +1,2674 @@
+{
+  "date": "2026-11-14",
+  "hardware_io": false,
+  "scope": "Independent Fortress low-speed trials; no physical motion or onboard real-time acceptance",
+  "current_defaults": {
+    "additional_command_delay_s": 0.02,
+    "coulomb_friction_nm_hip_thigh_calf": [
+      0.0,
+      0.0,
+      0.45
+    ],
+    "viscous_friction_nm_s_rad_hip_thigh_calf": [
+      0.0,
+      0.0,
+      0.0175
+    ],
+    "imu_hz": 100,
+    "orientation_prediction_max_s": 0.0,
+    "public_joint_pd_changed": false,
+    "nmpc_and_wbc_task_parameters_changed": false
+  },
+  "software_checks": {
+    "launch_syntax_and_default_values": "passed",
+    "xacro_fortress_defaults": "passed",
+    "real_render_has_no_simulated_actuator_parameters": "passed",
+    "runtime_parameters_differ_only_in_8_pd_values_and_generated_config_path": "passed"
+  },
+  "trials": {
+    "equal-calf-original-pd": {
+      "raw_evidence_directory": "log/nonideal-20261114/equal-calf-original-pd",
+      "run": {
+        "passed": true,
+        "hardware_io": false,
+        "ros_domain_id": 198,
+        "requested_profile": {
+          "main_hz": 500,
+          "mpc_hz": 50,
+          "trot_period_s": 0.4,
+          "swing_height_m": 0.1,
+          "nominal_height_m": 0.34
+        },
+        "ground_truth_feedback": false,
+        "actuator_model": "motor_pd",
+        "simulation_imu_rate_hz": 100.0,
+        "imu_orientation_prediction_max_s": 0.0,
+        "additional_command_delay_s": 0.02,
+        "coulomb_friction_nm": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "viscous_friction_nm_s_per_rad": [
+          0.0,
+          0.0,
+          0.0175
+        ],
+        "friction_velocity_scale_rad_per_s": 0.05,
+        "motor_parameters_measured_on_hardware": false,
+        "unified_active_pd_trial": false,
+        "forward_returncode": 0,
+        "planar_returncode": 0,
+        "elapsed_wall_s": 211.69026675399982
+      },
+      "forward": {
+        "passed": true,
+        "backend": "Gazebo Fortress physics",
+        "hardware_io": false,
+        "synthetic_static_observation": false,
+        "truth_topic": "/ground_truth/odom",
+        "simulation_preflight_passed": true,
+        "settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/nonideal-20261114/equal-calf-original-pd/forward.json",
+          "legacy_joy": true,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "speed": 0.05,
+          "walk_duration": 10.0,
+          "resume_duration": 6.0,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_horizontal_speed": 0.35,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "timestamp_utc": "2026-11-14T04:45:25.355092+00:00",
+        "calibration_scope": "Simulation joints already use URDF coordinates; real encoder/mechanical calibration is not certified.",
+        "phases": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00010726010384791288,
+            "max_abs_pitch_rad": 0.005542952596019662,
+            "min_height_m": 0.328232073543217,
+            "max_height_m": 0.33576174636473705,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.011405151887803118,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.999349802000324,
+            "forward_displacement_m": -0.0012383089672555788,
+            "lateral_displacement_m": -3.812887002463915e-05,
+            "yaw_drift_rad": 7.268046933127034e-06,
+            "final_horizontal_speed_mps": 0.0009459101016047407
+          },
+          {
+            "name": "first_forward_trot",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_TROT",
+            "duration_sim_s": 10.0,
+            "diagnostic_samples": 99,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0049847101067032815,
+            "max_abs_pitch_rad": 0.016289283974419082,
+            "min_height_m": 0.32857382314972555,
+            "max_height_m": 0.33814844722518184,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.09687833810616561,
+              "min_command_projected_speed_mps": -0.00737887789299458,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 10.0,
+            "elapsed_wall_s": 19.999191480999798,
+            "forward_displacement_m": 0.5909488542086974,
+            "lateral_displacement_m": -0.01473781350623126,
+            "yaw_drift_rad": -0.00758090756545157,
+            "final_horizontal_speed_mps": 0.053966469870564665
+          },
+          {
+            "name": "automatic_zero_speed_stop",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0014951503752176811,
+            "max_abs_pitch_rad": 0.009059141586676575,
+            "min_height_m": 0.3305435470331686,
+            "max_height_m": 0.3385062731701603,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.020878061806778588,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9993572650000715,
+            "forward_displacement_m": 0.0028745749792807303,
+            "lateral_displacement_m": -0.0009286723890914282,
+            "yaw_drift_rad": -0.0006100066956082331,
+            "final_horizontal_speed_mps": 0.00039594466080201403
+          },
+          {
+            "name": "resume_without_rearming",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_TROT",
+            "duration_sim_s": 6.0,
+            "diagnostic_samples": 60,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.005273259683744888,
+            "max_abs_pitch_rad": 0.013075664313386234,
+            "min_height_m": 0.3266959954215212,
+            "max_height_m": 0.3391502028196224,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.10510201924111648,
+              "min_command_projected_speed_mps": 0.007035826288378405,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 6.0,
+            "elapsed_wall_s": 12.007963551000103,
+            "forward_displacement_m": 0.3721397525745029,
+            "lateral_displacement_m": 0.006838620503310762,
+            "yaw_drift_rad": -2.582875141642505e-05,
+            "final_horizontal_speed_mps": 0.07680245696379928
+          },
+          {
+            "name": "explicit_A_stays_in_stance",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0013824098106876754,
+            "max_abs_pitch_rad": 0.010966451933654283,
+            "min_height_m": 0.3314974582343169,
+            "max_height_m": 0.33933400796963925,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.05309835633040648,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0010000000000012,
+            "elapsed_wall_s": 6.0054369419995055,
+            "forward_displacement_m": 0.003089799574999449,
+            "lateral_displacement_m": -8.256856294580488e-05,
+            "yaw_drift_rad": 0.00018199506709021523,
+            "final_horizontal_speed_mps": 1.0948182675309223e-05
+          },
+          {
+            "name": "final_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 21,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0004134912738522246,
+            "max_abs_pitch_rad": 0.0007653470910224549,
+            "min_height_m": 0.3393599207628726,
+            "max_height_m": 0.3396879990258732,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0005477588616014009,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.999971182000081,
+            "forward_displacement_m": 0.00024077206265916788,
+            "lateral_displacement_m": -1.5413951641387165e-06,
+            "yaw_drift_rad": -2.6487674537759368e-06,
+            "final_horizontal_speed_mps": 9.052760539673294e-05
+          }
+        ],
+        "mode_history": [
+          {
+            "sim_seconds": 1.32,
+            "mode": "PASSIVE"
+          },
+          {
+            "sim_seconds": 2.028,
+            "mode": "STAND_UP"
+          },
+          {
+            "sim_seconds": 6.57,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 10.108,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 20.722,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 23.248,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 29.616000000000003,
+            "mode": "MPC_STANCE"
+          }
+        ],
+        "final_mode": "MPC_STANCE",
+        "final_status_message": "MPC_STANCE",
+        "final_diagnostics": {
+          "mode": "MPC_STANCE",
+          "mode_elapsed_s": "4.954",
+          "joint_array_order": "FR,FL,RR,RL; each hip,thigh,calf",
+          "joint_array_encoding": "JSON numeric arrays; null means unavailable or non-finite",
+          "joint_position_rad": "[-0.0016243201829244007,0.67990453679480289,-1.4536671408640585,0.0074681922835843498,0.72243060752823007,-1.4508519195724252,0.014572173503147863,0.73105291981799103,-1.4663910835658203,-0.014761878867579153,0.68923543989814118,-1.465874455164855]",
+          "joint_velocity_rad_s": "[0.00035047040606006608,-0.00079101069079284825,-8.6882112079411655e-05,0.00035385159292926046,-0.00064992479814007798,-0.00037665816963383669,0.00036470313454103551,-0.0021471303288882471,0.0024608691513976488,0.00037760262746508455,-0.0019793770206778527,0.0021869925119197831]",
+          "joint_feedback_valid": "[1,1,1,1,1,1,1,1,1,1,1,1]",
+          "joint_effort_feedback": "[2.2192302799790387,0.62879241430340438,4.878204849326524,-2.3092635475470491,0.16730356030545679,4.6696360210882322,2.4543358841861949,0.13236254697744157,5.3946259625163639,-2.4405710610035913,0.59434640107694836,5.5859178641125409]",
+          "joint_effort_feedback_semantics": "simulated motor-PD requested joint effort; not measured hardware torque or foot force",
+          "joint_effort_limits_nm": "[23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45]",
+          "stand_up_final_target_position_rad": "[0.040594419999999999,0.72092118400000005,-1.394467125,-0.041155553999999997,0.72063062200000005,-1.394131875,0.046229459000000001,0.72041776000000002,-1.388499632,-0.046565312999999997,0.71831117200000005,-1.389189252]",
+          "stand_up_final_target_max_error_rad": "0.0778915",
+          "stand_up_final_target_max_error_joint_index": "8",
+          "stand_up_final_target_max_error_joint_name": "RR_calf_joint",
+          "stand_up_final_target_error_valid_joint_count": "12",
+          "stand_up_final_target_error_semantics": "maximum over valid finite joint positions only; final target, not interpolated target",
+          "controller_request_interface_layout": "position,velocity,effort,kp,kd",
+          "controller_request_position_rad": "[-0.001627045521242283,0.68003000669849345,-1.4537873698716892,0.0074666643342113908,0.72255595708302633,-1.4509674691821395,0.014570421514372003,0.73120118251182964,-1.4665508567961247,-0.014764726949913373,0.68938321815426806,-1.4660395089895455]",
+          "controller_request_velocity_rad_s": "[4.0515965767536744e-06,0.015416852807094799,-0.017980147947006066,0.00018606760617111435,0.015579637892227024,-0.017644661661300076,0.00013765295081939272,0.014127260839467916,-0.014561045174085923,3.3804039370851079e-05,0.014382154298605735,-0.015691226800138427]",
+          "controller_request_effort_nm": "[2.1982849264959317,0.6753397249398555,4.9270262073543858,-2.2918347401295591,0.2163398426492984,4.7194810793014508,2.4540359363325948,0.1909869974601085,5.4250053789644719,-2.4446445767610916,0.65165019350314612,5.6158045406278614]",
+          "controller_request_kp_nm_rad": "[50,20,40,50,20,40,50,20,40,50,20,40]",
+          "controller_request_kd_nm_s_rad": "[2,2,2,2,2,2,2,2,2,2,2,2]",
+          "controller_request_semantics": "controller command-interface request; not final motor packet or measured torque; hardware may scale/disable it",
+          "joy_requested_mode": "NONE",
+          "joy_age_s": "0",
+          "joy_request_snapshot": "latest buffered Joy at diagnostic sampling; may postdate the control update snapshot; not an accepted mode",
+          "limited_command_exceeds_trot_entry_threshold": "false",
+          "controller_fault_reason": "",
+          "calibrated": "true",
+          "startup_alignment": "0",
+          "startup_alignment_phase": "disabled",
+          "requires_recalibration": "false",
+          "estimate_valid": "true",
+          "imu_valid": "true",
+          "imu_age_s": "0.008",
+          "imu_orientation_prediction_s": "0",
+          "trot_enabled": "false",
+          "gait_transition": "NONE",
+          "policy_mode": "15",
+          "nmpc_backend": "legged::LeggedInterface",
+          "wbc_backend": "legged::WeightedWbc",
+          "legged_control_revision": "a7f381c0367e98e31c01336e678eef47e304d40d",
+          "control_period_ms": "2",
+          "control_period_mean_ms": "2",
+          "control_period_p95_ms": "2",
+          "control_period_p99_ms": "2",
+          "io_period_ms": "0",
+          "io_period_p99_ms": "0",
+          "io_timeout_count": "0",
+          "communication_ok": "true",
+          "base_x_m": "0.747987",
+          "base_y_m": "-0.00172888",
+          "base_z_m": "0.339593",
+          "base_yaw_rad": "0.0041713",
+          "base_roll_rad": "0.000408625",
+          "base_pitch_rad": "-0.000596055",
+          "base_vx_mps": "0.00226127",
+          "base_vy_mps": "5.18418e-05",
+          "base_vz_mps": "-0.00256844",
+          "requested_vx_mps": "0",
+          "requested_vy_mps": "0",
+          "requested_yaw_rad_s": "0",
+          "governed_vx_mps": "0",
+          "governed_vy_mps": "0",
+          "governed_yaw_rad_s": "0",
+          "fr_hip_position_rad": "-0.00162432",
+          "fr_thigh_position_rad": "0.679905",
+          "fr_calf_position_rad": "-1.45367",
+          "fr_hip_velocity_rad_s": "0.00035047",
+          "fr_thigh_velocity_rad_s": "-0.000791011",
+          "fr_calf_velocity_rad_s": "-8.68821e-05",
+          "wbc_q_fr_hip_rad": "-0.00162705",
+          "wbc_q_fr_thigh_rad": "0.68003",
+          "wbc_q_fr_calf_rad": "-1.45379",
+          "wbc_qd_fr_hip_rad_s": "4.0516e-06",
+          "wbc_qd_fr_thigh_rad_s": "0.0154169",
+          "wbc_qd_fr_calf_rad_s": "-0.0179801",
+          "mpc_policy_age_s": "0",
+          "mpc_solver_healthy": "true",
+          "mpc_last_error": "",
+          "mpc_solve_ms": "11.8351",
+          "mpc_solve_mean_ms": "10.7288",
+          "mpc_solve_p95_ms": "12.299",
+          "mpc_solve_p99_ms": "15.0424",
+          "wbc_solve_ms": "0.306633",
+          "wbc_valid": "true",
+          "wbc_consecutive_failures": "0",
+          "wbc_tau_max_abs": "5.6158",
+          "wbc_tau_fr_hip": "2.19828",
+          "wbc_tau_fr_thigh": "0.67534",
+          "wbc_tau_fr_calf": "4.92703",
+          "wbc_equality_residual": "9.74123e-15",
+          "wbc_inequality_violation": "0",
+          "policy_fz_fr": "35.0108",
+          "policy_fz_fl": "35.2167",
+          "policy_fz_rr": "40.0466",
+          "policy_fz_rl": "39.9095"
+        },
+        "motion_safety": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 0.35,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.10510201924111648,
+          "min_command_projected_speed_mps": -0.00737887789299458,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        }
+      },
+      "planar": {
+        "passed": true,
+        "backend": "Gazebo Fortress physics",
+        "hardware_io": false,
+        "synthetic_static_observation": false,
+        "simulation_preflight_passed": true,
+        "timestamp_utc": "2026-11-14T04:46:32.589076+00:00",
+        "settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/nonideal-20261114/equal-calf-original-pd/planar.json",
+          "legacy_joy": true,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 30.0,
+          "telemetry_timeout": 5.0,
+          "wall_factor": 25.0,
+          "phase_duration": 5.0,
+          "settle_duration": 1.0,
+          "soak_duration": 30.0,
+          "speed": 0.05,
+          "yaw_rate": 0.2,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.15,
+          "max_yaw_drift": 0.3,
+          "max_turn_translation": 0.12,
+          "max_horizontal_speed": 0.35,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "scope": "Low-speed backward, left, right and both yaw directions; starts in MPC_STANCE.",
+        "phases": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 11,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0004047930784503259,
+            "max_abs_pitch_rad": 0.0005088626636425371,
+            "min_height_m": 0.3397139835572673,
+            "max_height_m": 0.3397493520274141,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.022450411355603384,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9997659450000356,
+            "forward_displacement_m": 0.0001038822754723998,
+            "lateral_displacement_m": -4.240964737050938e-07,
+            "yaw_drift_rad": -3.1513600863824343e-07,
+            "final_horizontal_speed_mps": 0.00022669819379622755
+          },
+          {
+            "name": "backward",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": -0.05,
+              "vy_mps": 0.0,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "forward",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.006991458526280196,
+            "max_abs_pitch_rad": 0.010562757767655452,
+            "min_height_m": 0.32685779048422087,
+            "max_height_m": 0.3396671928854131,
+            "start_truth": {
+              "x": 1.0437312609385136,
+              "y": 0.0002804165052581434,
+              "z": 0.3396671928854131,
+              "vx": 0.009386629994867855,
+              "vy": 0.010023495538212253,
+              "vz": 0.005413196611489177,
+              "roll": -0.0007601009285725018,
+              "pitch": 0.00020852919724317817,
+              "yaw": 0.0034573734360508644
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.07423681952880139,
+              "min_command_projected_speed_mps": -0.006080724469403597,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999201685999651,
+            "forward_displacement_m": -0.26349368343533924,
+            "lateral_displacement_m": -0.00016737872689258988,
+            "yaw_displacement_rad": 0.0021969080983016594,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.7802397310180089,
+              "y": -0.0007979554680165885,
+              "z": 0.32933733319887665,
+              "vx": -0.035268576748421265,
+              "vy": -0.02231776428611053,
+              "vz": -0.030931104584585298,
+              "roll": 0.0015344847770587147,
+              "pitch": 0.001891161878804356,
+              "yaw": 0.005654281534352524
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_backward",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.002393954312634728,
+            "max_abs_pitch_rad": 0.00907926131914638,
+            "min_height_m": 0.3286377388681351,
+            "max_height_m": 0.33592708908079555,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.03412873609335679,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.999101139999766,
+            "forward_displacement_m": 0.002940301302646651,
+            "lateral_displacement_m": 0.0012998402563169256,
+            "yaw_drift_rad": 0.0005328270106287141,
+            "final_horizontal_speed_mps": 0.0015482768936853153
+          },
+          {
+            "name": "left",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.05,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "lateral",
+            "expected_sign": 1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.010796570806673915,
+            "max_abs_pitch_rad": 0.017294832055761225,
+            "min_height_m": 0.32802531457841655,
+            "max_height_m": 0.3386585862615181,
+            "start_truth": {
+              "x": 0.7698774671641767,
+              "y": -0.0019429488074752907,
+              "z": 0.3386585862615181,
+              "vx": -0.034018132658498394,
+              "vy": 0.0027454103079137663,
+              "vz": 0.04070879060089011,
+              "roll": 0.003419434397214062,
+              "pitch": -0.012803106944229618,
+              "yaw": -0.008728503662323969
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.08914642780434474,
+              "min_command_projected_speed_mps": -0.027262208296946245,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999249687000884,
+            "forward_displacement_m": -0.017316475158332748,
+            "lateral_displacement_m": 0.24053931872769588,
+            "yaw_displacement_rad": 0.01121930331339084,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.7546611733097773,
+              "y": 0.23873835201838817,
+              "z": 0.3313497883677768,
+              "vx": 0.00873633276818126,
+              "vy": 0.045127637139390116,
+              "vz": 0.006584781871584307,
+              "roll": -0.00775202256415431,
+              "pitch": 0.0013983164902977119,
+              "yaw": 0.002490799651066869
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_left",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.003988556124623797,
+            "max_abs_pitch_rad": 0.011563624404085298,
+            "min_height_m": 0.3320194180795086,
+            "max_height_m": 0.33680495852771103,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.027269974168218775,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.999306964000425,
+            "forward_displacement_m": -0.0001603737731743827,
+            "lateral_displacement_m": -0.001275441489561465,
+            "yaw_drift_rad": -0.005184571584188638,
+            "final_horizontal_speed_mps": 0.004513026466710501
+          },
+          {
+            "name": "right",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": -0.05,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "lateral",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.013160483042392462,
+            "max_abs_pitch_rad": 0.012877535299652179,
+            "min_height_m": 0.32554730108943364,
+            "max_height_m": 0.33789967829554324,
+            "start_truth": {
+              "x": 0.7532426147473131,
+              "y": 0.25372919501741314,
+              "z": 0.33789967829554324,
+              "vx": 0.02718618918485922,
+              "vy": 0.002136026390371349,
+              "vz": 0.008516996190258476,
+              "roll": -0.0014181906935045656,
+              "pitch": 3.562340372355413e-05,
+              "yaw": -0.005874305453518242
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.11048654050030701,
+              "min_command_projected_speed_mps": 2.5584624901413023e-05,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999063735999698,
+            "forward_displacement_m": 0.01244682816821827,
+            "lateral_displacement_m": -0.2583909896969128,
+            "yaw_displacement_rad": -0.0012177250231995935,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.7641713692916035,
+              "y": -0.00473045253343748,
+              "z": 0.332267520348328,
+              "vx": 0.011055216361155015,
+              "vy": -0.07417413548179645,
+              "vz": 0.04820250426480459,
+              "roll": 0.012866136231921125,
+              "pitch": 0.007383806157574831,
+              "yaw": -0.007092030476717835
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_right",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0015180793053982922,
+            "max_abs_pitch_rad": 0.009917255645696168,
+            "min_height_m": 0.33307930684909565,
+            "max_height_m": 0.3372440699274701,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01890975734129622,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9991227749997051,
+            "forward_displacement_m": 0.002431480526314211,
+            "lateral_displacement_m": -1.6554795835204582e-05,
+            "yaw_drift_rad": -0.00975685444723538,
+            "final_horizontal_speed_mps": 0.0006625709446778461
+          },
+          {
+            "name": "positive_yaw",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.0,
+              "yaw_radps": 0.2
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "yaw",
+            "expected_sign": 1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.005291278586469308,
+            "max_abs_pitch_rad": 0.014850941953055167,
+            "min_height_m": 0.32755719718288384,
+            "max_height_m": 0.3383751888576805,
+            "start_truth": {
+              "x": 0.7692710200983608,
+              "y": -0.01659195139218671,
+              "z": 0.3383751888576805,
+              "vx": 0.0032809326215558843,
+              "vy": -0.001028008214928689,
+              "vz": -0.007151397805020715,
+              "roll": 0.0008263766772883691,
+              "pitch": -0.002992771421955276,
+              "yaw": -0.0043635153824730455
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.04143315055835657,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.998770373000298,
+            "forward_displacement_m": 0.004555534778836245,
+            "lateral_displacement_m": 0.009213046945302996,
+            "yaw_displacement_rad": 0.9766845272337525,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.7738667126524593,
+              "y": -0.007398870239181109,
+              "z": 0.33160568802407064,
+              "vx": 0.01304651986014677,
+              "vy": 0.008419077002652616,
+              "vz": 0.021784639312487027,
+              "roll": -0.00040504335590219677,
+              "pitch": 0.0012665855710526663,
+              "yaw": 0.9723210118512795
+            },
+            "minimum_required_displacement": 0.25,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_positive_yaw",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0009506340906164131,
+            "max_abs_pitch_rad": 0.008681375409781441,
+            "min_height_m": 0.330774166997931,
+            "max_height_m": 0.3363773456613178,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0201063537738588,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0009999999999977,
+            "elapsed_wall_s": 2.001282461000301,
+            "forward_displacement_m": 0.002805020658709833,
+            "lateral_displacement_m": 0.00018904814543982624,
+            "yaw_drift_rad": -0.0023308005085309613,
+            "final_horizontal_speed_mps": 0.00019572152815076533
+          },
+          {
+            "name": "negative_yaw",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.0,
+              "yaw_radps": -0.2
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "yaw",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.005639283561106378,
+            "max_abs_pitch_rad": 0.010472945955478399,
+            "min_height_m": 0.32753460232610915,
+            "max_height_m": 0.33785706479353333,
+            "start_truth": {
+              "x": 0.7733447117906539,
+              "y": -0.0036070289858226843,
+              "z": 0.337795335822851,
+              "vx": 0.006843491202013319,
+              "vy": 0.018905874490420492,
+              "vz": 0.01078180167234439,
+              "roll": -0.0006532093106042656,
+              "pitch": -0.0010303322453933848,
+              "yaw": 0.9950502091043065
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.03714272194310816,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999153134000153,
+            "forward_displacement_m": 0.00622051770463852,
+            "lateral_displacement_m": -0.02218212361697351,
+            "yaw_displacement_rad": -0.9713844232699687,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.7953376011700652,
+              "y": -0.010466640156828697,
+              "z": 0.3310587283253183,
+              "vx": 0.031241700762895418,
+              "vy": -0.01764131212855895,
+              "vz": -0.06109431764812502,
+              "roll": 0.0014749602594027874,
+              "pitch": 0.003809267648327839,
+              "yaw": 0.02366578583433786
+            },
+            "minimum_required_displacement": 0.25,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_negative_yaw",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0028150646259436003,
+            "max_abs_pitch_rad": 0.004080370325716209,
+            "min_height_m": 0.3304878162463661,
+            "max_height_m": 0.33587464028982383,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01643224787900485,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9990866970001662,
+            "forward_displacement_m": 0.0024165164059486055,
+            "lateral_displacement_m": 0.0014813967019994857,
+            "yaw_drift_rad": 0.00032629575663741325,
+            "final_horizontal_speed_mps": 0.001057470153667829
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.000973971930119044,
+            "max_abs_pitch_rad": 0.002249057278796416,
+            "min_height_m": 0.33621936364144006,
+            "max_height_m": 0.3381716349621253,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0020047538824281784,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9990870290002931,
+            "forward_displacement_m": 0.0007868717422183288,
+            "lateral_displacement_m": -8.039666391415425e-06,
+            "yaw_drift_rad": 2.116448389806111e-06,
+            "final_horizontal_speed_mps": 0.0008429831385925339
+          },
+          {
+            "name": "final_stance_soak",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 30.0,
+            "diagnostic_samples": 298,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0009535627201427304,
+            "max_abs_pitch_rad": 0.002046163696175063,
+            "min_height_m": 0.3382862170441502,
+            "max_height_m": 0.3396608878128049,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0014123975102220939,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 30.0,
+            "elapsed_wall_s": 60.00751607699931,
+            "forward_displacement_m": 0.0012609235848976463,
+            "lateral_displacement_m": -4.751749023643972e-06,
+            "yaw_drift_rad": -1.6541341799018035e-06,
+            "final_horizontal_speed_mps": 0.00021531721484712943
+          }
+        ],
+        "mode_history": [
+          {
+            "sim_seconds": 34.86,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 36.57,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 42.104,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 43.512,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 49.04600000000001,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 50.756,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 56.39,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 58.1,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 63.63400000000001,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 65.352,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 70.918,
+            "mode": "MPC_STANCE"
+          }
+        ],
+        "final_mode": "MPC_STANCE",
+        "final_diagnostics": {
+          "mode": "MPC_STANCE",
+          "mode_elapsed_s": "31.992",
+          "joint_array_order": "FR,FL,RR,RL; each hip,thigh,calf",
+          "joint_array_encoding": "JSON numeric arrays; null means unavailable or non-finite",
+          "joint_position_rad": "[0.0035063382921685822,0.69950482053867735,-1.4582052165911463,0.0014792089660036543,0.70141823826848881,-1.4537929319794534,0.014332216885585095,0.70512528563853238,-1.4671313076932029,-0.0061494213328094514,0.70076081906045429,-1.4617716731626256]",
+          "joint_velocity_rad_s": "[0.00017364280103902667,0.00023386052762991438,-0.00021673529985077877,0.00017543465395196845,0.00030236501187480558,-0.00037193488904718741,0.00018810512070325733,-0.00030211667708535117,0.00081426816828100712,0.00019008942207416994,-0.00024347627707987929,0.00067786442597883578]",
+          "joint_feedback_valid": "[1,1,1,1,1,1,1,1,1,1,1,1]",
+          "joint_effort_feedback": "[2.1364538592137099,0.46446917809987576,4.7984987344580885,-2.1800536077965993,0.41765488625908176,4.7073730437801489,2.4803524253879097,0.4720252293921105,5.6245159690097264,-2.5613073318665553,0.45868007086938667,5.5304907281727482]",
+          "joint_effort_feedback_semantics": "simulated motor-PD requested joint effort; not measured hardware torque or foot force",
+          "joint_effort_limits_nm": "[23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45]",
+          "stand_up_final_target_position_rad": "[0.040594419999999999,0.72092118400000005,-1.394467125,-0.041155553999999997,0.72063062200000005,-1.394131875,0.046229459000000001,0.72041776000000002,-1.388499632,-0.046565312999999997,0.71831117200000005,-1.389189252]",
+          "stand_up_final_target_max_error_rad": "0.0786317",
+          "stand_up_final_target_max_error_joint_index": "8",
+          "stand_up_final_target_max_error_joint_name": "RR_calf_joint",
+          "stand_up_final_target_error_valid_joint_count": "12",
+          "stand_up_final_target_error_semantics": "maximum over valid finite joint positions only; final target, not interpolated target",
+          "controller_request_interface_layout": "position,velocity,effort,kp,kd",
+          "controller_request_position_rad": "[0.0035022934609386979,0.69961224550717094,-1.4583272729313788,0.0014758205966692466,0.70152698045960882,-1.4539175888883413,0.01432873857234894,0.70523444167396432,-1.4672555459702212,-0.006153246477280206,0.70087124313262672,-1.4618990830225598]",
+          "controller_request_velocity_rad_s": "[0.0001797510795496834,0.0021340614928580257,-0.0035394152711925703,0.0002001129501551434,0.0023166808942249794,-0.0039465881832230851,0.00020563911381345633,-9.1132408214005412e-05,0.00109951334005042,0.00020932299637572952,7.1933100439924109e-05,0.00071817102097688384]",
+          "controller_request_effort_nm": "[2.1367507496293188,0.45816590803954899,4.8114542731848342,-2.1802975713594135,0.41104053738360979,4.7215746751152823,2.4794034342894937,0.46963235700726458,5.6264475977779682,-2.5603895267085677,0.45603015336199382,5.5336497271808316]",
+          "controller_request_kp_nm_rad": "[50,20,40,50,20,40,50,20,40,50,20,40]",
+          "controller_request_kd_nm_s_rad": "[2,2,2,2,2,2,2,2,2,2,2,2]",
+          "controller_request_semantics": "controller command-interface request; not final motor packet or measured torque; hardware may scale/disable it",
+          "joy_requested_mode": "NONE",
+          "joy_age_s": "0",
+          "joy_request_snapshot": "latest buffered Joy at diagnostic sampling; may postdate the control update snapshot; not an accepted mode",
+          "limited_command_exceeds_trot_entry_threshold": "false",
+          "controller_fault_reason": "",
+          "calibrated": "true",
+          "startup_alignment": "0",
+          "startup_alignment_phase": "disabled",
+          "requires_recalibration": "false",
+          "estimate_valid": "true",
+          "imu_valid": "true",
+          "imu_age_s": "0.004",
+          "imu_orientation_prediction_s": "0",
+          "trot_enabled": "false",
+          "gait_transition": "NONE",
+          "policy_mode": "15",
+          "nmpc_backend": "legged::LeggedInterface",
+          "wbc_backend": "legged::WeightedWbc",
+          "legged_control_revision": "a7f381c0367e98e31c01336e678eef47e304d40d",
+          "control_period_ms": "2",
+          "control_period_mean_ms": "2",
+          "control_period_p95_ms": "2",
+          "control_period_p99_ms": "2",
+          "io_period_ms": "0",
+          "io_period_p99_ms": "0",
+          "io_timeout_count": "0",
+          "communication_ok": "true",
+          "base_x_m": "0.512424",
+          "base_y_m": "-0.0146832",
+          "base_z_m": "0.339614",
+          "base_yaw_rad": "-0.0116174",
+          "base_roll_rad": "0.000885962",
+          "base_pitch_rad": "-0.000874678",
+          "base_vx_mps": "0.000810544",
+          "base_vy_mps": "2.55926e-05",
+          "base_vz_mps": "-0.000857975",
+          "requested_vx_mps": "0",
+          "requested_vy_mps": "0",
+          "requested_yaw_rad_s": "0",
+          "governed_vx_mps": "0",
+          "governed_vy_mps": "0",
+          "governed_yaw_rad_s": "0",
+          "fr_hip_position_rad": "0.00350634",
+          "fr_thigh_position_rad": "0.699505",
+          "fr_calf_position_rad": "-1.45821",
+          "fr_hip_velocity_rad_s": "0.000173643",
+          "fr_thigh_velocity_rad_s": "0.000233861",
+          "fr_calf_velocity_rad_s": "-0.000216735",
+          "wbc_q_fr_hip_rad": "0.00350229",
+          "wbc_q_fr_thigh_rad": "0.699612",
+          "wbc_q_fr_calf_rad": "-1.45833",
+          "wbc_qd_fr_hip_rad_s": "0.000179751",
+          "wbc_qd_fr_thigh_rad_s": "0.00213406",
+          "wbc_qd_fr_calf_rad_s": "-0.00353942",
+          "mpc_policy_age_s": "0.016",
+          "mpc_solver_healthy": "true",
+          "mpc_last_error": "",
+          "mpc_solve_ms": "11.6327",
+          "mpc_solve_mean_ms": "10.5806",
+          "mpc_solve_p95_ms": "12.5077",
+          "mpc_solve_p99_ms": "13.7672",
+          "wbc_solve_ms": "0.394985",
+          "wbc_valid": "true",
+          "wbc_consecutive_failures": "0",
+          "wbc_tau_max_abs": "5.62645",
+          "wbc_tau_fr_hip": "2.13675",
+          "wbc_tau_fr_thigh": "0.458166",
+          "wbc_tau_fr_calf": "4.81145",
+          "wbc_equality_residual": "8.52651e-14",
+          "wbc_inequality_violation": "0",
+          "policy_fz_fr": "34.5989",
+          "policy_fz_fl": "34.2265",
+          "policy_fz_rr": "40.2012",
+          "policy_fz_rl": "39.8197"
+        },
+        "motion_safety": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 0.35,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.11048654050030701,
+          "min_command_projected_speed_mps": -0.027262208296946245,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        }
+      },
+      "controller_manager": {
+        "joint_state_broadcaster": {
+          "type": "joint_state_broadcaster/JointStateBroadcaster"
+        },
+        "nmpc_wbc_controller": {
+          "type": "custom_dog_control/NmpcWbcController"
+        },
+        "qos_overrides": {
+          "/clock": {
+            "subscription": {
+              "depth": 1,
+              "durability": "volatile",
+              "history": "keep_last",
+              "reliability": "best_effort"
+            }
+          },
+          "/parameter_events": {
+            "publisher": {
+              "depth": 1000,
+              "durability": "volatile",
+              "history": "keep_last",
+              "reliability": "reliable"
+            }
+          }
+        },
+        "robot_description": "<?xml version=\"1.0\" ?>\n\n\n\n<robot name=\"custom_dog\"> <link name=\"base\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00354795931007695 0.00106892344791073 -0.00160115455741634\"/> <mass value=\"7.85084\"/> <inertia ixx=\"0.0309718860309686\" ixy=\"-0.000238429473774413\" ixz=\"0.000278934340039972\" iyy=\"0.0735368232985286\" iyz=\"-3.93030294503731e-05\" izz=\"0.093029777706926\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/base.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0.005 0\"/> <geometry> <box size=\"0.255 0.220 0.100\"/> </geometry> </collision> </link> <link name=\"FR_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00662 -0.000709999999999 -8.2639413656e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"2.28472403567e-05\" ixz=\"1.12106928947e-06\" iyy=\"0.000738260470304\" iyz=\"6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"-0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"FR_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00272000000032 0.0242704960879 -0.0234789534304\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00368293995879\" ixy=\"-6.78297878351e-05\" ixz=\"-0.00024038424463\" iyy=\"0.00383450995517\" iyz=\"-0.000582928644237\" izz=\"0.000989001199744\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> </link> <link name=\"FR_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00663162723916 -9.75017136863e-06 -0.0759949634159\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056885869487\" ixy=\"8.24315624731e-09\" ixz=\"6.33792768142e-05\" iyy=\"0.000585941915495\" iyz=\"-7.24279333575e-08\" izz=\"2.26830292967e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"FR_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115497980177 0.000246147409727 -0.00164903419433\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36224062359e-05\" ixy=\"-4.37720487792e-08\" ixz=\"-1.08788958632e-06\" iyy=\"1.52770048128e-05\" iyz=\"-5.66825840722e-08\" izz=\"1.19522783839e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.79216 0.81961 0.93333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"FL_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00662 0.000710000000001 7.73605863441e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"-2.28472403568e-05\" ixz=\"-1.12106928951e-06\" iyy=\"0.000738260470304\" iyz=\"6.27050056414e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"-0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"FL_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00280000000066 -0.0242708716707 -0.0235589525485\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00372327510307\" ixy=\"6.62607607445e-05\" ixz=\"-0.000255546277468\" iyy=\"0.00382984813914\" iyz=\"0.00058102695259\" izz=\"0.000944049165359\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"FL_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00667000047467 -5.14276350637e-05 -0.0759915882735\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.000568794548174\" ixy=\"4.31904745811e-08\" ixz=\"6.36550247973e-05\" iyy=\"0.000585941666649\" iyz=\"-3.81305937138e-07\" izz=\"2.27474248387e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"FL_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115428545565 0.000245402994684 -0.00164993728948\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36235040402e-05\" ixy=\"-4.43347561358e-08\" ixz=\"-1.0870216836e-06\" iyy=\"1.52769416825e-05\" iyz=\"-5.85339713132e-08\" izz=\"1.19512437098e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"RR_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00662 -0.000710000000002 7.73605863424e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"-2.28472403568e-05\" ixz=\"1.12106928946e-06\" iyy=\"0.000738260470304\" iyz=\"-6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"RR_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00269000000028 0.02427063693 -0.0235089530989\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00370518477983\" ixy=\"-6.84338906306e-05\" ixz=\"-0.000252052315668\" iyy=\"0.00383313649116\" iyz=\"-0.000582224790473\" izz=\"0.000965395152364\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"RR_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00669348198793 6.40672853716e-05 -0.0759895139724\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056875515651\" ixy=\"-5.36985220294e-08\" ixz=\"6.38237363923e-05\" iyy=\"0.000585941524774\" iyz=\"4.74638255069e-07\" izz=\"2.27869583774e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"RR_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115363889125 0.00024736930759 -0.00165040042545\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36241747485e-05\" ixy=\"-4.2655170385e-08\" ixz=\"-1.08657112944e-06\" iyy=\"1.52771121418e-05\" iyz=\"-5.35029554666e-08\" izz=\"1.19504025424e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"RL_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00662 0.000710000000002 -8.26394136562e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"2.28472403567e-05\" ixz=\"-1.12106928947e-06\" iyy=\"0.000738260470304\" iyz=\"-6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"RL_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00269999999945 -0.0242705899864 -0.0234989532093\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00369359546639\" ixy=\"6.84719366465e-05\" ixz=\"-0.000239527367434\" iyy=\"0.00383351585443\" iyz=\"0.000582312903995\" izz=\"0.000977373675684\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"RL_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00695093172846 3.79227227692e-08 -0.0759664240806\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056831636074\" ixy=\"7.9475054204e-11\" ixz=\"6.56722801529e-05\" iyy=\"0.000585941924809\" iyz=\"1.19693433393e-10\" izz=\"2.32253541132e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"RL_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00114838274821 0.000250104207798 -0.00165038140726\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36315191682e-05\" ixy=\"-4.33830233298e-08\" ixz=\"-1.08083857177e-06\" iyy=\"1.52770195603e-05\" iyz=\"-5.64498099326e-08\" izz=\"1.19431507041e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <joint name=\"FR_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"0.185 -0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"FR_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"FR_thigh_joint\" type=\"revolute\"> <origin rpy=\"-0.0046948 0 0\" xyz=\"0 -0.08415 0\"/> <parent link=\"FR_hip\"/> <child link=\"FR_thigh\"/> <axis xyz=\"0 0.999988979447 0.00469478275356\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"FR_calf_joint\" type=\"revolute\"> <origin rpy=\"0.0048231 -0.0006497 0\" xyz=\"0 0 -0.213\"/> <parent link=\"FR_thigh\"/> <child link=\"FR_calf\"/> <axis xyz=\"0 0.999988368876 -0.00482308130063\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"FR_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207645932301958\"/> <parent link=\"FR_calf\"/> <child link=\"FR_foot\"/> </joint> <joint name=\"FL_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"0.185 0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"FL_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"FL_thigh_joint\" type=\"revolute\"> <origin rpy=\"0.00469480118752083 0 0\" xyz=\"0 0.084150000000009 0\"/> <parent link=\"FL_hip\"/> <child link=\"FL_thigh\"/> <axis xyz=\"0 0.999988979441 -0.00469478394106\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"FL_calf_joint\" type=\"revolute\"> <origin rpy=\"-0.00401804702793096 -0.000144745906588796 0\" xyz=\"0 0 -0.213002347405684\"/> <parent link=\"FL_thigh\"/> <child link=\"FL_calf\"/> <axis xyz=\"0 0.99999192766 0.00401803621624\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"FL_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207579751226609\"/> <parent link=\"FL_calf\"/> <child link=\"FL_foot\"/> </joint> <joint name=\"RR_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"-0.185 -0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"RR_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"RR_thigh_joint\" type=\"revolute\"> <origin rpy=\"-0.00469480118741762 0 0\" xyz=\"0 -0.0841500000000318 0\"/> <parent link=\"RR_hip\"/> <child link=\"RR_thigh\"/> <axis xyz=\"0 0.999988979441 0.00469478394096\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"RR_calf_joint\" type=\"revolute\"> <origin rpy=\"0.00385169452685174 0.000164256286681431 0\" xyz=\"0 0 -0.213002347405246\"/> <parent link=\"RR_thigh\"/> <child link=\"RR_calf\"/> <axis xyz=\"0 0.999992582234 -0.00385168500319\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"RR_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207539297095126\"/> <parent link=\"RR_calf\"/> <child link=\"RR_foot\"/> </joint> <joint name=\"RL_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"-0.185 0.054999999999998 0.000182639413656267\"/> <parent link=\"base\"/> <child link=\"RL_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"RL_thigh_joint\" type=\"revolute\"> <origin rpy=\"0.00469480118743395 0 0\" xyz=\"0 0.0841500000000134 0\"/> <parent link=\"RL_hip\"/> <child link=\"RL_thigh\"/> <axis xyz=\"0 0.999988979441 -0.00469478394098\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"RL_calf_joint\" type=\"revolute\"> <origin rpy=\"-0.00469533001954943 0.00355269394965243 -1.66793844924154E-05\" xyz=\"0 0 -0.213002347404803\"/> <parent link=\"RL_thigh\"/> <child link=\"RL_calf\"/> <axis xyz=\"-1.66792792312e-05 0.999988977097 0.00469525351064\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"RL_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207097655168717\"/> <parent link=\"RL_calf\"/> <child link=\"RL_foot\"/> </joint> <ros2_control name=\"CustomDogSystem\" type=\"system\"> <hardware> <plugin>custom_dog_control/FortressMotorSystem</plugin> <param name=\"simulation_command_delay_s\">0.020</param> <param name=\"simulation_coulomb_friction\">0 0 0.45</param> <param name=\"simulation_viscous_friction\">0 0 0.0175</param> <param name=\"simulation_friction_velocity_scale\">0.05</param> </hardware> <joint name=\"FR_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FR_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FR_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <gpio name=\"custom_dog\"> <command_interface name=\"simulation_motor_mode\"/> </gpio> </ros2_control> <gazebo reference=\"FR_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"FR_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"FL_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"FL_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"RR_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"RR_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"RL_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"RL_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo>\n<gazebo> <plugin filename=\"gz_ros2_control-system\" name=\"gz_ros2_control::GazeboSimROS2ControlPlugin\"> <parameters>/tmp/custom_dog_fortress_zdxzmqlb/controllers.yaml</parameters> </plugin> <plugin filename=\"ignition-gazebo-odometry-publisher-system\" name=\"ignition::gazebo::systems::OdometryPublisher\"> <odom_frame>world</odom_frame> <robot_base_frame>base</robot_base_frame> <dimensions>3</dimensions> <odom_publish_frequency>250</odom_publish_frequency>\n<odom_topic>/fortress/odom</odom_topic> <tf_topic>/fortress/pose</tf_topic> <gaussian_noise>0.0</gaussian_noise> </plugin> </gazebo> <gazebo reference=\"base\"> <sensor name=\"base_imu\" type=\"imu\"> <always_on>true</always_on> <update_rate>100</update_rate> <visualize>false</visualize> <topic>/imu</topic> <imu> <orientation_reference_frame> <localization>ENU</localization> </orientation_reference_frame> </imu> </sensor> </gazebo> </robot>",
+        "update_rate": 500,
+        "use_sim_time": true
+      },
+      "normalized_physics_description_sha256": "537084ac5a19be8e701b327b578241a7b1cf7dea9098f748b7306d044ea1279f",
+      "nmpc_wbc_controller": {
+        "hardware_mode": "fortress_hybrid",
+        "imu_orientation_prediction_max_s": 0.0,
+        "mpc_frequency_hz": 50.0,
+        "mpc_solver_threads": 2,
+        "nominal_height_m": 0.34,
+        "stand_up_base_velocity_tolerance_m_s": 0.05,
+        "stand_up_calf_kp": 60.0,
+        "stand_up_duration_s": 2.5,
+        "stand_up_hip_kp": 45.0,
+        "stand_up_joint_positions": [
+          0.04059442,
+          0.720921184,
+          -1.394467125,
+          -0.041155554,
+          0.720630622,
+          -1.394131875,
+          0.046229459,
+          0.72041776,
+          -1.388499632,
+          -0.046565313,
+          0.718311172,
+          -1.389189252
+        ],
+        "stand_up_kd": 1.5,
+        "stand_up_leg_kp": 45.0,
+        "stand_up_position_tolerance_rad": 0.2,
+        "stand_up_settle_calf_kp": 80.0,
+        "stand_up_settle_duration_s": 2.0,
+        "stand_up_settle_hip_kp": 55.0,
+        "stand_up_settle_kd": 2.5,
+        "stand_up_settle_leg_kp": 55.0,
+        "stand_up_velocity_tolerance_rad_s": 0.2,
+        "trot_period_s": 0.4,
+        "use_sim_ground_truth": false,
+        "wbc_calf_stiffness": 40.0,
+        "wbc_contact_force_ramp_s": 0.0,
+        "wbc_hip_stiffness": 50.0,
+        "wbc_joint_damping": 2.0,
+        "wbc_joint_stiffness": 20.0
+      },
+      "forward_summary": {
+        "duration_sim_s": 10.0,
+        "displacement_m": 0.5909488542086974,
+        "commanded_distance_m": 0.5,
+        "error_percent": 18.189770841739474
+      },
+      "trot_physics_100hz": {
+        "samples": 4478,
+        "height_min_m": 0.325112272497228,
+        "height_max_m": 0.3397845641574979,
+        "height_rms_error_from_034_m": 0.00907394923795515,
+        "max_abs_roll_rad": 0.013926423420680609,
+        "max_abs_pitch_rad": 0.018389282553683897
+      },
+      "final_recorded_29s_stance": {
+        "height_min_m": 0.3391595738572214,
+        "height_max_m": 0.33966142213381006
+      },
+      "sampled_trot_joint_tracking_and_budget": {
+        "FR_hip": {
+          "max_abs_position_error_rad": 0.010692949644540622,
+          "max_budget_ratio": 0.5278558217099669,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.0019699494710869086,
+          "velocity_error_rms_rad_s": 0.16339944496412834,
+          "mean_budget_ratio": 0.1433745897907568,
+          "inferred_net_torque_rms_nm": 4.145625649458145
+        },
+        "FR_thigh": {
+          "max_abs_position_error_rad": 0.04929640584018635,
+          "max_budget_ratio": 0.4833323265594867,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.013643530026590323,
+          "velocity_error_rms_rad_s": 1.2550795424171162,
+          "mean_budget_ratio": 0.11359883934826324,
+          "inferred_net_torque_rms_nm": 3.267209731489386
+        },
+        "FR_calf": {
+          "max_abs_position_error_rad": 0.10128615762661575,
+          "max_budget_ratio": 0.451886666586761,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.02783151573455902,
+          "velocity_error_rms_rad_s": 2.3909615669130413,
+          "mean_budget_ratio": 0.19224207710549635,
+          "inferred_net_torque_rms_nm": 8.50021824586099
+        },
+        "FL_hip": {
+          "max_abs_position_error_rad": 0.008042042873091486,
+          "max_budget_ratio": 0.3846887383072604,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.0020281005408475847,
+          "velocity_error_rms_rad_s": 0.1649044420047685,
+          "mean_budget_ratio": 0.14620098850354485,
+          "inferred_net_torque_rms_nm": 4.247329833913655
+        },
+        "FL_thigh": {
+          "max_abs_position_error_rad": 0.041789996365940274,
+          "max_budget_ratio": 0.4892095707909189,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.013470450085080648,
+          "velocity_error_rms_rad_s": 1.2382159894429925,
+          "mean_budget_ratio": 0.11234600798399831,
+          "inferred_net_torque_rms_nm": 3.2325131472662045
+        },
+        "FL_calf": {
+          "max_abs_position_error_rad": 0.0953737066665119,
+          "max_budget_ratio": 0.45592648319990925,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.02753700930690112,
+          "velocity_error_rms_rad_s": 2.3603760790016084,
+          "mean_budget_ratio": 0.1902315644846848,
+          "inferred_net_torque_rms_nm": 8.520049963432099
+        },
+        "RR_hip": {
+          "max_abs_position_error_rad": 0.006623932851825137,
+          "max_budget_ratio": 0.3530843241930682,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.0018460446625555894,
+          "velocity_error_rms_rad_s": 0.13879631037884976,
+          "mean_budget_ratio": 0.12564896233001357,
+          "inferred_net_torque_rms_nm": 3.5998357124134834
+        },
+        "RR_thigh": {
+          "max_abs_position_error_rad": 0.04657769189765204,
+          "max_budget_ratio": 0.4938477833576971,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.014415715374559303,
+          "velocity_error_rms_rad_s": 1.31006113757552,
+          "mean_budget_ratio": 0.12922514783824204,
+          "inferred_net_torque_rms_nm": 3.5305043104902536
+        },
+        "RR_calf": {
+          "max_abs_position_error_rad": 0.10396383418689181,
+          "max_budget_ratio": 0.5775938314459678,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.02920177413077362,
+          "velocity_error_rms_rad_s": 2.502517017481851,
+          "mean_budget_ratio": 0.22509610762858198,
+          "inferred_net_torque_rms_nm": 10.060049931965436
+        },
+        "RL_hip": {
+          "max_abs_position_error_rad": 0.010792086108415921,
+          "max_budget_ratio": 0.5129865839578908,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.001886761415870879,
+          "velocity_error_rms_rad_s": 0.14296827856339753,
+          "mean_budget_ratio": 0.12817972415778714,
+          "inferred_net_torque_rms_nm": 3.689686376989364
+        },
+        "RL_thigh": {
+          "max_abs_position_error_rad": 0.04807953182264635,
+          "max_budget_ratio": 0.5547544362041466,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.014464831408650819,
+          "velocity_error_rms_rad_s": 1.3229808020112905,
+          "mean_budget_ratio": 0.1279738722730025,
+          "inferred_net_torque_rms_nm": 3.5023740914540573
+        },
+        "RL_calf": {
+          "max_abs_position_error_rad": 0.10232185069819733,
+          "max_budget_ratio": 0.5294701472530748,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 444,
+          "position_error_rms_rad": 0.029531916180525628,
+          "velocity_error_rms_rad_s": 2.5358128908782858,
+          "mean_budget_ratio": 0.22580688875325494,
+          "inferred_net_torque_rms_nm": 10.080634072685111
+        }
+      },
+      "sampled_trot_by_joint_type": {
+        "hip": {
+          "position_error_rms_rad": 0.0019340141066568593,
+          "max_budget_ratio": 0.5278558217099669,
+          "min_inferred_scale": 1.0
+        },
+        "thigh": {
+          "position_error_rms_rad": 0.014005741095369765,
+          "max_budget_ratio": 0.5547544362041466,
+          "min_inferred_scale": 1.0
+        },
+        "calf": {
+          "position_error_rms_rad": 0.028538385708242485,
+          "max_budget_ratio": 0.5775938314459678,
+          "min_inferred_scale": 1.0
+        }
+      }
+    },
+    "equal-calf-unified-pd": {
+      "raw_evidence_directory": "log/nonideal-20261114/equal-calf-unified-pd",
+      "run": {
+        "passed": true,
+        "hardware_io": false,
+        "ros_domain_id": 198,
+        "requested_profile": {
+          "main_hz": 500,
+          "mpc_hz": 50,
+          "trot_period_s": 0.4,
+          "swing_height_m": 0.1,
+          "nominal_height_m": 0.34
+        },
+        "ground_truth_feedback": false,
+        "actuator_model": "motor_pd",
+        "simulation_imu_rate_hz": 100.0,
+        "imu_orientation_prediction_max_s": 0.0,
+        "additional_command_delay_s": 0.02,
+        "coulomb_friction_nm": [
+          0.0,
+          0.0,
+          0.45
+        ],
+        "viscous_friction_nm_s_per_rad": [
+          0.0,
+          0.0,
+          0.0175
+        ],
+        "friction_velocity_scale_rad_per_s": 0.05,
+        "motor_parameters_measured_on_hardware": false,
+        "unified_active_pd_trial": true,
+        "forward_returncode": 0,
+        "planar_returncode": 0,
+        "elapsed_wall_s": 212.50996398000007
+      },
+      "forward": {
+        "passed": true,
+        "backend": "Gazebo Fortress physics",
+        "hardware_io": false,
+        "synthetic_static_observation": false,
+        "truth_topic": "/ground_truth/odom",
+        "simulation_preflight_passed": true,
+        "settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/nonideal-20261114/equal-calf-unified-pd/forward.json",
+          "legacy_joy": true,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "speed": 0.05,
+          "walk_duration": 10.0,
+          "resume_duration": 6.0,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_horizontal_speed": 0.35,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "timestamp_utc": "2026-11-14T04:49:49.666643+00:00",
+        "calibration_scope": "Simulation joints already use URDF coordinates; real encoder/mechanical calibration is not certified.",
+        "phases": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00016780301690074464,
+            "max_abs_pitch_rad": 0.00282876186530348,
+            "min_height_m": 0.32701769198535585,
+            "max_height_m": 0.3358939860256018,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.012184117664451577,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.999354757000219,
+            "forward_displacement_m": 0.00274704817735074,
+            "lateral_displacement_m": -6.218713446518496e-05,
+            "yaw_drift_rad": 2.4094642939274415e-05,
+            "final_horizontal_speed_mps": 0.00032266417209725286
+          },
+          {
+            "name": "first_forward_trot",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_TROT",
+            "duration_sim_s": 10.0,
+            "diagnostic_samples": 99,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.003965584981075076,
+            "max_abs_pitch_rad": 0.019007983456604236,
+            "min_height_m": 0.32876389883427426,
+            "max_height_m": 0.33806545735222715,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.10434933465300229,
+              "min_command_projected_speed_mps": -0.006581409751229927,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 10.0,
+            "elapsed_wall_s": 20.001192785999592,
+            "forward_displacement_m": 0.6525881590466813,
+            "lateral_displacement_m": -0.018002089377315185,
+            "yaw_drift_rad": -0.009153208916483375,
+            "final_horizontal_speed_mps": 0.06603217523711025
+          },
+          {
+            "name": "automatic_zero_speed_stop",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.001389250408381963,
+            "max_abs_pitch_rad": 0.010159233320715076,
+            "min_height_m": 0.32975111995761947,
+            "max_height_m": 0.33882288853450915,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.009283244700347127,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9987358700000186,
+            "forward_displacement_m": 0.0026672067976672167,
+            "lateral_displacement_m": -0.0014814841122627964,
+            "yaw_drift_rad": 0.0005276601567505779,
+            "final_horizontal_speed_mps": 0.0002789870488947028
+          },
+          {
+            "name": "resume_without_rearming",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_TROT",
+            "duration_sim_s": 6.0,
+            "diagnostic_samples": 60,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0033650226174132742,
+            "max_abs_pitch_rad": 0.013178942787747012,
+            "min_height_m": 0.32618318753946945,
+            "max_height_m": 0.3394155904078021,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.10921927646462129,
+              "min_command_projected_speed_mps": 0.010563741432396911,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 6.0,
+            "elapsed_wall_s": 11.999020364999524,
+            "forward_displacement_m": 0.4366804364883982,
+            "lateral_displacement_m": -0.00548820452218258,
+            "yaw_drift_rad": -0.004793269275836673,
+            "final_horizontal_speed_mps": 0.09984369336058782
+          },
+          {
+            "name": "explicit_A_stays_in_stance",
+            "command_vx_mps": 0.05,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0006342714727849687,
+            "max_abs_pitch_rad": 0.012682135716688981,
+            "min_height_m": 0.33007405346897356,
+            "max_height_m": 0.3397386733925003,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.07929134516772436,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0010000000000012,
+            "elapsed_wall_s": 6.001235671999893,
+            "forward_displacement_m": 0.002779212730282833,
+            "lateral_displacement_m": 0.0006898853085196134,
+            "yaw_drift_rad": -0.0004987309428279144,
+            "final_horizontal_speed_mps": 8.640257974194246e-05
+          },
+          {
+            "name": "final_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 21,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00035280844629437773,
+            "max_abs_pitch_rad": 0.0007937361900679685,
+            "min_height_m": 0.33977048943674976,
+            "max_height_m": 0.3401458909781925,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0012194609843223343,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9999863519997234,
+            "forward_displacement_m": 0.0001311190286595356,
+            "lateral_displacement_m": 1.1143843277295903e-05,
+            "yaw_drift_rad": 7.225015634933045e-07,
+            "final_horizontal_speed_mps": 3.1698041288927925e-05
+          }
+        ],
+        "mode_history": [
+          {
+            "sim_seconds": 1.32,
+            "mode": "PASSIVE"
+          },
+          {
+            "sim_seconds": 2.028,
+            "mode": "STAND_UP"
+          },
+          {
+            "sim_seconds": 6.57,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 10.108,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 20.722,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 23.248,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 29.616000000000003,
+            "mode": "MPC_STANCE"
+          }
+        ],
+        "final_mode": "MPC_STANCE",
+        "final_status_message": "MPC_STANCE",
+        "final_diagnostics": {
+          "mode": "MPC_STANCE",
+          "mode_elapsed_s": "4.954",
+          "joint_array_order": "FR,FL,RR,RL; each hip,thigh,calf",
+          "joint_array_encoding": "JSON numeric arrays; null means unavailable or non-finite",
+          "joint_position_rad": "[-0.0037195345353900132,0.68302521697995722,-1.4509919067937833,0.0060931057950751278,0.73415618224283608,-1.4497028619809151,0.02236471542969002,0.7465898647414333,-1.465110184220527,-0.018908060169801538,0.69791854951312382,-1.464087984190348]",
+          "joint_velocity_rad_s": "[0.0064188177411239724,0.00061715550424956689,0.0017021902115603726,0.0063866056483002434,0.0028872331492238446,-0.0015500898352838188,0.0056130050331371362,-0.00023421690624580993,0.0032546955771182162,0.0056551682689994533,0.002755552708807063,-0.0013581870160153109]",
+          "joint_feedback_valid": "[1,1,1,1,1,1,1,1,1,1,1,1]",
+          "joint_effort_feedback": "[2.2550620855328494,0.56329569684444736,4.9586619046874114,-2.3555825713806096,-0.0080200528313473917,4.6874633380730515,2.2941592093723857,-0.061167237797420761,5.1644069853560621,-2.3119651746486358,0.44336844063430086,5.3900675103562756]",
+          "joint_effort_feedback_semantics": "simulated motor-PD requested joint effort; not measured hardware torque or foot force",
+          "joint_effort_limits_nm": "[23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45]",
+          "stand_up_final_target_position_rad": "[0.040594419999999999,0.72092118400000005,-1.394467125,-0.041155553999999997,0.72063062200000005,-1.394131875,0.046229459000000001,0.72041776000000002,-1.388499632,-0.046565312999999997,0.71831117200000005,-1.389189252]",
+          "stand_up_final_target_max_error_rad": "0.0766106",
+          "stand_up_final_target_max_error_joint_index": "8",
+          "stand_up_final_target_max_error_joint_name": "RR_calf_joint",
+          "stand_up_final_target_error_valid_joint_count": "12",
+          "stand_up_final_target_error_semantics": "maximum over valid finite joint positions only; final target, not interpolated target",
+          "controller_request_interface_layout": "position,velocity,effort,kp,kd",
+          "controller_request_position_rad": "[-0.0037787398906329274,0.68303032059231761,-1.4509997345019567,0.0060323167635202377,0.7341476629865451,-1.4496412224665365,0.022275423579252353,0.7465866080251492,-1.4650959890271402,-0.018995849740156952,0.6979177813173757,-1.4640401773257294]",
+          "controller_request_velocity_rad_s": "[0.00032890419692133783,0.00072128461193294116,-0.0010262684152517758,0.00026971235056344933,0.0012489502670916782,0.00013619403475581042,-0.0011923762570824024,-0.0020863946528330499,0.0047045363402288334,-0.0010847486948422174,-0.00047153267297421085,0.0036862775636542708]",
+          "controller_request_effort_nm": "[2.269454327537928,0.5771216559179605,4.9572566347838025,-2.3425078721779342,0.010270310244059222,4.6798725879819703,2.298070784985307,-0.054974884815575997,5.1751059512859285,-2.3105476547788761,0.45757364388037436,5.3872097766296445]",
+          "controller_request_kp_nm_rad": "[55,55,80,55,55,80,55,55,80,55,55,80]",
+          "controller_request_kd_nm_s_rad": "[2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5]",
+          "controller_request_semantics": "controller command-interface request; not final motor packet or measured torque; hardware may scale/disable it",
+          "joy_requested_mode": "NONE",
+          "joy_age_s": "0",
+          "joy_request_snapshot": "latest buffered Joy at diagnostic sampling; may postdate the control update snapshot; not an accepted mode",
+          "limited_command_exceeds_trot_entry_threshold": "false",
+          "controller_fault_reason": "",
+          "calibrated": "true",
+          "startup_alignment": "0",
+          "startup_alignment_phase": "disabled",
+          "requires_recalibration": "false",
+          "estimate_valid": "true",
+          "imu_valid": "true",
+          "imu_age_s": "0.008",
+          "imu_orientation_prediction_s": "0",
+          "trot_enabled": "false",
+          "gait_transition": "NONE",
+          "policy_mode": "15",
+          "nmpc_backend": "legged::LeggedInterface",
+          "wbc_backend": "legged::WeightedWbc",
+          "legged_control_revision": "a7f381c0367e98e31c01336e678eef47e304d40d",
+          "control_period_ms": "2",
+          "control_period_mean_ms": "2",
+          "control_period_p95_ms": "2",
+          "control_period_p99_ms": "2",
+          "io_period_ms": "0",
+          "io_period_p99_ms": "0",
+          "io_timeout_count": "0",
+          "communication_ok": "true",
+          "base_x_m": "0.878582",
+          "base_y_m": "-0.010796",
+          "base_z_m": "0.340151",
+          "base_yaw_rad": "0.00340589",
+          "base_roll_rad": "0.000338411",
+          "base_pitch_rad": "0.000602436",
+          "base_vx_mps": "0.000853308",
+          "base_vy_mps": "-0.000243653",
+          "base_vz_mps": "0.000244949",
+          "requested_vx_mps": "0",
+          "requested_vy_mps": "0",
+          "requested_yaw_rad_s": "0",
+          "governed_vx_mps": "0",
+          "governed_vy_mps": "0",
+          "governed_yaw_rad_s": "0",
+          "fr_hip_position_rad": "-0.00371953",
+          "fr_thigh_position_rad": "0.683025",
+          "fr_calf_position_rad": "-1.45099",
+          "fr_hip_velocity_rad_s": "0.00641882",
+          "fr_thigh_velocity_rad_s": "0.000617156",
+          "fr_calf_velocity_rad_s": "0.00170219",
+          "wbc_q_fr_hip_rad": "-0.00377874",
+          "wbc_q_fr_thigh_rad": "0.68303",
+          "wbc_q_fr_calf_rad": "-1.451",
+          "wbc_qd_fr_hip_rad_s": "0.000328904",
+          "wbc_qd_fr_thigh_rad_s": "0.000721285",
+          "wbc_qd_fr_calf_rad_s": "-0.00102627",
+          "mpc_policy_age_s": "0.008",
+          "mpc_solver_healthy": "true",
+          "mpc_last_error": "",
+          "mpc_solve_ms": "11.0389",
+          "mpc_solve_mean_ms": "10.7536",
+          "mpc_solve_p95_ms": "12.6328",
+          "mpc_solve_p99_ms": "13.7778",
+          "wbc_solve_ms": "0.362634",
+          "wbc_valid": "true",
+          "wbc_consecutive_failures": "0",
+          "wbc_tau_max_abs": "5.38721",
+          "wbc_tau_fr_hip": "2.26945",
+          "wbc_tau_fr_thigh": "0.577122",
+          "wbc_tau_fr_calf": "4.95726",
+          "wbc_equality_residual": "2.84217e-14",
+          "wbc_inequality_violation": "0",
+          "policy_fz_fr": "35.3418",
+          "policy_fz_fl": "35.518",
+          "policy_fz_rr": "38.9027",
+          "policy_fz_rl": "38.796"
+        },
+        "motion_safety": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 0.35,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.10921927646462129,
+          "min_command_projected_speed_mps": -0.006581409751229927,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        }
+      },
+      "planar": {
+        "passed": true,
+        "backend": "Gazebo Fortress physics",
+        "hardware_io": false,
+        "synthetic_static_observation": false,
+        "simulation_preflight_passed": true,
+        "timestamp_utc": "2026-11-14T04:50:57.228868+00:00",
+        "settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/nonideal-20261114/equal-calf-unified-pd/planar.json",
+          "legacy_joy": true,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 30.0,
+          "telemetry_timeout": 5.0,
+          "wall_factor": 25.0,
+          "phase_duration": 5.0,
+          "settle_duration": 1.0,
+          "soak_duration": 30.0,
+          "speed": 0.05,
+          "yaw_rate": 0.2,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.15,
+          "max_yaw_drift": 0.3,
+          "max_turn_translation": 0.12,
+          "max_horizontal_speed": 0.35,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "scope": "Low-speed backward, left, right and both yaw directions; starts in MPC_STANCE.",
+        "phases": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 11,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0003465176287376455,
+            "max_abs_pitch_rad": 0.0006201236315132346,
+            "min_height_m": 0.3401731184509664,
+            "max_height_m": 0.34019284318390614,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.029704866837999857,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9996711509993474,
+            "forward_displacement_m": 1.5939244744652734e-05,
+            "lateral_displacement_m": 5.751002421559657e-06,
+            "yaw_drift_rad": -8.178236063509283e-05,
+            "final_horizontal_speed_mps": 0.0008661038440975483
+          },
+          {
+            "name": "backward",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": -0.05,
+              "vy_mps": 0.0,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "forward",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.005034978287205829,
+            "max_abs_pitch_rad": 0.010057149256637303,
+            "min_height_m": 0.3265196394509787,
+            "max_height_m": 0.3396425865545322,
+            "start_truth": {
+              "x": 1.1797847683694835,
+              "y": -0.014486417393602987,
+              "z": 0.3396425865545322,
+              "vx": 0.016999887050331248,
+              "vy": 0.007261980456637873,
+              "vz": 0.0044461089311970126,
+              "roll": -0.00023773335214051971,
+              "pitch": 0.0004544328711328197,
+              "yaw": 0.0028166036305106194
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.07444440004199594,
+              "min_command_projected_speed_mps": -0.011932478780306397,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.99921113200071,
+            "forward_displacement_m": -0.1951803465593256,
+            "lateral_displacement_m": 0.0033554617250739728,
+            "yaw_displacement_rad": 0.0036438209247552137,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 0.9845957450242943,
+              "y": -0.01168071392423341,
+              "z": 0.3261143010101665,
+              "vx": -0.03184294615065961,
+              "vy": -0.027405272264850043,
+              "vz": -0.036172157836161296,
+              "roll": 0.002124924869233542,
+              "pitch": 0.004620306691972812,
+              "yaw": 0.006460424555265833
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_backward",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.004045394021106622,
+            "max_abs_pitch_rad": 0.009820426972919457,
+            "min_height_m": 0.32819625864827545,
+            "max_height_m": 0.33588886500131415,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01945814996195266,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9992669499997646,
+            "forward_displacement_m": 0.003175757732818988,
+            "lateral_displacement_m": 0.002528996806874265,
+            "yaw_drift_rad": -0.0015979254279713754,
+            "final_horizontal_speed_mps": 0.0013535386198695002
+          },
+          {
+            "name": "left",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.05,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "lateral",
+            "expected_sign": 1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.011553143824356255,
+            "max_abs_pitch_rad": 0.018108917042078235,
+            "min_height_m": 0.32713051312025443,
+            "max_height_m": 0.33733972784458705,
+            "start_truth": {
+              "x": 0.9825540686585253,
+              "y": -0.012227214850943207,
+              "z": 0.33723752417166064,
+              "vx": 0.00024145349213751258,
+              "vy": -0.00010300110512581449,
+              "vz": 0.0028161370971212935,
+              "roll": 0.0009577053870802845,
+              "pitch": 0.0010528559203947343,
+              "yaw": 0.0017270646548615417
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.08343442727232826,
+              "min_command_projected_speed_mps": -0.017372909947519957,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 10.001417623000634,
+            "forward_displacement_m": 0.047473396508505926,
+            "lateral_displacement_m": 0.2335868933354681,
+            "yaw_displacement_rad": 0.0031682570054040265,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 1.0296239748995886,
+              "y": 0.22144131970308414,
+              "z": 0.32995527355228654,
+              "vx": 0.01736763700884776,
+              "vy": 0.0505723587176294,
+              "vz": 0.0002624107847801841,
+              "roll": -0.0073931996895238924,
+              "pitch": 0.013554692925922037,
+              "yaw": 0.004895321660265568
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_left",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0024022750243382156,
+            "max_abs_pitch_rad": 0.009167140053932736,
+            "min_height_m": 0.3291765065469185,
+            "max_height_m": 0.3365010559866799,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.022196891363676204,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9991700720001973,
+            "forward_displacement_m": 0.001938261244412094,
+            "lateral_displacement_m": 0.0012387224706727215,
+            "yaw_drift_rad": 0.000410558533324457,
+            "final_horizontal_speed_mps": 0.00111917850386234
+          },
+          {
+            "name": "right",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": -0.05,
+              "yaw_radps": 0.0
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "lateral",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.012172358916345043,
+            "max_abs_pitch_rad": 0.015593106698711867,
+            "min_height_m": 0.3266884312365592,
+            "max_height_m": 0.33804074899853415,
+            "start_truth": {
+              "x": 1.040969871408928,
+              "y": 0.23408822039011098,
+              "z": 0.33804074899853415,
+              "vx": 0.022160496494023116,
+              "vy": 0.001270583074510463,
+              "vz": 0.009077833328705896,
+              "roll": -0.00011116122476837216,
+              "pitch": 0.0008894516740535117,
+              "yaw": -0.001127300217830335
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.08177309464975609,
+              "min_command_projected_speed_mps": 0.00029541874234176763,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999281854999936,
+            "forward_displacement_m": 0.06665833606046416,
+            "lateral_displacement_m": -0.2489633971229057,
+            "yaw_displacement_rad": 0.004949045751604068,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 1.107347508682132,
+              "y": -0.014950162481594888,
+              "z": 0.32858203129393815,
+              "vx": 0.03088219751208806,
+              "vy": -0.06682662000075994,
+              "vz": -0.0408918302947088,
+              "roll": 0.008703873247625421,
+              "pitch": 0.0065116118929300975,
+              "yaw": 0.0038217455337737328
+            },
+            "minimum_required_displacement": 0.0625,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_right",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0037454165648126824,
+            "max_abs_pitch_rad": 0.0061882674574378245,
+            "min_height_m": 0.32945418545147714,
+            "max_height_m": 0.3363963387743544,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.011921537357840437,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9986353790000067,
+            "forward_displacement_m": 0.0016827292225872295,
+            "lateral_displacement_m": 0.002350090428303825,
+            "yaw_drift_rad": 0.005542819176212121,
+            "final_horizontal_speed_mps": 0.0008920464573843564
+          },
+          {
+            "name": "positive_yaw",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.0,
+              "yaw_radps": 0.2
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "yaw",
+            "expected_sign": 1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.004333213511498933,
+            "max_abs_pitch_rad": 0.01574196221247739,
+            "min_height_m": 0.32784344593909726,
+            "max_height_m": 0.33804735768019123,
+            "start_truth": {
+              "x": 1.1168257061320337,
+              "y": -0.027584882849271356,
+              "z": 0.33738870044720704,
+              "vx": 0.0030732782132505505,
+              "vy": 0.004962459901256242,
+              "vz": 0.002329754508760651,
+              "roll": 0.002045836228542034,
+              "pitch": 0.001661724792133097,
+              "yaw": 0.0002338395884481011
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.052239838423072046,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999254049000228,
+            "forward_displacement_m": 0.053996419662478576,
+            "lateral_displacement_m": 0.013925455770882922,
+            "yaw_displacement_rad": 0.918226837235169,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 1.1708188679954077,
+              "y": -0.013646800958680557,
+              "z": 0.3294192933978716,
+              "vx": 0.0013425510592312026,
+              "vy": 0.005472923445225652,
+              "vz": -0.010806073213471079,
+              "roll": -0.002507201762172353,
+              "pitch": 0.012761745616915315,
+              "yaw": 0.9184606768236171
+            },
+            "minimum_required_displacement": 0.25,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_positive_yaw",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0018572868357193064,
+            "max_abs_pitch_rad": 0.0082254311444293,
+            "min_height_m": 0.33037236833872696,
+            "max_height_m": 0.3367480167617318,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.017715747465968625,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.999264580000272,
+            "forward_displacement_m": 0.002077732980326148,
+            "lateral_displacement_m": 0.0017785730331569254,
+            "yaw_drift_rad": -8.67774064060578e-05,
+            "final_horizontal_speed_mps": 0.001018172946025564
+          },
+          {
+            "name": "negative_yaw",
+            "required_mode": "MPC_TROT",
+            "command": {
+              "vx_mps": 0.0,
+              "vy_mps": 0.0,
+              "yaw_radps": -0.2
+            },
+            "duration_sim_s": 5.0,
+            "tested_axis": "yaw",
+            "expected_sign": -1,
+            "diagnostic_samples": 50,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.004574165531429841,
+            "max_abs_pitch_rad": 0.014304862131116498,
+            "min_height_m": 0.32476637509694434,
+            "max_height_m": 0.33855211550718967,
+            "start_truth": {
+              "x": 1.1764464888387853,
+              "y": -0.007664321090604691,
+              "z": 0.3381900392320886,
+              "vx": 0.010145159306141743,
+              "vy": 0.01452320387968782,
+              "vz": 0.0113224870523557,
+              "roll": 0.0006925477690494752,
+              "pitch": 0.000565554892654767,
+              "yaw": 0.9322186616733295
+            },
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.05451391705606835,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 5.0,
+            "elapsed_wall_s": 9.999301613999705,
+            "forward_displacement_m": 0.05320835081688448,
+            "lateral_displacement_m": -0.028051109697051983,
+            "yaw_displacement_rad": -0.9322121156633083,
+            "policy_modes": [
+              6,
+              9
+            ],
+            "final_truth": {
+              "x": 1.23068501885765,
+              "y": 0.018339048177269425,
+              "z": 0.3305743591160881,
+              "vx": 0.03244348422457444,
+              "vy": -0.009684774165521944,
+              "vz": -0.02096792920103426,
+              "roll": 0.000785085109922782,
+              "pitch": 0.011065930318260569,
+              "yaw": 6.546010021182316e-06
+            },
+            "minimum_required_displacement": 0.25,
+            "passed": true
+          },
+          {
+            "name": "zero_speed_stance_after_negative_yaw",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0042499122813997245,
+            "max_abs_pitch_rad": 0.00870235191380549,
+            "min_height_m": 0.3275936240669485,
+            "max_height_m": 0.3359017198303609,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01876252438689584,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 2.0012959160003447,
+            "forward_displacement_m": 0.0008716424173338976,
+            "lateral_displacement_m": 0.001445189440809831,
+            "yaw_drift_rad": 0.0004477506770316289,
+            "final_horizontal_speed_mps": 0.0012924564847868907
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 1.0,
+            "diagnostic_samples": 10,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0010871416633417082,
+            "max_abs_pitch_rad": 0.001917431875601552,
+            "min_height_m": 0.3363341026763409,
+            "max_height_m": 0.33864186370960575,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.002176703160723183,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 1.0,
+            "elapsed_wall_s": 1.9992107329999271,
+            "forward_displacement_m": 0.0008326109771725574,
+            "lateral_displacement_m": 7.631172659135972e-05,
+            "yaw_drift_rad": 1.4183204392427541e-05,
+            "final_horizontal_speed_mps": 0.00038203694312269077
+          },
+          {
+            "name": "final_stance_soak",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 30.0,
+            "diagnostic_samples": 298,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0010614171605886548,
+            "max_abs_pitch_rad": 0.0010548787540040818,
+            "min_height_m": 0.33876655576328185,
+            "max_height_m": 0.34015472230149874,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0016720719046562674,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 30.0,
+            "elapsed_wall_s": 59.99999747699985,
+            "forward_displacement_m": 0.0003493588021789129,
+            "lateral_displacement_m": 0.0005859033987480901,
+            "yaw_drift_rad": 4.018623869490173e-05,
+            "final_horizontal_speed_mps": 0.00018586474869987846
+          }
+        ],
+        "mode_history": [
+          {
+            "sim_seconds": 35.06,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 36.972,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 42.506,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 43.814,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 49.448,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 51.158,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 56.792,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 58.402,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 64.036,
+            "mode": "MPC_STANCE"
+          },
+          {
+            "sim_seconds": 65.75800000000001,
+            "mode": "MPC_TROT"
+          },
+          {
+            "sim_seconds": 71.322,
+            "mode": "MPC_STANCE"
+          }
+        ],
+        "final_mode": "MPC_STANCE",
+        "final_diagnostics": {
+          "mode": "MPC_STANCE",
+          "mode_elapsed_s": "31.996",
+          "joint_array_order": "FR,FL,RR,RL; each hip,thigh,calf",
+          "joint_array_encoding": "JSON numeric arrays; null means unavailable or non-finite",
+          "joint_position_rad": "[-0.0038696895561355143,0.70390830692039064,-1.4520901482054756,0.0067482060116823474,0.70762476626240567,-1.4491319517647911,0.027216739345934302,0.72159557943297115,-1.4691978514651183,-0.017456533493717143,0.71639672861796333,-1.4635265990870703]",
+          "joint_velocity_rad_s": "[-0.00087026314450354501,-0.00038824998050129844,-0.00024183248965647941,-0.00086871528674365046,-0.0005793268650946537,1.6351789825952423e-05,-0.00079053814027117003,-0.00030636083809876258,-0.00040581937349948305,-0.00079393743884041343,-0.00055444587649489119,-3.3866963722317678e-05]",
+          "joint_feedback_valid": "[1,1,1,1,1,1,1,1,1,1,1,1]",
+          "joint_effort_feedback": "[2.2716309127558505,0.37695054303874437,4.8424457232817435,-2.2931151559950642,0.31837846904069234,4.7609391890970034,2.2611585333793802,0.27474798433334618,5.4074323005561666,-2.358828616003116,0.27064779682255152,5.3319833300587156]",
+          "joint_effort_feedback_semantics": "simulated motor-PD requested joint effort; not measured hardware torque or foot force",
+          "joint_effort_limits_nm": "[23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45,23.699999999999999,23.699999999999999,45]",
+          "stand_up_final_target_position_rad": "[0.040594419999999999,0.72092118400000005,-1.394467125,-0.041155553999999997,0.72063062200000005,-1.394131875,0.046229459000000001,0.72041776000000002,-1.388499632,-0.046565312999999997,0.71831117200000005,-1.389189252]",
+          "stand_up_final_target_max_error_rad": "0.0806982",
+          "stand_up_final_target_max_error_joint_index": "8",
+          "stand_up_final_target_max_error_joint_name": "RR_calf_joint",
+          "stand_up_final_target_error_valid_joint_count": "12",
+          "stand_up_final_target_error_semantics": "maximum over valid finite joint positions only; final target, not interpolated target",
+          "controller_request_interface_layout": "position,velocity,effort,kp,kd",
+          "controller_request_position_rad": "[-0.0038699162784808939,0.70390834793825385,-1.4520909888895128,0.0067479913664067921,0.70762472968299506,-1.4491328846460934,0.027216845538315389,0.72159534923908086,-1.4691983040116945,-0.017456437578150161,0.71639631892969724,-1.4635267724223215]",
+          "controller_request_velocity_rad_s": "[-0.0010628814220774157,-0.00028029928398331974,-0.00083434920288130699,-0.0010554246019264185,-0.00055094863768089105,-0.00044818005007814417,-0.00093971099284732721,-0.00041273758534410103,-0.0005725960402710934,-0.00094501938050456022,-0.00075727633185369858,-2.8179981709560448e-05]",
+          "controller_request_effort_nm": "[2.2713105154033988,0.37642397600034927,4.8442343647270718,-2.2928031571433909,0.3179051598065562,4.7588141947462104,2.2616514699709516,0.27434484574937412,5.41030867388102,-2.3589372649449931,0.27033445157082397,5.3312179784468618]",
+          "controller_request_kp_nm_rad": "[55,55,80,55,55,80,55,55,80,55,55,80]",
+          "controller_request_kd_nm_s_rad": "[2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5,2.5]",
+          "controller_request_semantics": "controller command-interface request; not final motor packet or measured torque; hardware may scale/disable it",
+          "joy_requested_mode": "NONE",
+          "joy_age_s": "0",
+          "joy_request_snapshot": "latest buffered Joy at diagnostic sampling; may postdate the control update snapshot; not an accepted mode",
+          "limited_command_exceeds_trot_entry_threshold": "false",
+          "controller_fault_reason": "",
+          "calibrated": "true",
+          "startup_alignment": "0",
+          "startup_alignment_phase": "disabled",
+          "requires_recalibration": "false",
+          "estimate_valid": "true",
+          "imu_valid": "true",
+          "imu_age_s": "0.008",
+          "imu_orientation_prediction_s": "0",
+          "trot_enabled": "false",
+          "gait_transition": "NONE",
+          "policy_mode": "15",
+          "nmpc_backend": "legged::LeggedInterface",
+          "wbc_backend": "legged::WeightedWbc",
+          "legged_control_revision": "a7f381c0367e98e31c01336e678eef47e304d40d",
+          "control_period_ms": "2",
+          "control_period_mean_ms": "2",
+          "control_period_p95_ms": "2",
+          "control_period_p99_ms": "2",
+          "io_period_ms": "0",
+          "io_period_p99_ms": "0",
+          "io_timeout_count": "0",
+          "communication_ok": "true",
+          "base_x_m": "0.921655",
+          "base_y_m": "0.00784501",
+          "base_z_m": "0.340142",
+          "base_yaw_rad": "-0.0320464",
+          "base_roll_rad": "0.000708627",
+          "base_pitch_rad": "0.000431537",
+          "base_vx_mps": "-0.000177092",
+          "base_vy_mps": "5.89207e-05",
+          "base_vz_mps": "-3.34525e-05",
+          "requested_vx_mps": "0",
+          "requested_vy_mps": "0",
+          "requested_yaw_rad_s": "0",
+          "governed_vx_mps": "0",
+          "governed_vy_mps": "0",
+          "governed_yaw_rad_s": "0",
+          "fr_hip_position_rad": "-0.00386969",
+          "fr_thigh_position_rad": "0.703908",
+          "fr_calf_position_rad": "-1.45209",
+          "fr_hip_velocity_rad_s": "-0.000870263",
+          "fr_thigh_velocity_rad_s": "-0.00038825",
+          "fr_calf_velocity_rad_s": "-0.000241832",
+          "wbc_q_fr_hip_rad": "-0.00386992",
+          "wbc_q_fr_thigh_rad": "0.703908",
+          "wbc_q_fr_calf_rad": "-1.45209",
+          "wbc_qd_fr_hip_rad_s": "-0.00106288",
+          "wbc_qd_fr_thigh_rad_s": "-0.000280299",
+          "wbc_qd_fr_calf_rad_s": "-0.000834349",
+          "mpc_policy_age_s": "0.008",
+          "mpc_solver_healthy": "true",
+          "mpc_last_error": "",
+          "mpc_solve_ms": "10.0784",
+          "mpc_solve_mean_ms": "10.5844",
+          "mpc_solve_p95_ms": "12.3732",
+          "mpc_solve_p99_ms": "13.4938",
+          "wbc_solve_ms": "0.277693",
+          "wbc_valid": "true",
+          "wbc_consecutive_failures": "0",
+          "wbc_tau_max_abs": "5.41031",
+          "wbc_tau_fr_hip": "2.27131",
+          "wbc_tau_fr_thigh": "0.376424",
+          "wbc_tau_fr_calf": "4.84423",
+          "wbc_equality_residual": "1.42109e-13",
+          "wbc_inequality_violation": "0",
+          "policy_fz_fr": "35.2707",
+          "policy_fz_fl": "34.9407",
+          "policy_fz_rr": "39.3602",
+          "policy_fz_rl": "39.0331"
+        },
+        "motion_safety": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 0.35,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.08343442727232826,
+          "min_command_projected_speed_mps": -0.017372909947519957,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        }
+      },
+      "controller_manager": {
+        "joint_state_broadcaster": {
+          "type": "joint_state_broadcaster/JointStateBroadcaster"
+        },
+        "nmpc_wbc_controller": {
+          "type": "custom_dog_control/NmpcWbcController"
+        },
+        "qos_overrides": {
+          "/clock": {
+            "subscription": {
+              "depth": 1,
+              "durability": "volatile",
+              "history": "keep_last",
+              "reliability": "best_effort"
+            }
+          },
+          "/parameter_events": {
+            "publisher": {
+              "depth": 1000,
+              "durability": "volatile",
+              "history": "keep_last",
+              "reliability": "reliable"
+            }
+          }
+        },
+        "robot_description": "<?xml version=\"1.0\" ?>\n\n\n\n<robot name=\"custom_dog\"> <link name=\"base\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00354795931007695 0.00106892344791073 -0.00160115455741634\"/> <mass value=\"7.85084\"/> <inertia ixx=\"0.0309718860309686\" ixy=\"-0.000238429473774413\" ixz=\"0.000278934340039972\" iyy=\"0.0735368232985286\" iyz=\"-3.93030294503731e-05\" izz=\"0.093029777706926\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/base.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0.005 0\"/> <geometry> <box size=\"0.255 0.220 0.100\"/> </geometry> </collision> </link> <link name=\"FR_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00662 -0.000709999999999 -8.2639413656e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"2.28472403567e-05\" ixz=\"1.12106928947e-06\" iyy=\"0.000738260470304\" iyz=\"6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"-0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"FR_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00272000000032 0.0242704960879 -0.0234789534304\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00368293995879\" ixy=\"-6.78297878351e-05\" ixz=\"-0.00024038424463\" iyy=\"0.00383450995517\" iyz=\"-0.000582928644237\" izz=\"0.000989001199744\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.75294 0.75294 0.75294 1\"/> </material> </visual> </link> <link name=\"FR_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00663162723916 -9.75017136863e-06 -0.0759949634159\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056885869487\" ixy=\"8.24315624731e-09\" ixz=\"6.33792768142e-05\" iyy=\"0.000585941915495\" iyz=\"-7.24279333575e-08\" izz=\"2.26830292967e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"FR_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115497980177 0.000246147409727 -0.00164903419433\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36224062359e-05\" ixy=\"-4.37720487792e-08\" ixz=\"-1.08788958632e-06\" iyy=\"1.52770048128e-05\" iyz=\"-5.66825840722e-08\" izz=\"1.19522783839e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FR_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.79216 0.81961 0.93333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"FL_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00662 0.000710000000001 7.73605863441e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"-2.28472403568e-05\" ixz=\"-1.12106928951e-06\" iyy=\"0.000738260470304\" iyz=\"6.27050056414e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"-0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"FL_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00280000000066 -0.0242708716707 -0.0235589525485\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00372327510307\" ixy=\"6.62607607445e-05\" ixz=\"-0.000255546277468\" iyy=\"0.00382984813914\" iyz=\"0.00058102695259\" izz=\"0.000944049165359\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"FL_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00667000047467 -5.14276350637e-05 -0.0759915882735\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.000568794548174\" ixy=\"4.31904745811e-08\" ixz=\"6.36550247973e-05\" iyy=\"0.000585941666649\" iyz=\"-3.81305937138e-07\" izz=\"2.27474248387e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"FL_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115428545565 0.000245402994684 -0.00164993728948\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36235040402e-05\" ixy=\"-4.43347561358e-08\" ixz=\"-1.0870216836e-06\" iyy=\"1.52769416825e-05\" iyz=\"-5.85339713132e-08\" izz=\"1.19512437098e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/FL_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"RR_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00662 -0.000710000000002 7.73605863424e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"-2.28472403568e-05\" ixz=\"1.12106928946e-06\" iyy=\"0.000738260470304\" iyz=\"-6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"RR_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00269000000028 0.02427063693 -0.0235089530989\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00370518477983\" ixy=\"-6.84338906306e-05\" ixz=\"-0.000252052315668\" iyy=\"0.00383313649116\" iyz=\"-0.000582224790473\" izz=\"0.000965395152364\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"RR_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00669348198793 6.40672853716e-05 -0.0759895139724\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056875515651\" ixy=\"-5.36985220294e-08\" ixz=\"6.38237363923e-05\" iyy=\"0.000585941524774\" iyz=\"4.74638255069e-07\" izz=\"2.27869583774e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"RR_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00115363889125 0.00024736930759 -0.00165040042545\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36241747485e-05\" ixy=\"-4.2655170385e-08\" ixz=\"-1.08657112944e-06\" iyy=\"1.52771121418e-05\" iyz=\"-5.35029554666e-08\" izz=\"1.19504025424e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RR_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <link name=\"RL_hip\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00662 0.000710000000002 -8.26394136562e-05\"/> <mass value=\"0.65268\"/> <inertia ixx=\"0.000401158792846\" ixy=\"2.28472403567e-05\" ixz=\"-1.12106928947e-06\" iyy=\"0.000738260470304\" iyz=\"-6.27050056427e-07\" izz=\"0.000444726717055\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_hip.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> <collision> <origin rpy=\"0 1.57079632679 0\" xyz=\"0.004 0 0\"/> <geometry> <cylinder length=\"0.090\" radius=\"0.040\"/> </geometry> </collision> </link> <link name=\"RL_thigh\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00269999999945 -0.0242705899864 -0.0234989532093\"/> <mass value=\"1.00599\"/> <inertia ixx=\"0.00369359546639\" ixy=\"6.84719366465e-05\" ixz=\"-0.000239527367434\" iyy=\"0.00383351585443\" iyz=\"0.000582312903995\" izz=\"0.000977373675684\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_thigh.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.752941176470588 0.752941176470588 0.752941176470588 1\"/> </material> </visual> </link> <link name=\"RL_calf\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"0.00695093172846 3.79227227692e-08 -0.0759664240806\"/> <mass value=\"0.11021\"/> <inertia ixx=\"0.00056831636074\" ixy=\"7.9475054204e-11\" ixz=\"6.56722801529e-05\" iyy=\"0.000585941924809\" iyz=\"1.19693433393e-10\" izz=\"2.32253541132e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_calf.STL\"/> </geometry> <material name=\"\"> <color rgba=\"1 1 1 1\"/> </material> </visual> </link> <link name=\"RL_foot\"> <inertial> <origin rpy=\"0 0 0\" xyz=\"-0.00114838274821 0.000250104207798 -0.00165038140726\"/> <mass value=\"0.05591\"/> <inertia ixx=\"1.36315191682e-05\" ixy=\"-4.33830233298e-08\" ixz=\"-1.08083857177e-06\" iyy=\"1.52770195603e-05\" iyz=\"-5.64498099326e-08\" izz=\"1.19431507041e-05\"/> </inertial> <visual> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <mesh filename=\"package://custom_dog_description/meshes/RL_foot.STL\"/> </geometry> <material name=\"\"> <color rgba=\"0.792156862745098 0.819607843137255 0.933333333333333 1\"/> </material> </visual> <collision> <origin rpy=\"0 0 0\" xyz=\"0 0 0\"/> <geometry> <sphere radius=\"0.026\"/> </geometry> </collision> </link> <joint name=\"FR_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"0.185 -0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"FR_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"FR_thigh_joint\" type=\"revolute\"> <origin rpy=\"-0.0046948 0 0\" xyz=\"0 -0.08415 0\"/> <parent link=\"FR_hip\"/> <child link=\"FR_thigh\"/> <axis xyz=\"0 0.999988979447 0.00469478275356\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"FR_calf_joint\" type=\"revolute\"> <origin rpy=\"0.0048231 -0.0006497 0\" xyz=\"0 0 -0.213\"/> <parent link=\"FR_thigh\"/> <child link=\"FR_calf\"/> <axis xyz=\"0 0.999988368876 -0.00482308130063\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"FR_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207645932301958\"/> <parent link=\"FR_calf\"/> <child link=\"FR_foot\"/> </joint> <joint name=\"FL_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"0.185 0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"FL_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"FL_thigh_joint\" type=\"revolute\"> <origin rpy=\"0.00469480118752083 0 0\" xyz=\"0 0.084150000000009 0\"/> <parent link=\"FL_hip\"/> <child link=\"FL_thigh\"/> <axis xyz=\"0 0.999988979441 -0.00469478394106\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"FL_calf_joint\" type=\"revolute\"> <origin rpy=\"-0.00401804702793096 -0.000144745906588796 0\" xyz=\"0 0 -0.213002347405684\"/> <parent link=\"FL_thigh\"/> <child link=\"FL_calf\"/> <axis xyz=\"0 0.99999192766 0.00401803621624\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"FL_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207579751226609\"/> <parent link=\"FL_calf\"/> <child link=\"FL_foot\"/> </joint> <joint name=\"RR_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"-0.185 -0.055 0.00018264\"/> <parent link=\"base\"/> <child link=\"RR_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"RR_thigh_joint\" type=\"revolute\"> <origin rpy=\"-0.00469480118741762 0 0\" xyz=\"0 -0.0841500000000318 0\"/> <parent link=\"RR_hip\"/> <child link=\"RR_thigh\"/> <axis xyz=\"0 0.999988979441 0.00469478394096\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"RR_calf_joint\" type=\"revolute\"> <origin rpy=\"0.00385169452685174 0.000164256286681431 0\" xyz=\"0 0 -0.213002347405246\"/> <parent link=\"RR_thigh\"/> <child link=\"RR_calf\"/> <axis xyz=\"0 0.999992582234 -0.00385168500319\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"RR_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207539297095126\"/> <parent link=\"RR_calf\"/> <child link=\"RR_foot\"/> </joint> <joint name=\"RL_hip_joint\" type=\"revolute\"> <origin rpy=\"0 0 0\" xyz=\"-0.185 0.054999999999998 0.000182639413656267\"/> <parent link=\"base\"/> <child link=\"RL_hip\"/> <axis xyz=\"1 0 0\"/> <limit effort=\"23.7\" lower=\"-1.0472\" upper=\"1.0472\" velocity=\"30\"/> </joint> <joint name=\"RL_thigh_joint\" type=\"revolute\"> <origin rpy=\"0.00469480118743395 0 0\" xyz=\"0 0.0841500000000134 0\"/> <parent link=\"RL_hip\"/> <child link=\"RL_thigh\"/> <axis xyz=\"0 0.999988979441 -0.00469478394098\"/> <limit effort=\"23.7\" lower=\"-1.5708\" upper=\"3.4907\" velocity=\"30\"/> </joint> <joint name=\"RL_calf_joint\" type=\"revolute\"> <origin rpy=\"-0.00469533001954943 0.00355269394965243 -1.66793844924154E-05\" xyz=\"0 0 -0.213002347404803\"/> <parent link=\"RL_thigh\"/> <child link=\"RL_calf\"/> <axis xyz=\"-1.66792792312e-05 0.999988977097 0.00469525351064\"/> <limit effort=\"45\" lower=\"-2.8274333882\" upper=\"-0.83775804096\" velocity=\"15\"/> </joint> <joint name=\"RL_foot_joint\" type=\"fixed\"> <origin rpy=\"0 0 0\" xyz=\"0 0 -0.207097655168717\"/> <parent link=\"RL_calf\"/> <child link=\"RL_foot\"/> </joint> <ros2_control name=\"CustomDogSystem\" type=\"system\"> <hardware> <plugin>custom_dog_control/FortressMotorSystem</plugin> <param name=\"simulation_command_delay_s\">0.020</param> <param name=\"simulation_coulomb_friction\">0 0 0.45</param> <param name=\"simulation_viscous_friction\">0 0 0.0175</param> <param name=\"simulation_friction_velocity_scale\">0.05</param> </hardware> <joint name=\"FR_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FR_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FR_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"FL_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RR_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_hip_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">0.5672320069</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_thigh_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">1.2535642999</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <joint name=\"RL_calf_joint\"> <command_interface name=\"effort\"/> <command_interface name=\"position\"/> <command_interface name=\"velocity\"/> <command_interface name=\"kp\"/> <command_interface name=\"kd\"/> <state_interface name=\"position\"> <param name=\"initial_value\">-2.8239427297</param> </state_interface> <state_interface name=\"velocity\"/> <state_interface name=\"effort\"/> </joint> <gpio name=\"custom_dog\"> <command_interface name=\"simulation_motor_mode\"/> </gpio> </ros2_control> <gazebo reference=\"FR_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"FR_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"FL_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"FL_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"RR_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"RR_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo> <gazebo reference=\"RL_calf\"> <mu1>0.2</mu1> <mu2>0.2</mu2> </gazebo> <gazebo reference=\"RL_foot\"> <mu1>1.0</mu1> <mu2>1.0</mu2> <kp>1000000.0</kp> <kd>100.0</kd> <maxVel>0.1</maxVel> <minDepth>0.001</minDepth> </gazebo>\n<gazebo> <plugin filename=\"gz_ros2_control-system\" name=\"gz_ros2_control::GazeboSimROS2ControlPlugin\"> <parameters>/tmp/custom_dog_fortress_pkqo_kdk/controllers.yaml</parameters> </plugin> <plugin filename=\"ignition-gazebo-odometry-publisher-system\" name=\"ignition::gazebo::systems::OdometryPublisher\"> <odom_frame>world</odom_frame> <robot_base_frame>base</robot_base_frame> <dimensions>3</dimensions> <odom_publish_frequency>250</odom_publish_frequency>\n<odom_topic>/fortress/odom</odom_topic> <tf_topic>/fortress/pose</tf_topic> <gaussian_noise>0.0</gaussian_noise> </plugin> </gazebo> <gazebo reference=\"base\"> <sensor name=\"base_imu\" type=\"imu\"> <always_on>true</always_on> <update_rate>100</update_rate> <visualize>false</visualize> <topic>/imu</topic> <imu> <orientation_reference_frame> <localization>ENU</localization> </orientation_reference_frame> </imu> </sensor> </gazebo> </robot>",
+        "update_rate": 500,
+        "use_sim_time": true
+      },
+      "normalized_physics_description_sha256": "537084ac5a19be8e701b327b578241a7b1cf7dea9098f748b7306d044ea1279f",
+      "nmpc_wbc_controller": {
+        "hardware_mode": "fortress_hybrid",
+        "imu_orientation_prediction_max_s": 0.0,
+        "mpc_frequency_hz": 50.0,
+        "mpc_solver_threads": 2,
+        "nominal_height_m": 0.34,
+        "stand_up_base_velocity_tolerance_m_s": 0.05,
+        "stand_up_calf_kp": 80.0,
+        "stand_up_duration_s": 2.5,
+        "stand_up_hip_kp": 55.0,
+        "stand_up_joint_positions": [
+          0.04059442,
+          0.720921184,
+          -1.394467125,
+          -0.041155554,
+          0.720630622,
+          -1.394131875,
+          0.046229459,
+          0.72041776,
+          -1.388499632,
+          -0.046565313,
+          0.718311172,
+          -1.389189252
+        ],
+        "stand_up_kd": 2.5,
+        "stand_up_leg_kp": 55.0,
+        "stand_up_position_tolerance_rad": 0.2,
+        "stand_up_settle_calf_kp": 80.0,
+        "stand_up_settle_duration_s": 2.0,
+        "stand_up_settle_hip_kp": 55.0,
+        "stand_up_settle_kd": 2.5,
+        "stand_up_settle_leg_kp": 55.0,
+        "stand_up_velocity_tolerance_rad_s": 0.2,
+        "trot_period_s": 0.4,
+        "use_sim_ground_truth": false,
+        "wbc_calf_stiffness": 80.0,
+        "wbc_contact_force_ramp_s": 0.0,
+        "wbc_hip_stiffness": 55.0,
+        "wbc_joint_damping": 2.5,
+        "wbc_joint_stiffness": 55.0
+      },
+      "forward_summary": {
+        "duration_sim_s": 10.0,
+        "displacement_m": 0.6525881590466813,
+        "commanded_distance_m": 0.5,
+        "error_percent": 30.517631809336265
+      },
+      "trot_physics_100hz": {
+        "samples": 4499,
+        "height_min_m": 0.32468425094438186,
+        "height_max_m": 0.33974530371756084,
+        "height_rms_error_from_034_m": 0.010205690275505306,
+        "max_abs_roll_rad": 0.01242213144988234,
+        "max_abs_pitch_rad": 0.019822396549292402
+      },
+      "final_recorded_29s_stance": {
+        "height_min_m": 0.33969996444376455,
+        "height_max_m": 0.3401555564907887
+      },
+      "sampled_trot_joint_tracking_and_budget": {
+        "FR_hip": {
+          "max_abs_position_error_rad": 0.008217923727086532,
+          "max_budget_ratio": 0.5316567710485518,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.0020972371070974933,
+          "velocity_error_rms_rad_s": 0.16287640927466232,
+          "mean_budget_ratio": 0.1437361200893986,
+          "inferred_net_torque_rms_nm": 3.974195694107042
+        },
+        "FR_thigh": {
+          "max_abs_position_error_rad": 0.04770927360004418,
+          "max_budget_ratio": 0.42264606819185857,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.012354047230529054,
+          "velocity_error_rms_rad_s": 1.1520340495435757,
+          "mean_budget_ratio": 0.12995229062114902,
+          "inferred_net_torque_rms_nm": 3.7879843335167886
+        },
+        "FR_calf": {
+          "max_abs_position_error_rad": 0.09349659953822376,
+          "max_budget_ratio": 0.468543341561078,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.028048580506219136,
+          "velocity_error_rms_rad_s": 2.358498012092419,
+          "mean_budget_ratio": 0.22856610370470934,
+          "inferred_net_torque_rms_nm": 10.16433685939421
+        },
+        "FL_hip": {
+          "max_abs_position_error_rad": 0.011032209667082746,
+          "max_budget_ratio": 0.36070334600903825,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.0023530627335049356,
+          "velocity_error_rms_rad_s": 0.16586688824364887,
+          "mean_budget_ratio": 0.14695975290346505,
+          "inferred_net_torque_rms_nm": 4.056384657106074
+        },
+        "FL_thigh": {
+          "max_abs_position_error_rad": 0.05064973054301136,
+          "max_budget_ratio": 0.43202725264104935,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.012888500784375525,
+          "velocity_error_rms_rad_s": 1.1758811266809772,
+          "mean_budget_ratio": 0.1329224502927201,
+          "inferred_net_torque_rms_nm": 3.870415752539402
+        },
+        "FL_calf": {
+          "max_abs_position_error_rad": 0.10151582371851475,
+          "max_budget_ratio": 0.4994620829333129,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.029067600332574273,
+          "velocity_error_rms_rad_s": 2.383636468432195,
+          "mean_budget_ratio": 0.2316681258686931,
+          "inferred_net_torque_rms_nm": 10.202597770060716
+        },
+        "RR_hip": {
+          "max_abs_position_error_rad": 0.007509091361258408,
+          "max_budget_ratio": 0.3254637327955984,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.0020549420912154125,
+          "velocity_error_rms_rad_s": 0.14574556212670808,
+          "mean_budget_ratio": 0.1283076989424708,
+          "inferred_net_torque_rms_nm": 3.558767217960929
+        },
+        "RR_thigh": {
+          "max_abs_position_error_rad": 0.049698612895615835,
+          "max_budget_ratio": 0.42469416985979946,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.01340157560747435,
+          "velocity_error_rms_rad_s": 1.2210612651654902,
+          "mean_budget_ratio": 0.1445235795371851,
+          "inferred_net_torque_rms_nm": 4.014150758470784
+        },
+        "RR_calf": {
+          "max_abs_position_error_rad": 0.10486740204497069,
+          "max_budget_ratio": 0.5377146748520746,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.030084096263067427,
+          "velocity_error_rms_rad_s": 2.458453288660687,
+          "mean_budget_ratio": 0.2571294093805836,
+          "inferred_net_torque_rms_nm": 11.304592459290157
+        },
+        "RL_hip": {
+          "max_abs_position_error_rad": 0.013132782930929081,
+          "max_budget_ratio": 0.5266814001391565,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.0022048000142103957,
+          "velocity_error_rms_rad_s": 0.15188456278056228,
+          "mean_budget_ratio": 0.13049372007474522,
+          "inferred_net_torque_rms_nm": 3.612082352947567
+        },
+        "RL_thigh": {
+          "max_abs_position_error_rad": 0.04686502110470836,
+          "max_budget_ratio": 0.430005864855744,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.01291270315531456,
+          "velocity_error_rms_rad_s": 1.2065129155856502,
+          "mean_budget_ratio": 0.13955944335668952,
+          "inferred_net_torque_rms_nm": 3.94017106826567
+        },
+        "RL_calf": {
+          "max_abs_position_error_rad": 0.09411873015798755,
+          "max_budget_ratio": 0.5049577086343684,
+          "min_inferred_scale": 1.0,
+          "scaled_samples": 0,
+          "samples": 446,
+          "position_error_rms_rad": 0.029330567661502632,
+          "velocity_error_rms_rad_s": 2.4495396149887485,
+          "mean_budget_ratio": 0.2529824236985393,
+          "inferred_net_torque_rms_nm": 11.25751725807173
+        }
+      },
+      "sampled_trot_by_joint_type": {
+        "hip": {
+          "position_error_rms_rad": 0.002180552556813715,
+          "max_budget_ratio": 0.5316567710485518,
+          "min_inferred_scale": 1.0
+        },
+        "thigh": {
+          "position_error_rms_rad": 0.012894534374911653,
+          "max_budget_ratio": 0.43202725264104935,
+          "min_inferred_scale": 1.0
+        },
+        "calf": {
+          "position_error_rms_rad": 0.02914182263011195,
+          "max_budget_ratio": 0.5377146748520746,
+          "min_inferred_scale": 1.0
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "src/custom_dog_control/config/controllers.yaml": "37f720353f58825b89f3aa457fcc502fb8da7368bbb1df107a35ee7e3818e3db",
+    "src/custom_dog_control/config/nmpc/task.info": "fc9972f2a83c0d44f0ef55cdbf9c36d8b31a34fa09ba4ace02a04f2488a120a5",
+    "src/custom_dog_control/config/nmpc/reference.info": "4795de7fa80b09a1435a89703fb77b637dabd8e048bf7195297f2e2bc0e8d4c2",
+    "src/custom_dog_control/launch/fortress.launch.py": "9a88ec0ccd508cc053987dc209335b5dfb589352856a4c6c525a0290ff0670b0",
+    "src/custom_dog_control/urdf/custom_dog.ros2_control.xacro": "4d010a3c5385d7ae01a4198286d5a3151ef0c62978cc24f04585a17e2b54c488",
+    "src/custom_dog_control/src/controller/ControllerStateMachine.cpp": "1b707fff59729867674e749a11dc753bb59079f261d327c2ebcebf0a21443f45",
+    "src/custom_dog_control/src/hardware/FortressMotorSystem.cpp": "7777f2ac9714b470a6648e07ade91562cc11866bdfa34a5035243f4f2fa6aabc",
+    "src/custom_dog_control/third_party/legged_wbc/src/WbcBase.cpp": "c9043771fe2cb4beecbbd62afe4b427e326e47d0ba9244d107766fe69b4bfab8"
+  },
+  "limitations": [
+    "One run per gain profile; asynchronous solver timing and startup variation remain confounders",
+    "Friction/delay are assumed joint-side stress parameters, not hardware identification",
+    "Joint budget and errors reconstructed at approximately 10 Hz; missed transients remain possible",
+    "Physics pose summary uses 100 Hz independent odometry and diagnostic mode labels",
+    "Directional/stability test passes do not establish accurate velocity tracking",
+    "Passive, calibration and FAULT gains were never unified",
+    "Raw logs and trial orchestration remain ignored"
+  ],
+  "conclusion": {
+    "public_joint_pd_retained": true,
+    "reason": "Unified active gains passed the tested movements but did not demonstrate a general improvement: forward distance error increased from 18.2% to 30.5% in these single runs; joint tracking, body height and budget results require separate interpretation",
+    "scope": "One run per profile, no hardware validation; no claim of statistical significance or unique root cause"
+  },
+  "primary_library_sha256": {
+    "install/custom_dog_control/lib/libcustom_dog_control_fortress_motor_system.so": "c62c7931da75aabf0ca82a44da9889853b2ad672df5ed117fe33be5751a477c0",
+    "install/custom_dog_control/lib/libcustom_dog_control_nmpc_wbc_controller.so": "6eed007a4afeef891de9e247d20f9870e71ff6297c261d0925ca473688e9ce0d"
+  }
+}

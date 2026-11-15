@@ -70,7 +70,7 @@ class RuntimeProfiler(Node):
         super().__init__('custom_dog_control_runtime_profiler')
         self.declare_parameter('duration_s', 1800.0)
         self.declare_parameter('output_csv', '/tmp/custom_dog_control_profile.csv')
-        self.declare_parameter('control_rate_hz', 250.0)
+        self.declare_parameter('control_rate_hz', 500.0)
         self.declare_parameter('mpc_p99_limit_ms', 16.0)
         self.duration = self.get_parameter('duration_s').value
         self.output_path = self.get_parameter('output_csv').value

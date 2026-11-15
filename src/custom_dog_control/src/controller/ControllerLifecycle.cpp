@@ -1,6 +1,7 @@
 #include "custom_dog_control/controller/NmpcWbcController.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <functional>
@@ -76,6 +77,7 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
     auto_declare<bool>("use_sim_ground_truth", true);
     auto_declare<bool>("simulation_control_trace", false);
     auto_declare<double>("ground_truth_timeout_s", 0.10);
+    auto_declare<double>("imu_orientation_prediction_max_s", 0.0);
     // MPC 在后台按此频率求解；WBC 则随 controller_manager 的 update 周期执行。
     // SQP 迭代数和求解时域由 task.info 配置，两层控制频率不要混用。
     auto_declare<double>("mpc_frequency_hz", 50.0);
@@ -111,6 +113,18 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
     // -1 preserves the previous shared thigh/calf stiffness for older profiles.
     auto_declare<double>("wbc_calf_stiffness", -1.0);
     auto_declare<double>("wbc_joint_damping", 3.0);
+    auto_declare<bool>("wbc_use_joint_acceleration_decision", false);
+    auto_declare<double>("wbc_joint_velocity_acceleration_limit", 0.0);
+    auto_declare<bool>("wbc_nominal_joint_reference", false);
+    auto_declare<double>("nmpc_cross_track_position_error_limit_m", 0.0);
+    // Optional engineering delivery/hold window, not measured motor latency.
+    auto_declare<double>("motor_pd_budget_horizon_s", 0.0);
+    auto_declare<double>("motor_pd_nominal_execution_time_s", 0.0);
+    auto_declare<bool>("host_total_torque_command", false);
+    auto_declare<std::vector<double>>("motor_pd_assumed_acceleration_rad_s2", {100.0, 100.0, 100.0});
+    auto_declare<double>("wbc_nominal_height_correction_limit_mps2", 0.0);
+    auto_declare<double>("estimator_planned_contact_delay_s", 0.0);
+    auto_declare<double>("estimator_planned_contact_ramp_s", 0.0);
     auto_declare<double>("locomotion_max_hip_angle_rad", 0.20);
     auto_declare<double>("locomotion_joint_limit_margin_rad", 0.03);
     auto_declare<double>("stance_reanchor_distance_m", 1.0);
@@ -152,6 +166,9 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     const rclcpp_lifecycle::State&) {
   command_output_active_ = false;
   simulation_effort_delay_.Reset();
+  host_total_torque_budget_ = {};
+  host_stance_handoff_start_ = {};
+  host_stance_handoff_start_valid_ = false;
   try {
     const auto node = get_node();
     joints_ = node->get_parameter("joints").as_string_array();
@@ -173,6 +190,13 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
         node->get_parameter("use_sim_ground_truth").as_bool();
     ground_truth_timeout_s_ =
         node->get_parameter("ground_truth_timeout_s").as_double();
+    imu_orientation_prediction_max_s_ =
+        node->get_parameter("imu_orientation_prediction_max_s").as_double();
+    if (!std::isfinite(imu_orientation_prediction_max_s_) ||
+        imu_orientation_prediction_max_s_ < 0.0 ||
+        imu_orientation_prediction_max_s_ > kMaxImuOrientationPredictionSeconds) {
+      throw std::invalid_argument("imu_orientation_prediction_max_s must be in [0, 0.02] s");
+    }
     command_timeout_s_ = node->get_parameter("command_timeout_s").as_double();
     joy_timeout_s_ = node->get_parameter("joy_timeout_s").as_double();
     max_reference_lead_xy_m_s_ =
@@ -332,6 +356,45 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
         node->get_parameter("trot_double_support_s").as_double();
     backend_config.contact_force_ramp_s =
         node->get_parameter("wbc_contact_force_ramp_s").as_double();
+    backend_config.use_joint_acceleration_decision =
+        node->get_parameter("wbc_use_joint_acceleration_decision").as_bool();
+    backend_config.joint_velocity_acceleration_limit =
+        node->get_parameter("wbc_joint_velocity_acceleration_limit").as_double();
+    backend_config.nominal_joint_reference =
+        node->get_parameter("wbc_nominal_joint_reference").as_bool();
+    backend_config.max_cross_track_error_m =
+        node->get_parameter("nmpc_cross_track_position_error_limit_m").as_double();
+    backend_config.max_nominal_height_correction_mps2 =
+        node->get_parameter("wbc_nominal_height_correction_limit_mps2").as_double();
+    motor_pd_window_model_.horizon_seconds =
+        node->get_parameter("motor_pd_budget_horizon_s").as_double();
+    motor_pd_window_model_.nominal_time_seconds =
+        node->get_parameter("motor_pd_nominal_execution_time_s").as_double();
+    host_total_torque_command_ =
+        node->get_parameter("host_total_torque_command").as_bool();
+    if (host_total_torque_command_ &&
+        (motor_pd_window_model_.horizon_seconds != 0.0 ||
+         motor_pd_window_model_.nominal_time_seconds != 0.0)) {
+      throw std::invalid_argument(
+          "host_total_torque_command requires motor PD horizon and nominal execution time both zero");
+    }
+    const auto assumed_acceleration =
+        node->get_parameter("motor_pd_assumed_acceleration_rad_s2").as_double_array();
+    if (assumed_acceleration.size() != 1 && assumed_acceleration.size() != 3 &&
+        assumed_acceleration.size() != kJointCount) {
+      throw std::invalid_argument("motor_pd_assumed_acceleration_rad_s2 needs1,3 or12 values");
+    }
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      motor_pd_window_model_.assumed_acceleration_bound_rad_s2[i] =
+          assumed_acceleration[i % assumed_acceleration.size()];
+      backend_config.motion_joint_kp[i] = i % kJointsPerLeg == 0
+          ? wbc_hip_stiffness_ : (i % kJointsPerLeg == 1
+              ? wbc_joint_stiffness_ : wbc_calf_stiffness_);
+    }
+    backend_config.motion_joint_kd = wbc_joint_damping_;
+    backend_config.motor_pd_window_model = motor_pd_window_model_;
+    backend_config.host_total_torque_command = host_total_torque_command_;
+    motor_pd_window_budget_ = {};
     backend_config.target_horizon_s = 1.0;
     backend_config.nominal_height_m = nominal_height_m_;
     backend_config.max_hip_angle_rad =
@@ -352,8 +415,13 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     const auto validation = backend_->Configure(backend_config);
     if (!validation.ok) throw std::runtime_error(validation.Summary());
     const auto validation_summary = validation.Summary();
+    EstimatorNoise estimator_noise;
+    estimator_noise.planned_contact_delay_s =
+        node->get_parameter("estimator_planned_contact_delay_s").as_double();
+    estimator_noise.planned_contact_ramp_s =
+        node->get_parameter("estimator_planned_contact_ramp_s").as_double();
     estimator_ = std::make_unique<KinematicStateEstimator>(
-        backend_->pinocchioInterface(), backend_->modelInfo());
+        backend_->pinocchioInterface(), backend_->modelInfo(), estimator_noise);
     estimator_->Reset(nominal_height_m_);
 
     SafetyLimits safety_limits;

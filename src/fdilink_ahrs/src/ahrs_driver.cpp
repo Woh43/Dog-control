@@ -135,6 +135,7 @@ void ahrsBringup::processLoop()  // 数据处理过程
   // may supply the orientation in /imu, and only after a complete valid AHRS frame.
   Eigen::Quaterniond valid_orientation = Eigen::Quaterniond::Identity();
   std::chrono::steady_clock::time_point orientation_received;
+  rclcpp::Time orientation_received_ros(0, 0, get_clock()->get_clock_type());
   bool have_orientation = false;
   while (rclcpp::ok())
   {
@@ -414,8 +415,16 @@ void ahrsBringup::processLoop()  // 数据处理过程
         RCLCPP_WARN(this->get_logger(), "AHRS quaternion invalid");
         continue;
       }
+      const rclcpp::Time receipt_stamp = now();
+      if (receipt_stamp.nanoseconds() <= 0) {
+        // Do not publish a zero stamp: consumers may treat it as missing and
+        // substitute their receive time. Wait for a usable clock and new AHRS.
+        have_orientation = false;
+        continue;
+      }
       valid_orientation = candidate.normalized();
       orientation_received = std::chrono::steady_clock::now();
+      orientation_received_ros = receipt_stamp;
       have_orientation = true;
     }
     else if (head_type[0] == TYPE_INSGPS)
@@ -499,9 +508,20 @@ void ahrsBringup::processLoop()  // 数据处理过程
         // fresh IMU messages. Downstream controllers must see their watchdog expire.
         continue;
       }
+      const rclcpp::Time publish_time = now();
+      if (publish_time < orientation_received_ros) {
+        // A clock rollback invalidates the cache. Require a new AHRS frame;
+        // never clamp a future stamp to now and make old attitude look fresh.
+        have_orientation = false;
+        continue;
+      }
       // IMU 消息是整个四足控制链最关键的输入。
       sensor_msgs::msg::Imu imu_data;
-      imu_data.header.stamp = rclcpp::Node::now();
+      // Preserve the cached attitude's host receive time even when newer
+      // gyro/acceleration frames arrive; do not conceal its age at publication.
+      // This is NOT device acquisition time: the protocol Timestamp uses an
+      // unsynchronized device clock and serial buffering remains unmeasured.
+      imu_data.header.stamp = orientation_received_ros;
       imu_data.header.frame_id = imu_frame_id_.c_str();
       const Eigen::Quaterniond& q_ahrs = valid_orientation;
       Eigen::Quaterniond q_r =                          

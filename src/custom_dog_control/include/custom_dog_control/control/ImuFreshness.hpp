@@ -17,7 +17,8 @@ enum class ImuFreshnessStatus {
 // Read the input snapshot first, then obtain check_time from its ROS clock.
 // A sample received during hardware I/O can be newer than the control cycle's
 // start timestamp without being in the future when the controller checks it.
-// Keep the acquisition stamp unchanged: I/O and transport delay count as age.
+// Keep the producer's stamp unchanged. Age includes only delays after that
+// stamp; FDILink currently stamps host attitude receipt, not device acquisition.
 inline ImuFreshnessStatus EvaluateImuFreshness(
     const ImuSample& sample, double check_time, double timeout) {
   if (!std::isfinite(sample.stamp_seconds) || !std::isfinite(check_time) ||

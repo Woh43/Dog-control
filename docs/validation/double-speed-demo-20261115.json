@@ -1,0 +1,3659 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "hardware_io": false,
+  "scope": "Six sequential fresh-world isolated C04 simulations at twice the previous demonstration command magnitudes. Each motion target20s; passing cases stop/stand2s; final yaw-negative additionally stands30s. No gain, Q/R, WBC task, gait or source-code tuning.",
+  "all_six_cases_completed_or_failed_with_retained_results": true,
+  "stable_and_tracking_passes": 4,
+  "total_direction_tests": 6,
+  "all_direction_tests_passed": false,
+  "target_speeds": {
+    "forward_backward_mps": [
+      -1.0,
+      1.0
+    ],
+    "lateral_mps": [
+      -0.6,
+      0.6
+    ],
+    "yaw_rad_s": [
+      -3.0,
+      3.0
+    ]
+  },
+  "conditions": {
+    "control_hz": 500,
+    "nmpc_hz": 50,
+    "imu_hz": 100,
+    "additional_motor_delay_s": 0.02,
+    "calf_added_coulomb_friction_nm": 0.45,
+    "calf_added_viscous_friction_nm_s_rad": 0.0175,
+    "trot_cycle_s": 0.4,
+    "planned_swing_height_m": 0.1,
+    "nominal_body_height_m": 0.34,
+    "truth_feedback": false
+  },
+  "test_setting_and_effective_threshold_changes": {
+    "horizontal_motion_guard_mps": [
+      1.0,
+      2.0
+    ],
+    "test_command_settle_duration_s": [
+      3.0,
+      6.0
+    ],
+    "effective_abs_velocity_error_limit_x_mps": [
+      0.2,
+      0.4
+    ],
+    "effective_abs_velocity_error_limit_y_mps": [
+      0.12,
+      0.24
+    ],
+    "effective_abs_yaw_error_limit_rad_s": [
+      0.6,
+      1.2
+    ],
+    "effective_wrong_way_threshold_x_mps": [
+      0.25,
+      0.5
+    ],
+    "effective_wrong_way_threshold_y_mps": [
+      0.15,
+      0.3
+    ],
+    "unchanged_thresholds": "height0.31–0.36m, tilt0.25rad, off-axis0.25m, translation-yaw drift0.35rad, turn translation0.25m; overspeed dwell0.25s and wrong-way dwell1s; relative speed-error coefficient0.40."
+  },
+  "source_and_library_match_validated_C04": true,
+  "public_configuration_unchanged": true,
+  "reference_validation": {
+    "path": "docs/validation/delay-budget-continuity-20261114.json",
+    "sha256": "3b17b309a21eb2eb14df0717e8b5d280598392ab317846292bb9ac438bb38296",
+    "bytes": 2209536
+  },
+  "previous_demo_validation": {
+    "path": "docs/validation/best-config-demo-20261115.json",
+    "sha256": "0e5dca7a3fdcda090f7cc1dd66d0e23e671043834f5b8ad7f09e46af4dffd995",
+    "bytes": 101310
+  },
+  "preflight_provenance": {
+    "path": "log/double-speed-demo-20261115/preflight.json",
+    "sha256": "d4433727689fe77c051b67e1b626582da0ab5644ec22ef8fd088ac8b2a430d0a",
+    "bytes": 37103
+  },
+  "cases": [
+    {
+      "case": "forward",
+      "run": {
+        "path": "log/double-speed-demo-20261115/forward/run.json",
+        "sha256": "9ecb9e7471ec7055a9006ce378cd25125cea4f1db2f9d80786c1700b9e07d45d",
+        "bytes": 90519
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/forward/sweep.json",
+        "sha256": "7b80066705b94816c26e539f443eadc86ad1713219f8cec69a281730ee263ffc",
+        "bytes": 13432
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/forward/controller-params.yaml",
+        "sha256": "9c0a8860213622c7a7896e788e40265094b76e625c6b750b40188fc5e07d3010",
+        "bytes": 26542
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": false,
+      "script_stability_passed": false,
+      "leave_gui_open_paused": false
+    },
+    {
+      "case": "backward",
+      "run": {
+        "path": "log/double-speed-demo-20261115/backward/run.json",
+        "sha256": "6685ff0e47e6083cdf49df1a7c7dff2eb1454cc88630c6ffaa54d4f006fad75b",
+        "bytes": 90756
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/backward/sweep.json",
+        "sha256": "c615516c8dd0cfbd813418c9ae4b1941844c8d2295001cfc3266daa6e33a4392",
+        "bytes": 13672
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/backward/controller-params.yaml",
+        "sha256": "79eb95092bd418c8dfb7c488ff91a265ca8bfcbb26d41475fe674f00ff164ce3",
+        "bytes": 26543
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": false,
+      "script_stability_passed": false,
+      "leave_gui_open_paused": false
+    },
+    {
+      "case": "left",
+      "run": {
+        "path": "log/double-speed-demo-20261115/left/run.json",
+        "sha256": "8d490bef310eae01a2be192447ca2c3e0b45a88ee8964dc885d2a9085ff23473",
+        "bytes": 92901
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/left/sweep.json",
+        "sha256": "15767b36e8cea54d969cca584152ee911b38943b45f846ca583db70673679ee7",
+        "bytes": 15723
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/left/controller-params.yaml",
+        "sha256": "62f817101a543c99624c04de80fa22af00918f18ea3017db6cc4ac28f125c0e5",
+        "bytes": 26539
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": true,
+      "script_stability_passed": true,
+      "leave_gui_open_paused": false
+    },
+    {
+      "case": "right",
+      "run": {
+        "path": "log/double-speed-demo-20261115/right/run.json",
+        "sha256": "b143c236463a35c95b7e0f5ee5cbfa0b58523c688971a3f1ece2def9346f4190",
+        "bytes": 92931
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/right/sweep.json",
+        "sha256": "3343fd0ff173cd81e5168af066225f366558442e5ba6af409a41a6eede309420",
+        "bytes": 15748
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/right/controller-params.yaml",
+        "sha256": "8581ac9f9dc16411be2cec64b9813e1a7fd2b344f1578ba83e5a9e8551f3b72a",
+        "bytes": 26540
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": true,
+      "script_stability_passed": true,
+      "leave_gui_open_paused": false
+    },
+    {
+      "case": "yaw_positive",
+      "run": {
+        "path": "log/double-speed-demo-20261115/yaw_positive/run.json",
+        "sha256": "af27ec5d75ddf97666e9ef019247b81fb6d60dac41c19748977b0a06b669afb2",
+        "bytes": 92917
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/yaw_positive/sweep.json",
+        "sha256": "ec171497c3a29ee307656bb71de37fa2d45f837f73d2bc3cec333244d9027fca",
+        "bytes": 15695
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/yaw_positive/controller-params.yaml",
+        "sha256": "e3d35f5ab7fc9fa02302000bdbbd7d00e39cac3f0efa1d23f5e8a4b285b5b8e5",
+        "bytes": 26547
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": true,
+      "script_stability_passed": true,
+      "leave_gui_open_paused": false
+    },
+    {
+      "case": "yaw_negative",
+      "run": {
+        "path": "log/double-speed-demo-20261115/yaw_negative/run.json",
+        "sha256": "9870115c8fde4a184c5e85b0eb339e72f80fddf19a38b3571f2d3e2c6fa05f0b",
+        "bytes": 93933
+      },
+      "sweep": {
+        "path": "log/double-speed-demo-20261115/yaw_negative/sweep.json",
+        "sha256": "018ed06a4dfc74c76f1314a4b7ed2af882fcdcc2b8010a7ef37798fe89692566",
+        "bytes": 16656
+      },
+      "controller_parameters": {
+        "path": "log/double-speed-demo-20261115/yaw_negative/controller-params.yaml",
+        "sha256": "1238ebfc93a7c20c445e780bec48bb7e908891dd5bd009691c57b566f2e0a31c",
+        "bytes": 26547
+      },
+      "source_and_library_unchanged": true,
+      "effective_input_unchanged": true,
+      "actual_parameters_verified": true,
+      "script_passed": true,
+      "script_stability_passed": true,
+      "leave_gui_open_paused": true
+    }
+  ],
+  "independent_analysis": {
+    "schema_version": 1,
+    "hardware_io": false,
+    "batch_finalized": true,
+    "analysis_script_sha256": "012435e4518183cb32e06bc50f9d481e3a8b32826fd14f408b5016c8155afcab",
+    "imported_analysis_core_sha256": "b0bda21e28cee1429b0cf7c6d8e54d657e7a215b5ef6ec4dcfb3286f409339e1",
+    "normal_report_path": "log/best-config-demo-20261115/demo-independent-metrics.json",
+    "normal_report_sha256": "48d30a6aed12dbe7f5c08b99ef757aebc95dc097cb715770b127a771998cfe94",
+    "threshold_changes": {
+      "horizontal_motion_guard_mps": [
+        1.0,
+        2.0
+      ],
+      "test_command_settle_duration_s": [
+        3.0,
+        6.0
+      ],
+      "effective_abs_velocity_error_limit_x_mps": [
+        0.2,
+        0.4
+      ],
+      "effective_abs_velocity_error_limit_y_mps": [
+        0.12,
+        0.24
+      ],
+      "effective_abs_yaw_error_limit_rad_s": [
+        0.6,
+        1.2
+      ],
+      "effective_wrong_way_threshold_x_mps": [
+        0.25,
+        0.5
+      ],
+      "effective_wrong_way_threshold_y_mps": [
+        0.15,
+        0.3
+      ],
+      "unchanged_thresholds": "height0.31–0.36m, tilt0.25rad, off-axis0.25m, translation-yaw drift0.35rad, turn translation0.25m; overspeed dwell0.25s and wrong-way dwell1s; relative speed-error coefficient0.40."
+    },
+    "cases": [
+      {
+        "case": "forward",
+        "axis": "x",
+        "target": 1.0,
+        "unit": "m/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 1,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "9ecb9e7471ec7055a9006ce378cd25125cea4f1db2f9d80786c1700b9e07d45d",
+        "script_passed": false,
+        "script_stability_passed": false,
+        "script_tracking_passed": false,
+        "sweep_completed": false,
+        "final_mode": "FAULT",
+        "sweep_error": "controller entered FAULT: joint effort limit: index=4 joint=FL_thigh_joint effort=-26.9797 limit=23.7 threshold=26.07; NMPC: ",
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/forward/sweep.json",
+          "axis": "x",
+          "direction": "positive",
+          "vx_levels": [
+            1.0
+          ],
+          "vy_levels": [
+            1.0
+          ],
+          "yaw_levels": [
+            1.0
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 0.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 1.1862607355078478,
+          "min_command_projected_speed_mps": -0.006545704332022075,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00015633084265373926,
+            "max_abs_pitch_rad": 0.002585395948068035,
+            "min_height_m": 0.3266793886033699,
+            "max_height_m": 0.3374422622160857,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.004581450412209199,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 6.001812051006709,
+            "forward_displacement_m": 0.003641881701285255,
+            "lateral_displacement_m": -5.620875720483147e-05,
+            "yaw_drift_rad": 2.4272430476830927e-05,
+            "final_horizontal_speed_mps": 0.0002799281426583809
+          }
+        ],
+        "motor_threshold_warning_count": 1,
+        "safety_fault_text_seen": true,
+        "motor_threshold_events": [
+          {
+            "launch_log_line": 82,
+            "sim_time": 20.378,
+            "index": 4.0,
+            "joint": "FL_thigh_joint",
+            "effort": -26.979678645,
+            "limit": 23.7,
+            "threshold": 26.07,
+            "ff": -20.533611269,
+            "p": -6.553762482,
+            "d": 0.107695106,
+            "q": 0.706975449,
+            "dq": 4.940047198,
+            "q_des": 0.561336283,
+            "dq_des": 5.047742305,
+            "kp": 45.0,
+            "kd": 1.0,
+            "command_age_ms": 21.0,
+            "friction": -0.0
+          }
+        ],
+        "controller_safety_fault_messages": [
+          "joint effort limit: index=4 joint=FL_thigh_joint effort=-26.9797 limit=23.7 threshold=26.07"
+        ],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "a446ab5fc2fe2c6fbcf41bc39b43bd5c74288f864deb0decf6bd6b41a5aad68d",
+              "rows": 1946
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "709980fecffadbf4f4fcebb26a532162d2436575a900dcd76a8f0b171c13c809",
+          "merged_rows": 1946,
+          "first_last_sim_s": [
+            1.116,
+            20.568
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "9cf2a9c87c947076322f35ce5a44f79dddd60ceaf08620e05beb2df82d81fb4c",
+            "controller_messages": 193
+          }
+        ],
+        "first_fault_diagnostic": {
+          "sim_time_s": 20.42,
+          "reason": "joint effort limit: index=4 joint=FL_thigh_joint effort=-26.9797 limit=23.7 threshold=26.07",
+          "reason_source": "launch Safety fault message; diagnostic controller_fault_reason field was empty"
+        },
+        "script_motion_phase": {
+          "name": "x_positive_1",
+          "command": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "tested_axis": "x",
+          "passed": false,
+          "stability_passed": false,
+          "tracking_passed": false,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 106,
+          "steady_requested_samples": 46,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 9.704,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 1.1862607355078478,
+            "min_command_projected_speed_mps": -0.006545704332022075,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "error": "controller entered FAULT: joint effort limit: index=4 joint=FL_thigh_joint effort=-26.9797 limit=23.7 threshold=26.07; NMPC: ",
+          "truth_samples": 2678,
+          "final_truth": {
+            "x": 8.851277122707867,
+            "y": 0.05446955837276024,
+            "z": 0.31714639023086355,
+            "vx": 1.0299953596343323,
+            "vy": 0.08502931046968332,
+            "vz": -0.5132198074124573,
+            "roll": -0.06647856413344902,
+            "pitch": 0.008390832249873305,
+            "yaw": -0.01731954543023458
+          },
+          "elapsed_sim_s": 10.716000000000001,
+          "yaw_displacement_rad": -0.026327875419252012,
+          "forward_displacement_m": 8.819642977583856,
+          "lateral_displacement_m": -0.021347062405309924,
+          "max_abs_roll_rad": 0.06647856413344902,
+          "max_abs_pitch_rad": 0.06332422148435228,
+          "min_height_m": 0.31714639023086355,
+          "max_height_m": 0.34629242776094477,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": 1.0616872196426623,
+          "steady_mean_body_vy_mps": 0.006126007394056714,
+          "steady_mean_yaw_rate_rad_s": -0.01380295138876265,
+          "steady_vx_mps_error": 0.06168721964266233,
+          "steady_vx_mps_rmse": 0.08623043295054782,
+          "steady_vy_mps_error": 0.006126007394056714,
+          "steady_vy_mps_rmse": 0.06448843590382038,
+          "steady_yaw_rad_s_error": -0.01380295138876265,
+          "steady_yaw_rad_s_rmse": 0.27877542216316287,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": 1.0,
+              "min": 1.0,
+              "max": 1.0
+            },
+            "requested_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vx_mps": {
+              "mean": 1.0,
+              "min": 1.0,
+              "max": 1.0
+            },
+            "governed_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            }
+          },
+          "steady_governed_command_error": 0.0,
+          "elapsed_wall_s": 22.511454687992227
+        },
+        "pre_fault_cutoff_sim_s": 20.378,
+        "pre_fault_cutoff_source": "synchronous motor threshold log paired with Safety fault",
+        "test_abort_end_sim_s": 20.42,
+        "fault_to_script_abort_observation_delay_s": 0.04200000000000159,
+        "evidence_status": "shortened_or_failed_attempt",
+        "full20s_stable_motion_completed": false,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            9.704,
+            20.42
+          ],
+          "duration_sim_s": 10.716000000000001,
+          "samples": 1074,
+          "height_m": {
+            "mean": 0.33481005955064636,
+            "min": 0.3147919595789982,
+            "max": 0.34629213085212374,
+            "rms": 0.33482453444102594,
+            "target": 0.34,
+            "mean_error": -0.005189940449353669,
+            "rmse_to_target": 0.006052137573634951,
+            "integrated_absolute_error": 0.05745074781954081
+          },
+          "primary_velocity": {
+            "mean": 0.8229498498212158,
+            "min": -0.006068074431772752,
+            "max": 1.1883169982178774,
+            "rms": 0.8753460318538394,
+            "target": 1.0,
+            "mean_error": -0.17705015017878423,
+            "rmse_to_target": 0.3468875550374087,
+            "integrated_absolute_error": 2.417573856856491
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 1.061824608143117,
+            "min": 0.8995974555784346,
+            "max": 1.1883169982178774,
+            "rms": 1.0634674122701184,
+            "target": 1.0,
+            "mean_error": 0.06182460814311708,
+            "rmse_to_target": 0.08552029393230645,
+            "integrated_absolute_error": 0.14416945562932088
+          },
+          "maximum_signed_primary_velocity": 1.1883169982178774,
+          "maximum_signed_half_second_mean_primary_velocity": 1.1129274969333576,
+          "first_half_second_mean_at_least95pct_target_sim_s": 14.308,
+          "roll_pitch_max_abs_rad": [
+            0.06993376942295343,
+            0.06332422148435228
+          ],
+          "net_displacement_world_m": [
+            8.823558535657817,
+            0.058455885748751414
+          ],
+          "net_displacement_initial_heading_m": [
+            8.823730193680447,
+            -0.01969243231837889
+          ],
+          "changing_heading_integrated_displacement_m": [
+            8.820073337924086,
+            0.03875864248416753
+          ],
+          "yaw_displacement_rad": -0.027331112925736804
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            9.704,
+            20.378
+          ],
+          "duration_sim_s": 10.674,
+          "samples": 1070,
+          "height_m": {
+            "mean": 0.33484919788304374,
+            "min": 0.3275231778988052,
+            "max": 0.34629213085212374,
+            "rms": 0.3348629675119795,
+            "target": 0.34,
+            "mean_error": -0.005150802116956288,
+            "rmse_to_target": 0.005979335285741977,
+            "integrated_absolute_error": 0.05681500776065848
+          },
+          "primary_velocity": {
+            "mean": 0.8220736007855833,
+            "min": -0.006068074431772752,
+            "max": 1.1883169982178774,
+            "rms": 0.8746099395548272,
+            "target": 1.0,
+            "mean_error": -0.17792639921441666,
+            "rmse_to_target": 0.3475562469542617,
+            "integrated_absolute_error": 2.415656880957661
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 1.0619172154392926,
+            "min": 0.8995974555784346,
+            "max": 1.1883169982178774,
+            "rms": 1.0635678567971987,
+            "target": 1.0,
+            "mean_error": 0.06191721543929263,
+            "rmse_to_target": 0.08568637659279095,
+            "integrated_absolute_error": 0.14423009493242417
+          },
+          "maximum_signed_primary_velocity": 1.1883169982178774,
+          "maximum_signed_half_second_mean_primary_velocity": 1.1129274969333576,
+          "first_half_second_mean_at_least95pct_target_sim_s": 14.308,
+          "roll_pitch_max_abs_rad": [
+            0.03575485505516168,
+            0.06332422148435228
+          ],
+          "net_displacement_world_m": [
+            8.779801889526048,
+            0.054758827225622024
+          ],
+          "net_displacement_initial_heading_m": [
+            8.779942520599263,
+            -0.02300181421833101
+          ],
+          "changing_heading_integrated_displacement_m": [
+            8.776369978028297,
+            0.034480405604270466
+          ],
+          "yaw_displacement_rad": -0.01782964635512553
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": null,
+        "short_failure_tail_is_steady": false,
+        "requested_target_reach": {
+          "samples": 106,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.152,
+          "first_target_reached_elapsed_s": 4.447999999999999,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 106,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.152,
+          "first_target_reached_elapsed_s": 4.447999999999999,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": "controller entered FAULT: joint effort limit: index=4 joint=FL_thigh_joint effort=-26.9797 limit=23.7 threshold=26.07; NMPC: ",
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.0018291863312383562,
+            "max": 0.07218382345568358
+          },
+          "FL": {
+            "min": -0.0017056188583243793,
+            "max": 0.08310358652692165
+          },
+          "RR": {
+            "min": -0.0028169968870572527,
+            "max": 0.08257945102447889
+          },
+          "RL": {
+            "min": -0.0021211347622205785,
+            "max": 0.07735119322533754
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "7b80066705b94816c26e539f443eadc86ad1713219f8cec69a281730ee263ffc",
+          "controller-params.yaml": "9c0a8860213622c7a7896e788e40265094b76e625c6b750b40188fc5e07d3010",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "98a73f44cbbc2680ca06496e9c233ff54db3dc179dbc6f9519e399cef03eefea"
+        }
+      },
+      {
+        "case": "backward",
+        "axis": "x",
+        "target": -1.0,
+        "unit": "m/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 1,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "6685ff0e47e6083cdf49df1a7c7dff2eb1454cc88630c6ffaa54d4f006fad75b",
+        "script_passed": false,
+        "script_stability_passed": false,
+        "script_tracking_passed": false,
+        "sweep_completed": false,
+        "final_mode": "MPC_TROT",
+        "sweep_error": "standing/walking body height out of bounds: 0.309 m",
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/backward/sweep.json",
+          "axis": "x",
+          "direction": "negative",
+          "vx_levels": [
+            1.0
+          ],
+          "vy_levels": [
+            1.0
+          ],
+          "yaw_levels": [
+            1.0
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 0.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 1.0520513336749757,
+          "min_command_projected_speed_mps": -0.009012238632876932,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00015633082622676806,
+            "max_abs_pitch_rad": 0.0032355600974484904,
+            "min_height_m": 0.326679388628852,
+            "max_height_m": 0.3376300923035936,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.003162533340776426,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.999275342008332,
+            "forward_displacement_m": 0.002496540999204775,
+            "lateral_displacement_m": -5.5993785720246574e-05,
+            "yaw_drift_rad": 2.6817840311463365e-05,
+            "final_horizontal_speed_mps": 0.003161420193541472
+          }
+        ],
+        "motor_threshold_warning_count": 1,
+        "safety_fault_text_seen": true,
+        "motor_threshold_events": [
+          {
+            "launch_log_line": 82,
+            "sim_time": 28.12,
+            "index": 7.0,
+            "joint": "RR_thigh_joint",
+            "effort": 26.683596751,
+            "limit": 23.7,
+            "threshold": 26.07,
+            "ff": 23.452613144,
+            "p": 3.834518589,
+            "d": -0.603534982,
+            "q": 0.37673447,
+            "dq": -3.61519246,
+            "q_des": 0.462844837,
+            "dq_des": -4.225093753,
+            "kp": 44.530278121,
+            "kd": 0.989561736,
+            "command_age_ms": 21.0,
+            "friction": 0.0
+          }
+        ],
+        "controller_safety_fault_messages": [
+          "joint effort limit: index=7 joint=RR_thigh_joint effort=26.6836 limit=23.7 threshold=26.07"
+        ],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "e9311e8b7ec10f6a3a82528cf479433c2945d0dc7ccb788621b8fdf192349a5d",
+              "rows": 2721
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "03bf610af37704001eb5408d88adb0f9562d1cda78480921b89ef59da12c5b0d",
+          "merged_rows": 2721,
+          "first_last_sim_s": [
+            1.228,
+            28.428
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "498979a12ef18568bfdbcb1dc13364f86fc2bf2451264f134d5a422f57d96854",
+            "controller_messages": 270
+          }
+        ],
+        "first_fault_diagnostic": {
+          "sim_time_s": 28.202,
+          "reason": "joint effort limit: index=7 joint=RR_thigh_joint effort=26.6836 limit=23.7 threshold=26.07",
+          "reason_source": "launch Safety fault message; diagnostic controller_fault_reason field was empty"
+        },
+        "script_motion_phase": {
+          "name": "x_negative_1",
+          "command": [
+            -1.0,
+            0.0,
+            0.0
+          ],
+          "tested_axis": "x",
+          "passed": false,
+          "stability_passed": false,
+          "tracking_passed": false,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 179,
+          "steady_requested_samples": 119,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 10.108,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 1.0520513336749757,
+            "min_command_projected_speed_mps": -0.009012238632876932,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "error": "standing/walking body height out of bounds: 0.309 m",
+          "truth_samples": 4520,
+          "final_truth": {
+            "x": -14.597209749462364,
+            "y": -0.03672043785815984,
+            "z": 0.3090266717095949,
+            "vx": -0.8735006006740182,
+            "vy": 0.05422604411763872,
+            "vz": -0.632186064994186,
+            "roll": -0.007304875987925097,
+            "pitch": 0.03848409265498056,
+            "yaw": 0.02325798987545433
+          },
+          "elapsed_sim_s": 18.080000000000002,
+          "yaw_displacement_rad": 0.013383695827380502,
+          "forward_displacement_m": -14.627862631832482,
+          "lateral_displacement_m": 0.11129752217396896,
+          "max_abs_roll_rad": 0.03250566052845044,
+          "max_abs_pitch_rad": 0.04942883034588747,
+          "min_height_m": 0.3090266717095949,
+          "max_height_m": 0.3407741781888607,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": -0.9026380497829487,
+          "steady_mean_body_vy_mps": 0.0018364335765632313,
+          "steady_mean_yaw_rate_rad_s": 0.009132985011556167,
+          "steady_vx_mps_error": 0.0973619502170513,
+          "steady_vx_mps_rmse": 0.10885615109762327,
+          "steady_vy_mps_error": 0.0018364335765632313,
+          "steady_vy_mps_rmse": 0.07716720045574,
+          "steady_yaw_rad_s_error": 0.009132985011556167,
+          "steady_yaw_rad_s_rmse": 0.3051770631784909,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": -1.0,
+              "min": -1.0,
+              "max": -1.0
+            },
+            "requested_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vx_mps": {
+              "mean": -1.0,
+              "min": -1.0,
+              "max": -1.0
+            },
+            "governed_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            }
+          },
+          "steady_governed_command_error": 0.0,
+          "elapsed_wall_s": 37.48326377100602
+        },
+        "pre_fault_cutoff_sim_s": 28.12,
+        "pre_fault_cutoff_source": "synchronous motor threshold log paired with Safety fault",
+        "test_abort_end_sim_s": 28.188000000000002,
+        "fault_to_script_abort_observation_delay_s": 0.06800000000000139,
+        "evidence_status": "shortened_or_failed_attempt",
+        "full20s_stable_motion_completed": false,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            10.108,
+            28.188000000000002
+          ],
+          "duration_sim_s": 18.080000000000002,
+          "samples": 1810,
+          "height_m": {
+            "mean": 0.3282536349946462,
+            "min": 0.3090266717095924,
+            "max": 0.34074433025802064,
+            "rms": 0.3282828772750282,
+            "target": 0.34,
+            "mean_error": -0.01174636500535381,
+            "rmse_to_target": 0.012536973941578369,
+            "integrated_absolute_error": 0.21244164901948343
+          },
+          "primary_velocity": {
+            "mean": -0.8076691896267838,
+            "min": -1.047072084847001,
+            "max": 0.006970137634500762,
+            "rms": 0.8329481231168987,
+            "target": -1.0,
+            "mean_error": 0.1923308103732162,
+            "rmse_to_target": 0.28011461323964626,
+            "integrated_absolute_error": 3.4844666469223
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -0.9020285816087886,
+            "min": -1.047072084847001,
+            "max": -0.7796765335802109,
+            "rms": 0.9032739431039866,
+            "target": -1.0,
+            "mean_error": 0.09797141839121137,
+            "rmse_to_target": 0.10884233125510719,
+            "integrated_absolute_error": 0.19844887975498993
+          },
+          "maximum_signed_primary_velocity": 1.047072084847001,
+          "maximum_signed_half_second_mean_primary_velocity": 0.9447737551910755,
+          "first_half_second_mean_at_least95pct_target_sim_s": null,
+          "roll_pitch_max_abs_rad": [
+            0.032335195158927854,
+            0.04905237507269915
+          ],
+          "net_displacement_world_m": [
+            -14.628248483616453,
+            -0.033145373375253605
+          ],
+          "net_displacement_initial_heading_m": [
+            -14.627862631832485,
+            0.11129752217396921
+          ],
+          "changing_heading_integrated_displacement_m": [
+            -14.624992122478359,
+            -0.008226736653260411
+          ],
+          "yaw_displacement_rad": 0.013383695827381551
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            10.108,
+            28.12
+          ],
+          "duration_sim_s": 18.012,
+          "samples": 1803,
+          "height_m": {
+            "mean": 0.3282652153443538,
+            "min": 0.31758173597220607,
+            "max": 0.34074433025802064,
+            "rms": 0.3282941659011305,
+            "target": 0.34,
+            "mean_error": -0.011734784655646202,
+            "rmse_to_target": 0.012518503527114838,
+            "integrated_absolute_error": 0.2114343109401858
+          },
+          "primary_velocity": {
+            "mean": -0.8074714915396611,
+            "min": -1.047072084847001,
+            "max": 0.006970137634500762,
+            "rms": 0.8328440040175279,
+            "target": -1.0,
+            "mean_error": 0.19252850846033887,
+            "rmse_to_target": 0.28051052021025136,
+            "integrated_absolute_error": 3.474949089762175
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -0.9015519941200001,
+            "min": -1.047072084847001,
+            "max": -0.7667238847619583,
+            "rms": 0.9029169921053561,
+            "target": -1.0,
+            "mean_error": 0.09844800587999991,
+            "rmse_to_target": 0.11025019905915528,
+            "integrated_absolute_error": 0.1993982420326568
+          },
+          "maximum_signed_primary_velocity": 1.047072084847001,
+          "maximum_signed_half_second_mean_primary_velocity": 0.9447737551910755,
+          "first_half_second_mean_at_least95pct_target_sim_s": null,
+          "roll_pitch_max_abs_rad": [
+            0.032335195158927854,
+            0.04905237507269915
+          ],
+          "net_displacement_world_m": [
+            -14.56873089996771,
+            -0.03674741904433937
+          ],
+          "net_displacement_initial_heading_m": [
+            -14.568383516772581,
+            0.10710796753438329
+          ],
+          "changing_heading_integrated_displacement_m": [
+            -14.565531391090609,
+            -0.012651271363787298
+          ],
+          "yaw_displacement_rad": -0.005784361213491353
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": null,
+        "short_failure_tail_is_steady": false,
+        "requested_target_reach": {
+          "samples": 179,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.454,
+          "first_target_reached_elapsed_s": 4.346,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 179,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.454,
+          "first_target_reached_elapsed_s": 4.346,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": "standing/walking body height out of bounds: 0.309 m",
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.0023186753235769388,
+            "max": 0.07744387882076022
+          },
+          "FL": {
+            "min": -0.002169791789491452,
+            "max": 0.07661707318764736
+          },
+          "RR": {
+            "min": -0.002145258080901883,
+            "max": 0.0776393573264903
+          },
+          "RL": {
+            "min": -0.001855579065817712,
+            "max": 0.08016662930187446
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "c615516c8dd0cfbd813418c9ae4b1941844c8d2295001cfc3266daa6e33a4392",
+          "controller-params.yaml": "79eb95092bd418c8dfb7c488ff91a265ca8bfcbb26d41475fe674f00ff164ce3",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "ea0c3d6cb2192e4402fd27c2cbd859e75a506b8a5f98abc06bffd04c31fab1c2"
+        }
+      },
+      {
+        "case": "left",
+        "axis": "y",
+        "target": 0.6,
+        "unit": "m/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 0,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "8d490bef310eae01a2be192447ca2c3e0b45a88ee8964dc885d2a9085ff23473",
+        "script_passed": true,
+        "script_stability_passed": true,
+        "script_tracking_passed": true,
+        "sweep_completed": true,
+        "final_mode": "MPC_STANCE",
+        "sweep_error": null,
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/left/sweep.json",
+          "axis": "y",
+          "direction": "positive",
+          "vx_levels": [
+            0.6
+          ],
+          "vy_levels": [
+            0.6
+          ],
+          "yaw_levels": [
+            0.6
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 0.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.6939353626734711,
+          "min_command_projected_speed_mps": 1.4711671844416465e-06,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00015633085219137206,
+            "max_abs_pitch_rad": 0.0025875548692019515,
+            "min_height_m": 0.32667938853687684,
+            "max_height_m": 0.33746279133596785,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.004697713854380493,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.998926062005921,
+            "forward_displacement_m": 0.0037234533688441634,
+            "lateral_displacement_m": -5.8123686464008323e-05,
+            "yaw_drift_rad": 2.7914636404300763e-05,
+            "final_horizontal_speed_mps": 0.002368970870135156
+          },
+          {
+            "name": "zero_speed_stance_after_y_0.6",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0018753455284655066,
+            "max_abs_pitch_rad": 0.003586592287048433,
+            "min_height_m": 0.3330825130974106,
+            "max_height_m": 0.33965988411483344,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01567991423698589,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.999047742006951,
+            "forward_displacement_m": 0.001557039011992631,
+            "lateral_displacement_m": -0.0010533671902215017,
+            "yaw_drift_rad": -0.001813690989019538,
+            "final_horizontal_speed_mps": 0.00012539710862388912
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0011248001989856494,
+            "max_abs_pitch_rad": 0.0008641579742624987,
+            "min_height_m": 0.33971830336845743,
+            "max_height_m": 0.3401184312283864,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0023779619374074763,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9990727480035275,
+            "forward_displacement_m": 3.441186582046421e-05,
+            "lateral_displacement_m": 2.9563863599250693e-05,
+            "yaw_drift_rad": -4.133720040768243e-06,
+            "final_horizontal_speed_mps": 0.0002175637698261891
+          }
+        ],
+        "motor_threshold_warning_count": 0,
+        "safety_fault_text_seen": false,
+        "motor_threshold_events": [],
+        "controller_safety_fault_messages": [],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "d062fe6605c3176892f75c031aca533767731f08c95478ea945a80110a7c3f7b",
+              "rows": 3642
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "5c35f3b1b605ee4fe6714a73f4b0d3d90f3aeb0f129718f5f823ec400d702bfd",
+          "merged_rows": 3642,
+          "first_last_sim_s": [
+            1.328,
+            37.736
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "12966659775e5d1c2c6ac90f646eaefcc6e7332699b52a902c7f3c22a72951ca",
+            "controller_messages": 362
+          }
+        ],
+        "first_fault_diagnostic": null,
+        "script_motion_phase": {
+          "name": "y_positive_0.6",
+          "command": [
+            0.0,
+            0.6,
+            0.0
+          ],
+          "tested_axis": "y",
+          "passed": true,
+          "stability_passed": true,
+          "tracking_passed": true,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 198,
+          "steady_requested_samples": 138,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 10.108,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 0.6939353626734711,
+            "min_command_projected_speed_mps": 1.4711671844416465e-06,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "truth_samples": 5000,
+          "final_truth": {
+            "x": 0.06026606516880598,
+            "y": 10.535739689507468,
+            "z": 0.33381024909851,
+            "vx": 0.0157021263510302,
+            "vy": 0.5361590348252634,
+            "vz": 0.03063455460341702,
+            "roll": -0.004517305950432629,
+            "pitch": 0.0043873604721596125,
+            "yaw": 0.0069964160138270915
+          },
+          "elapsed_sim_s": 20.0,
+          "yaw_displacement_rad": 0.004658164699570238,
+          "forward_displacement_m": 0.05215789872901731,
+          "lateral_displacement_m": 10.539642969235386,
+          "max_abs_roll_rad": 0.08205257933963649,
+          "max_abs_pitch_rad": 0.053900271278634934,
+          "min_height_m": 0.32629709415038183,
+          "max_height_m": 0.34112152098762344,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": -0.006097035456981335,
+          "steady_mean_body_vy_mps": 0.5646508778610826,
+          "steady_mean_yaw_rate_rad_s": 0.00254168905938993,
+          "steady_vx_mps_error": -0.006097035456981335,
+          "steady_vx_mps_rmse": 0.02881202392251662,
+          "steady_vy_mps_error": -0.03534912213891739,
+          "steady_vy_mps_rmse": 0.05803074539640506,
+          "steady_yaw_rad_s_error": 0.00254168905938993,
+          "steady_yaw_rad_s_rmse": 0.12495119245044876,
+          "steady_speed_error_limit": 0.24,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_vy_mps": {
+              "mean": 0.5999999999999999,
+              "min": 0.6,
+              "max": 0.6
+            },
+            "requested_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vy_mps": {
+              "mean": 0.5999999999999999,
+              "min": 0.6,
+              "max": 0.6
+            },
+            "governed_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            }
+          },
+          "steady_governed_command_error": 1.1102230246251565e-16,
+          "elapsed_wall_s": 40.679954699007794
+        },
+        "pre_fault_cutoff_sim_s": null,
+        "pre_fault_cutoff_source": null,
+        "test_abort_end_sim_s": null,
+        "fault_to_script_abort_observation_delay_s": null,
+        "evidence_status": "completed20s",
+        "full20s_stable_motion_completed": true,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            10.108,
+            30.108
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2001,
+          "height_m": {
+            "mean": 0.33322771062501394,
+            "min": 0.32629709415038183,
+            "max": 0.3410938402804452,
+            "rms": 0.3332346483224962,
+            "target": 0.34,
+            "mean_error": -0.006772289374986085,
+            "rmse_to_target": 0.007105463926319663,
+            "integrated_absolute_error": 0.13557796758726026
+          },
+          "primary_velocity": {
+            "mean": 0.526745743853176,
+            "min": 1.971129516681771e-05,
+            "max": 0.6916003627792202,
+            "rms": 0.5389963337636906,
+            "target": 0.6,
+            "mean_error": -0.07325425614682401,
+            "rmse_to_target": 0.13572824019668342,
+            "integrated_absolute_error": 1.6155344866293326
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 0.5648199770876028,
+            "min": 0.47031039298610655,
+            "max": 0.6727956214088049,
+            "rms": 0.5666316004161209,
+            "target": 0.6,
+            "mean_error": -0.03518002291239719,
+            "rmse_to_target": 0.05733583595807456,
+            "integrated_absolute_error": 0.09266721172506212
+          },
+          "maximum_signed_primary_velocity": 0.6916003627792202,
+          "maximum_signed_half_second_mean_primary_velocity": 0.5882693679941333,
+          "first_half_second_mean_at_least95pct_target_sim_s": 14.328,
+          "roll_pitch_max_abs_rad": [
+            0.08170795510379006,
+            0.053900271278634934
+          ],
+          "net_displacement_world_m": [
+            0.027600512889198403,
+            10.541916917499567
+          ],
+          "net_displacement_initial_heading_m": [
+            0.05224772003475288,
+            10.541823573724162
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.0006629385393615534,
+            10.541873859074345
+          ],
+          "yaw_displacement_rad": 0.004779285094850384
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            10.108,
+            30.108
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2001,
+          "height_m": {
+            "mean": 0.33322771062501394,
+            "min": 0.32629709415038183,
+            "max": 0.3410938402804452,
+            "rms": 0.3332346483224962,
+            "target": 0.34,
+            "mean_error": -0.006772289374986085,
+            "rmse_to_target": 0.007105463926319663,
+            "integrated_absolute_error": 0.13557796758726026
+          },
+          "primary_velocity": {
+            "mean": 0.526745743853176,
+            "min": 1.971129516681771e-05,
+            "max": 0.6916003627792202,
+            "rms": 0.5389963337636906,
+            "target": 0.6,
+            "mean_error": -0.07325425614682401,
+            "rmse_to_target": 0.13572824019668342,
+            "integrated_absolute_error": 1.6155344866293326
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 0.5648199770876028,
+            "min": 0.47031039298610655,
+            "max": 0.6727956214088049,
+            "rms": 0.5666316004161209,
+            "target": 0.6,
+            "mean_error": -0.03518002291239719,
+            "rmse_to_target": 0.05733583595807456,
+            "integrated_absolute_error": 0.09266721172506212
+          },
+          "maximum_signed_primary_velocity": 0.6916003627792202,
+          "maximum_signed_half_second_mean_primary_velocity": 0.5882693679941333,
+          "first_half_second_mean_at_least95pct_target_sim_s": 14.328,
+          "roll_pitch_max_abs_rad": [
+            0.08170795510379006,
+            0.053900271278634934
+          ],
+          "net_displacement_world_m": [
+            0.027600512889198403,
+            10.541916917499567
+          ],
+          "net_displacement_initial_heading_m": [
+            0.05224772003475288,
+            10.541823573724162
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.0006629385393615534,
+            10.541873859074345
+          ],
+          "yaw_displacement_rad": 0.004779285094850384
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": {
+          "mean": 0.5648199770876028,
+          "min": 0.47031039298610655,
+          "max": 0.6727956214088049,
+          "rms": 0.5666316004161209,
+          "target": 0.6,
+          "mean_error": -0.03518002291239719,
+          "rmse_to_target": 0.05733583595807456,
+          "integrated_absolute_error": 0.09266721172506212
+        },
+        "short_failure_tail_is_steady": null,
+        "requested_target_reach": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": null,
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.001146458997621367,
+            "max": 0.07457954322505037
+          },
+          "FL": {
+            "min": -0.0018124774685751334,
+            "max": 0.07109110593189169
+          },
+          "RR": {
+            "min": -0.0014173152736069485,
+            "max": 0.0733636303382687
+          },
+          "RL": {
+            "min": -0.002117568424898051,
+            "max": 0.07054585052359176
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "15767b36e8cea54d969cca584152ee911b38943b45f846ca583db70673679ee7",
+          "controller-params.yaml": "62f817101a543c99624c04de80fa22af00918f18ea3017db6cc4ac28f125c0e5",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "ee2f5918a3fe83371f78c0b3930f0609b38cd218c6b2a34568ec1ee2202d49f6"
+        }
+      },
+      {
+        "case": "right",
+        "axis": "y",
+        "target": -0.6,
+        "unit": "m/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 0,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "b143c236463a35c95b7e0f5ee5cbfa0b58523c688971a3f1ece2def9346f4190",
+        "script_passed": true,
+        "script_stability_passed": true,
+        "script_tracking_passed": true,
+        "sweep_completed": true,
+        "final_mode": "MPC_STANCE",
+        "sweep_error": null,
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/right/sweep.json",
+          "axis": "y",
+          "direction": "negative",
+          "vx_levels": [
+            0.6
+          ],
+          "vy_levels": [
+            0.6
+          ],
+          "yaw_levels": [
+            0.6
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 0.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.6638841999544612,
+          "min_command_projected_speed_mps": -0.0025327346024504017,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00015633121338502496,
+            "max_abs_pitch_rad": 0.002576886928284089,
+            "min_height_m": 0.3266793890195565,
+            "max_height_m": 0.33741125488608187,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0029305377216429,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.998899979007547,
+            "forward_displacement_m": 0.0035242263309062795,
+            "lateral_displacement_m": -5.73562477821644e-05,
+            "yaw_drift_rad": 2.526585948850425e-05,
+            "final_horizontal_speed_mps": 0.0005920096082563716
+          },
+          {
+            "name": "zero_speed_stance_after_y_-0.6",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.003510596758154158,
+            "max_abs_pitch_rad": 0.004706305927084178,
+            "min_height_m": 0.3357203264775303,
+            "max_height_m": 0.339933466496363,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01785109377866296,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.998968492000131,
+            "forward_displacement_m": 0.0003690247441577371,
+            "lateral_displacement_m": -0.0025724108625299565,
+            "yaw_drift_rad": -0.0012295610079241974,
+            "final_horizontal_speed_mps": 5.239585386978669e-05
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0009799757698137352,
+            "max_abs_pitch_rad": 0.0015536580302598789,
+            "min_height_m": 0.3399776481773637,
+            "max_height_m": 0.34028010863996627,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.00027850062484210394,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9991473159898305,
+            "forward_displacement_m": 4.229174458810485e-05,
+            "lateral_displacement_m": -4.5022503137922904e-07,
+            "yaw_drift_rad": -5.767174309304242e-06,
+            "final_horizontal_speed_mps": 5.815423849976735e-05
+          }
+        ],
+        "motor_threshold_warning_count": 0,
+        "safety_fault_text_seen": false,
+        "motor_threshold_events": [],
+        "controller_safety_fault_messages": [],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "7948b9256e16e5307d95ac3dfbc0a54866957ec4c6c543903ec83b016a3ffc6e",
+              "rows": 3611
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "149d1416a179514a6b38105d0e7c5525dcd275918b8f3d89485ceeebf11fe2fb",
+          "merged_rows": 3611,
+          "first_last_sim_s": [
+            1.228,
+            37.328
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "d9b3648a6aa63e3796f9499df056586eebbc77d443905859fe806d40ae6c38c7",
+            "controller_messages": 358
+          }
+        ],
+        "first_fault_diagnostic": null,
+        "script_motion_phase": {
+          "name": "y_negative_0.6",
+          "command": [
+            0.0,
+            -0.6,
+            0.0
+          ],
+          "tested_axis": "y",
+          "passed": true,
+          "stability_passed": true,
+          "tracking_passed": true,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 198,
+          "steady_requested_samples": 138,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 9.704,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 0.6638841999544612,
+            "min_command_projected_speed_mps": -0.0025327346024504017,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "truth_samples": 4999,
+          "final_truth": {
+            "x": 0.1955576124129607,
+            "y": -10.808404323269148,
+            "z": 0.3341198372129451,
+            "vx": 0.009338568591545136,
+            "vy": -0.5975715057561214,
+            "vz": -0.015385227624164256,
+            "roll": 0.016879474842155864,
+            "pitch": 0.010911305451981563,
+            "yaw": 0.020813415557557013
+          },
+          "elapsed_sim_s": 20.0,
+          "yaw_displacement_rad": 0.018485683983861082,
+          "forward_displacement_m": 0.1377251572185471,
+          "lateral_displacement_m": -10.804756204569545,
+          "max_abs_roll_rad": 0.05991475856957223,
+          "max_abs_pitch_rad": 0.040900474470113975,
+          "min_height_m": 0.32997821388280973,
+          "max_height_m": 0.3402509493053288,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": 0.005302781149332303,
+          "steady_mean_body_vy_mps": -0.5773144590897127,
+          "steady_mean_yaw_rate_rad_s": 0.0028794998898458123,
+          "steady_vx_mps_error": 0.005302781149332303,
+          "steady_vx_mps_rmse": 0.03065117819197995,
+          "steady_vy_mps_error": 0.022685540910287294,
+          "steady_vy_mps_rmse": 0.03494866345507643,
+          "steady_yaw_rad_s_error": 0.0028794998898458123,
+          "steady_yaw_rad_s_rmse": 0.19572498006263148,
+          "steady_speed_error_limit": 0.24,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_vy_mps": {
+              "mean": -0.5999999999999999,
+              "min": -0.6,
+              "max": -0.6
+            },
+            "requested_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vy_mps": {
+              "mean": -0.5999999999999999,
+              "min": -0.6,
+              "max": -0.6
+            },
+            "governed_yaw_rad_s": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            }
+          },
+          "steady_governed_command_error": 1.1102230246251565e-16,
+          "elapsed_wall_s": 40.68029598600697
+        },
+        "pre_fault_cutoff_sim_s": null,
+        "pre_fault_cutoff_source": null,
+        "test_abort_end_sim_s": null,
+        "fault_to_script_abort_observation_delay_s": null,
+        "evidence_status": "completed20s",
+        "full20s_stable_motion_completed": true,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            9.704,
+            29.704
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2002,
+          "height_m": {
+            "mean": 0.333436509845247,
+            "min": 0.32997821388280973,
+            "max": 0.34024911806652525,
+            "rms": 0.3334399168119523,
+            "target": 0.34,
+            "mean_error": -0.006563490154753049,
+            "rmse_to_target": 0.006734346946342122,
+            "integrated_absolute_error": 0.131284194556435
+          },
+          "primary_velocity": {
+            "mean": -0.5400937001206375,
+            "min": -0.6573366875298289,
+            "max": 0.001981543885917664,
+            "rms": 0.5520490933862222,
+            "target": -0.6,
+            "mean_error": 0.05990629987936247,
+            "rmse_to_target": 0.12901845357848948,
+            "integrated_absolute_error": 1.3104742967412437
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -0.5772028141662022,
+            "min": -0.6248390373930361,
+            "max": -0.5127828028928751,
+            "rms": 0.5777806774647665,
+            "target": -0.6,
+            "mean_error": 0.02279718583379775,
+            "rmse_to_target": 0.03445481464471631,
+            "integrated_absolute_error": 0.052579741993589175
+          },
+          "maximum_signed_primary_velocity": 0.6573366875298289,
+          "maximum_signed_half_second_mean_primary_velocity": 0.595763788011979,
+          "first_half_second_mean_at_least95pct_target_sim_s": 12.916,
+          "roll_pitch_max_abs_rad": [
+            0.058554572224203336,
+            0.04090047447011398
+          ],
+          "net_displacement_world_m": [
+            0.16293112972871382,
+            -10.806819452180928
+          ],
+          "net_displacement_initial_heading_m": [
+            0.13875344839400433,
+            -10.807156920561
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.09395845436756636,
+            -10.807663955740948
+          ],
+          "yaw_displacement_rad": 0.01771970251584291
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            9.704,
+            29.704
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2002,
+          "height_m": {
+            "mean": 0.333436509845247,
+            "min": 0.32997821388280973,
+            "max": 0.34024911806652525,
+            "rms": 0.3334399168119523,
+            "target": 0.34,
+            "mean_error": -0.006563490154753049,
+            "rmse_to_target": 0.006734346946342122,
+            "integrated_absolute_error": 0.131284194556435
+          },
+          "primary_velocity": {
+            "mean": -0.5400937001206375,
+            "min": -0.6573366875298289,
+            "max": 0.001981543885917664,
+            "rms": 0.5520490933862222,
+            "target": -0.6,
+            "mean_error": 0.05990629987936247,
+            "rmse_to_target": 0.12901845357848948,
+            "integrated_absolute_error": 1.3104742967412437
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -0.5772028141662022,
+            "min": -0.6248390373930361,
+            "max": -0.5127828028928751,
+            "rms": 0.5777806774647665,
+            "target": -0.6,
+            "mean_error": 0.02279718583379775,
+            "rmse_to_target": 0.03445481464471631,
+            "integrated_absolute_error": 0.052579741993589175
+          },
+          "maximum_signed_primary_velocity": 0.6573366875298289,
+          "maximum_signed_half_second_mean_primary_velocity": 0.595763788011979,
+          "first_half_second_mean_at_least95pct_target_sim_s": 12.916,
+          "roll_pitch_max_abs_rad": [
+            0.058554572224203336,
+            0.04090047447011398
+          ],
+          "net_displacement_world_m": [
+            0.16293112972871382,
+            -10.806819452180928
+          ],
+          "net_displacement_initial_heading_m": [
+            0.13875344839400433,
+            -10.807156920561
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.09395845436756636,
+            -10.807663955740948
+          ],
+          "yaw_displacement_rad": 0.01771970251584291
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": {
+          "mean": -0.5772028141662022,
+          "min": -0.6248390373930361,
+          "max": -0.5127828028928751,
+          "rms": 0.5777806774647665,
+          "target": -0.6,
+          "mean_error": 0.02279718583379775,
+          "rmse_to_target": 0.03445481464471631,
+          "integrated_absolute_error": 0.052579741993589175
+        },
+        "short_failure_tail_is_steady": null,
+        "requested_target_reach": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.434,
+          "first_target_reached_elapsed_s": 2.7299999999999986,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.434,
+          "first_target_reached_elapsed_s": 2.7299999999999986,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": null,
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.0016754169030295842,
+            "max": 0.06514988140553515
+          },
+          "FL": {
+            "min": -0.0015527377866424753,
+            "max": 0.06569683047423112
+          },
+          "RR": {
+            "min": -0.002012585766570183,
+            "max": 0.06429727249243558
+          },
+          "RL": {
+            "min": -0.0010757608567643663,
+            "max": 0.06979920523579597
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "3343fd0ff173cd81e5168af066225f366558442e5ba6af409a41a6eede309420",
+          "controller-params.yaml": "8581ac9f9dc16411be2cec64b9813e1a7fd2b344f1578ba83e5a9e8551f3b72a",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "b28fe6476cebcf5db751bbad27e2050e94714f19d792b28ab16246b57e547a9b"
+        }
+      },
+      {
+        "case": "yaw_positive",
+        "axis": "yaw",
+        "target": 3.0,
+        "unit": "rad/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 0,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "af27ec5d75ddf97666e9ef019247b81fb6d60dac41c19748977b0a06b669afb2",
+        "script_passed": true,
+        "script_stability_passed": true,
+        "script_tracking_passed": true,
+        "sweep_completed": true,
+        "final_mode": "MPC_STANCE",
+        "sweep_error": null,
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/yaw_positive/sweep.json",
+          "axis": "yaw",
+          "direction": "positive",
+          "vx_levels": [
+            3.0
+          ],
+          "vy_levels": [
+            3.0
+          ],
+          "yaw_levels": [
+            3.0
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 0.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.1158112771210495,
+          "min_command_projected_speed_mps": null,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.00015633082525973806,
+            "max_abs_pitch_rad": 0.0029484317865428955,
+            "min_height_m": 0.32667938860025025,
+            "max_height_m": 0.33762684067455156,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.00287344825189715,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.998938610995538,
+            "forward_displacement_m": 0.0026455517878060902,
+            "lateral_displacement_m": -5.64736146120495e-05,
+            "yaw_drift_rad": 2.6599949160138053e-05,
+            "final_horizontal_speed_mps": 0.0024696034962225963
+          },
+          {
+            "name": "zero_speed_stance_after_yaw_3",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0015255928587753255,
+            "max_abs_pitch_rad": 0.006231466083448278,
+            "min_height_m": 0.3374243587691901,
+            "max_height_m": 0.3402723472996458,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.039093603402030594,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9990729549899697,
+            "forward_displacement_m": -0.000793026805667343,
+            "lateral_displacement_m": -0.0002898787387206086,
+            "yaw_drift_rad": -0.006282211498386481,
+            "final_horizontal_speed_mps": 0.0008614972007394776
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0009090690576142479,
+            "max_abs_pitch_rad": 0.0003908817171229448,
+            "min_height_m": 0.3402970399159827,
+            "max_height_m": 0.34043574361903967,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.000902621671774118,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.99906799600285,
+            "forward_displacement_m": 0.00045902150865673126,
+            "lateral_displacement_m": 1.352017113161595e-05,
+            "yaw_drift_rad": 1.862652625606032e-05,
+            "final_horizontal_speed_mps": 9.731224586033663e-05
+          }
+        ],
+        "motor_threshold_warning_count": 0,
+        "safety_fault_text_seen": false,
+        "motor_threshold_events": [],
+        "controller_safety_fault_messages": [],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "946133dfcf6483b33fc76e59d1e1ad921a76c2b074f41f47f121d94b60d26aaa",
+              "rows": 3643
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "27ac7ba15ce3b71ee803b32a92f6cd875f851fb5c39b2656572ed03b8c419460",
+          "merged_rows": 3643,
+          "first_last_sim_s": [
+            1.328,
+            37.748
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "44ebf826f6b31cb946c213cfa5df30d106d8b79cff43c48471ce574cf3307ff2",
+            "controller_messages": 362
+          }
+        ],
+        "first_fault_diagnostic": null,
+        "script_motion_phase": {
+          "name": "yaw_positive_3",
+          "command": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "tested_axis": "yaw",
+          "passed": true,
+          "stability_passed": true,
+          "tracking_passed": true,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 198,
+          "steady_requested_samples": 138,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 10.21,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 0.1158112771210495,
+            "min_command_projected_speed_mps": null,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "truth_samples": 5000,
+          "final_truth": {
+            "x": 0.028468995139052433,
+            "y": 0.0022946935656195586,
+            "z": 0.3403837778923879,
+            "vx": 0.02381023616039008,
+            "vy": -0.00023958969643264152,
+            "vz": -0.016435825993105904,
+            "roll": 0.00425549563272156,
+            "pitch": -0.017329195405170836,
+            "yaw": -1.1662812704193293
+          },
+          "elapsed_sim_s": 20.0,
+          "yaw_displacement_rad": 55.389533139447906,
+          "forward_displacement_m": -0.003999327091051763,
+          "lateral_displacement_m": 0.006346546410632758,
+          "max_abs_roll_rad": 0.03160115948737736,
+          "max_abs_pitch_rad": 0.03531134120658283,
+          "min_height_m": 0.32568187483683314,
+          "max_height_m": 0.34767501057796873,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": -0.008819331280603028,
+          "steady_mean_body_vy_mps": 0.0018414340804318399,
+          "steady_mean_yaw_rate_rad_s": 2.9076904821627276,
+          "steady_vx_mps_error": -0.008819331280603028,
+          "steady_vx_mps_rmse": 0.030389430974971383,
+          "steady_vy_mps_error": 0.0018414340804318399,
+          "steady_vy_mps_rmse": 0.030880117803590137,
+          "steady_yaw_rad_s_error": -0.09230951783727237,
+          "steady_yaw_rad_s_rmse": 0.23275712239895563,
+          "steady_speed_error_limit": 1.2000000000000002,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_yaw_rad_s": {
+              "mean": 3.0,
+              "min": 3.0,
+              "max": 3.0
+            },
+            "governed_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_yaw_rad_s": {
+              "mean": 2.9996080000000003,
+              "min": 2.99424,
+              "max": 3.0
+            }
+          },
+          "steady_governed_command_error": 0.0003919999999997259,
+          "elapsed_wall_s": 40.88724512398767
+        },
+        "pre_fault_cutoff_sim_s": null,
+        "pre_fault_cutoff_source": null,
+        "test_abort_end_sim_s": null,
+        "fault_to_script_abort_observation_delay_s": null,
+        "evidence_status": "completed20s",
+        "full20s_stable_motion_completed": true,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            10.21,
+            30.21
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2002,
+          "height_m": {
+            "mean": 0.33734675539017955,
+            "min": 0.32568187483683314,
+            "max": 0.3476401597018309,
+            "rms": 0.33736807880941044,
+            "target": 0.34,
+            "mean_error": -0.002653244609820471,
+            "rmse_to_target": 0.004628923657882813,
+            "integrated_absolute_error": 0.07137451901275757
+          },
+          "primary_velocity": {
+            "mean": 2.7697853069873353,
+            "min": -0.06143717968909579,
+            "max": 3.4049462640109596,
+            "rms": 2.825446665758589,
+            "target": 3.0,
+            "mean_error": -0.23021469301266473,
+            "rmse_to_target": 0.6036861925887611,
+            "integrated_absolute_error": 6.297381757666114
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 2.907753467773707,
+            "min": 2.33286550700268,
+            "max": 3.289620503087008,
+            "rms": 2.915169945144939,
+            "target": 3.0,
+            "mean_error": -0.09224653222629309,
+            "rmse_to_target": 0.22736535011761547,
+            "integrated_absolute_error": 0.3301275855260397
+          },
+          "maximum_signed_primary_velocity": 3.4049462640109596,
+          "maximum_signed_half_second_mean_primary_velocity": 3.042713358241258,
+          "first_half_second_mean_at_least95pct_target_sim_s": 13.036,
+          "roll_pitch_max_abs_rad": [
+            0.031498445365482346,
+            0.035301489763753024
+          ],
+          "net_displacement_world_m": [
+            -0.0038672562754210917,
+            0.006362259555540815
+          ],
+          "net_displacement_initial_heading_m": [
+            -0.00391191216692126,
+            0.006334900232059511
+          ],
+          "changing_heading_integrated_displacement_m": [
+            -0.053732409262752676,
+            0.07764100465221503
+          ],
+          "yaw_displacement_rad": 55.39541019194966
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            10.21,
+            30.21
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2002,
+          "height_m": {
+            "mean": 0.33734675539017955,
+            "min": 0.32568187483683314,
+            "max": 0.3476401597018309,
+            "rms": 0.33736807880941044,
+            "target": 0.34,
+            "mean_error": -0.002653244609820471,
+            "rmse_to_target": 0.004628923657882813,
+            "integrated_absolute_error": 0.07137451901275757
+          },
+          "primary_velocity": {
+            "mean": 2.7697853069873353,
+            "min": -0.06143717968909579,
+            "max": 3.4049462640109596,
+            "rms": 2.825446665758589,
+            "target": 3.0,
+            "mean_error": -0.23021469301266473,
+            "rmse_to_target": 0.6036861925887611,
+            "integrated_absolute_error": 6.297381757666114
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": 2.907753467773707,
+            "min": 2.33286550700268,
+            "max": 3.289620503087008,
+            "rms": 2.915169945144939,
+            "target": 3.0,
+            "mean_error": -0.09224653222629309,
+            "rmse_to_target": 0.22736535011761547,
+            "integrated_absolute_error": 0.3301275855260397
+          },
+          "maximum_signed_primary_velocity": 3.4049462640109596,
+          "maximum_signed_half_second_mean_primary_velocity": 3.042713358241258,
+          "first_half_second_mean_at_least95pct_target_sim_s": 13.036,
+          "roll_pitch_max_abs_rad": [
+            0.031498445365482346,
+            0.035301489763753024
+          ],
+          "net_displacement_world_m": [
+            -0.0038672562754210917,
+            0.006362259555540815
+          ],
+          "net_displacement_initial_heading_m": [
+            -0.00391191216692126,
+            0.006334900232059511
+          ],
+          "changing_heading_integrated_displacement_m": [
+            -0.053732409262752676,
+            0.07764100465221503
+          ],
+          "yaw_displacement_rad": 55.39541019194966
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": {
+          "mean": 2.907753467773707,
+          "min": 2.33286550700268,
+          "max": 3.289620503087008,
+          "rms": 2.915169945144939,
+          "target": 3.0,
+          "mean_error": -0.09224653222629309,
+          "rmse_to_target": 0.22736535011761547,
+          "integrated_absolute_error": 0.3301275855260397
+        },
+        "short_failure_tail_is_steady": null,
+        "requested_target_reach": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.628,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": 3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.938,
+          "first_target_reached_elapsed_s": 2.7279999999999998,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": 2.999608,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": null,
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.0008364772417568701,
+            "max": 0.08205299110806727
+          },
+          "FL": {
+            "min": -0.0013640049697924185,
+            "max": 0.07063558072250117
+          },
+          "RR": {
+            "min": -0.002410798231322623,
+            "max": 0.06608016820117037
+          },
+          "RL": {
+            "min": -0.0018603261337530076,
+            "max": 0.07341876117357249
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "ec171497c3a29ee307656bb71de37fa2d45f837f73d2bc3cec333244d9027fca",
+          "controller-params.yaml": "e3d35f5ab7fc9fa02302000bdbbd7d00e39cac3f0efa1d23f5e8a4b285b5b8e5",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "d396ceb7991225762b53f90c9a36fb0deef598b9cb3639d817d2e924ec48c394"
+        }
+      },
+      {
+        "case": "yaw_negative",
+        "axis": "yaw",
+        "target": -3.0,
+        "unit": "rad/s",
+        "fresh_world": true,
+        "orchestration_completed": true,
+        "orchestration_error": null,
+        "test_returncode": 0,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "actual_parameters": {
+          "nominal_height_m": 0.34,
+          "velocity_limit_x": 1.0,
+          "velocity_limit_y": 0.6,
+          "velocity_limit_yaw": 3.0,
+          "acceleration_limit_xy": 0.2,
+          "acceleration_limit_yaw": 1.0,
+          "max_reference_lead_xy_m_s": 0.2,
+          "max_reference_lead_yaw_rad_s": 0.4,
+          "wbc_hip_stiffness": 45.0,
+          "wbc_joint_stiffness": 45.0,
+          "wbc_calf_stiffness": 65.0,
+          "wbc_joint_damping": 1.0,
+          "wbc_joint_velocity_acceleration_limit": 400.0,
+          "wbc_nominal_height_correction_limit_mps2": 2.0,
+          "nmpc_cross_track_position_error_limit_m": 0.04,
+          "estimator_planned_contact_delay_s": 0.02,
+          "estimator_planned_contact_ramp_s": 0.01,
+          "use_sim_ground_truth": false,
+          "mpc_frequency_hz": 50.0
+        },
+        "run_json_sha256": "9870115c8fde4a184c5e85b0eb339e72f80fddf19a38b3571f2d3e2c6fa05f0b",
+        "script_passed": true,
+        "script_stability_passed": true,
+        "script_tracking_passed": true,
+        "sweep_completed": true,
+        "final_mode": "MPC_STANCE",
+        "sweep_error": null,
+        "script_settings": {
+          "output": "/home/hsc/Desktop/Dog/Dog-control/log/double-speed-demo-20261115/yaw_negative/sweep.json",
+          "axis": "yaw",
+          "direction": "negative",
+          "vx_levels": [
+            3.0
+          ],
+          "vy_levels": [
+            3.0
+          ],
+          "yaw_levels": [
+            3.0
+          ],
+          "already_standing": false,
+          "legacy_joy": false,
+          "joy_limit_x": 0.5,
+          "joy_limit_y": 0.5,
+          "joy_limit_yaw": 1.5,
+          "truth_topic": "/ground_truth/odom",
+          "startup_timeout": 900.0,
+          "wall_factor": 25.0,
+          "telemetry_timeout": 5.0,
+          "phase_duration": 20.0,
+          "settle_duration": 2.0,
+          "soak_duration": 30.0,
+          "command_settle_duration": 6.0,
+          "measurement_window": 2.0,
+          "requested_speed_tolerance": 0.005,
+          "requested_yaw_tolerance": 0.01,
+          "speed_error_absolute": 0.1,
+          "yaw_error_absolute": 0.2,
+          "speed_error_relative": 0.4,
+          "min_height": 0.31,
+          "max_height": 0.36,
+          "max_tilt": 0.25,
+          "max_off_axis": 0.25,
+          "max_yaw_drift": 0.35,
+          "max_turn_translation": 0.25,
+          "max_horizontal_speed": 2.0,
+          "overspeed_duration": 0.25,
+          "reverse_speed_threshold": 0.05,
+          "reverse_duration": 1.0
+        },
+        "script_motion_guard": {
+          "velocity_source": "/ground_truth/odom",
+          "velocity_frame": "world (Fortress odometry adapter contract)",
+          "max_horizontal_speed_limit_mps": 2.0,
+          "overspeed_failure_duration_sim_s": 0.25,
+          "reverse_speed_threshold_mps": 0.05,
+          "reverse_failure_duration_sim_s": 1.0,
+          "max_horizontal_speed_mps": 0.07272362659928575,
+          "min_command_projected_speed_mps": null,
+          "max_overspeed_duration_sim_s": 0.0,
+          "max_reverse_duration_sim_s": 0.0,
+          "failure": null
+        },
+        "script_stance_holds": [
+          {
+            "name": "initial_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 3.0,
+            "diagnostic_samples": 30,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0001563308443148481,
+            "max_abs_pitch_rad": 0.002575770356031843,
+            "min_height_m": 0.3266793886009048,
+            "max_height_m": 0.33744694319939794,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0030108656141513623,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 3.0,
+            "elapsed_wall_s": 5.999123296001926,
+            "forward_displacement_m": 0.0035466190194137657,
+            "lateral_displacement_m": -5.0763691214296136e-05,
+            "yaw_drift_rad": 2.728867332393945e-05,
+            "final_horizontal_speed_mps": 0.0007163974260945777
+          },
+          {
+            "name": "zero_speed_stance_after_yaw_-3",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0017169877951975288,
+            "max_abs_pitch_rad": 0.0026517770686708513,
+            "min_height_m": 0.3338872066493324,
+            "max_height_m": 0.339623493230427,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.01358336170552173,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.998768100005691,
+            "forward_displacement_m": 0.002145032136547956,
+            "lateral_displacement_m": -0.0010060176251663567,
+            "yaw_drift_rad": -0.0007354920215059125,
+            "final_horizontal_speed_mps": 1.6903411445422407e-05
+          },
+          {
+            "name": "final_A_zero_speed_stance",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 2.0,
+            "diagnostic_samples": 20,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0005757871430379209,
+            "max_abs_pitch_rad": 0.00014475527433539418,
+            "min_height_m": 0.3396814144143574,
+            "max_height_m": 0.3400683938691051,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0009436103657539621,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 2.0,
+            "elapsed_wall_s": 3.9990821709943702,
+            "forward_displacement_m": 5.3876897917977585e-05,
+            "lateral_displacement_m": 4.786528425069948e-06,
+            "yaw_drift_rad": -7.152520675735019e-06,
+            "final_horizontal_speed_mps": 0.00012855893703351634
+          },
+          {
+            "name": "final_stance_soak",
+            "command_vx_mps": 0.0,
+            "required_mode": "MPC_STANCE",
+            "duration_sim_s": 30.0,
+            "diagnostic_samples": 299,
+            "invalid_wbc_samples": 0,
+            "max_abs_roll_rad": 0.0006095570774978204,
+            "max_abs_pitch_rad": 0.0002009037375848517,
+            "min_height_m": 0.3400717372620104,
+            "max_height_m": 0.34010821871324004,
+            "policy_modes": [
+              15
+            ],
+            "motion_safety": {
+              "max_horizontal_speed_mps": 0.0008429629646877235,
+              "min_command_projected_speed_mps": null,
+              "max_overspeed_duration_sim_s": 0.0,
+              "max_reverse_duration_sim_s": 0.0
+            },
+            "elapsed_sim_s": 30.000000000000007,
+            "elapsed_wall_s": 60.00704594999843,
+            "forward_displacement_m": -4.935422421580377e-06,
+            "lateral_displacement_m": 3.5488445270947644e-06,
+            "yaw_drift_rad": -2.0929081703258134e-06,
+            "final_horizontal_speed_mps": 0.00013648861985078814
+          }
+        ],
+        "motor_threshold_warning_count": 0,
+        "safety_fault_text_seen": false,
+        "motor_threshold_events": [],
+        "controller_safety_fault_messages": [],
+        "recorded_truth_evidence": {
+          "inputs": [
+            {
+              "path": "kinematics.csv",
+              "sha256": "a48b10de8106d11985a1553147a8cadaae52823379e28dd71436b7558f2e6c3e",
+              "rows": 6643
+            }
+          ],
+          "merged_path": "kinematics-merged.csv",
+          "merged_sha256": "6827caf6b53ccb360ca61b1a865eea5874f61deb78c351c5428c50f829c62089",
+          "merged_rows": 6643,
+          "first_last_sim_s": [
+            1.328,
+            67.748
+          ],
+          "duplicate_sim_time_rows": 0,
+          "duplicate_sim_time_rows_with_different_truth_xyz_text": 0,
+          "overlap_policy": "kinematics-full.csv wins equal rounded-nanosecond sim_time_s; all distinct simulated times retained",
+          "time_semantics": "merged_elapsed_sim_s spans both recorders; each original elapsed_sim_s is recorder-local and not used for metrics"
+        },
+        "diagnostic_segments": [
+          {
+            "path": "diagnostics.jsonl",
+            "sha256": "17838719be8db731bdde092507df7d834b0a336978d20bbde248c7799813c012",
+            "controller_messages": 660
+          }
+        ],
+        "first_fault_diagnostic": null,
+        "script_motion_phase": {
+          "name": "yaw_negative_3",
+          "command": [
+            0.0,
+            0.0,
+            -3.0
+          ],
+          "tested_axis": "yaw",
+          "passed": true,
+          "stability_passed": true,
+          "tracking_passed": true,
+          "tracking_failures": [],
+          "duration_sim_s": 20.0,
+          "diagnostic_samples": 198,
+          "steady_requested_samples": 138,
+          "invalid_wbc_samples": 0,
+          "policy_modes": [
+            6,
+            9
+          ],
+          "max_requested_command_error": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_sim_s": 10.108,
+          "motion_safety": {
+            "max_horizontal_speed_mps": 0.07272362659928575,
+            "min_command_projected_speed_mps": null,
+            "max_overspeed_duration_sim_s": 0.0,
+            "max_reverse_duration_sim_s": 0.0
+          },
+          "truth_samples": 4999,
+          "final_truth": {
+            "x": 0.027905101470431775,
+            "y": -0.02931319509830694,
+            "z": 0.33172343377144087,
+            "vx": 0.001660654166107992,
+            "vy": -0.025425930351041348,
+            "vz": -0.03527667478530013,
+            "roll": 0.004502141299046887,
+            "pitch": -0.013180079886813762,
+            "yaw": 1.9489911834820346
+          },
+          "elapsed_sim_s": 20.0,
+          "yaw_displacement_rad": -54.602015732558385,
+          "forward_displacement_m": -0.004851412843103283,
+          "lateral_displacement_m": -0.02531041075863145,
+          "max_abs_roll_rad": 0.01940059185999913,
+          "max_abs_pitch_rad": 0.03257101487693752,
+          "min_height_m": 0.32866444001331657,
+          "max_height_m": 0.34446256176205897,
+          "steady_truth_duration_s": 2.0,
+          "steady_mean_body_vx_mps": -0.0004201394246511407,
+          "steady_mean_body_vy_mps": 0.005994968154251016,
+          "steady_mean_yaw_rate_rad_s": -2.9066130648793647,
+          "steady_vx_mps_error": -0.0004201394246511407,
+          "steady_vx_mps_rmse": 0.015739794034635875,
+          "steady_vy_mps_error": 0.005994968154251016,
+          "steady_vy_mps_rmse": 0.01415496586518631,
+          "steady_yaw_rad_s_error": 0.09338693512063534,
+          "steady_yaw_rad_s_rmse": 0.1843967873086974,
+          "steady_speed_error_limit": 1.2000000000000002,
+          "steady_diagnostic_command_stats": {
+            "requested_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "requested_yaw_rad_s": {
+              "mean": -3.0,
+              "min": -3.0,
+              "max": -3.0
+            },
+            "governed_vx_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_vy_mps": {
+              "mean": 0.0,
+              "min": 0.0,
+              "max": 0.0
+            },
+            "governed_yaw_rad_s": {
+              "mean": -3.0,
+              "min": -3.0,
+              "max": -3.0
+            }
+          },
+          "steady_governed_command_error": 0.0,
+          "elapsed_wall_s": 40.70142309500079
+        },
+        "pre_fault_cutoff_sim_s": null,
+        "pre_fault_cutoff_source": null,
+        "test_abort_end_sim_s": null,
+        "fault_to_script_abort_observation_delay_s": null,
+        "evidence_status": "completed20s",
+        "full20s_stable_motion_completed": true,
+        "whole_attempt_truth": {
+          "start_end_sim_s": [
+            10.108,
+            30.108
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2001,
+          "height_m": {
+            "mean": 0.33606777692779594,
+            "min": 0.32866444001331657,
+            "max": 0.34446256176205897,
+            "rms": 0.3360845294541535,
+            "target": 0.34,
+            "mean_error": -0.0039322230722040885,
+            "rmse_to_target": 0.005169393341438679,
+            "integrated_absolute_error": 0.08567972652538439
+          },
+          "primary_velocity": {
+            "mean": -2.731295963072862,
+            "min": -3.4101391635388154,
+            "max": 0.0015259706254076022,
+            "rms": 2.7888036994127785,
+            "target": -3.0,
+            "mean_error": 0.26870403692713785,
+            "rmse_to_target": 0.6242197493040641,
+            "integrated_absolute_error": 6.562556233240536
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -2.9075126634807495,
+            "min": -3.3393618433069605,
+            "max": -2.599447405239289,
+            "rms": 2.911450508370214,
+            "target": -3.0,
+            "mean_error": 0.09248733651925045,
+            "rmse_to_target": 0.17739245137457005,
+            "integrated_absolute_error": 0.29812104770874165
+          },
+          "maximum_signed_primary_velocity": 3.4101391635388154,
+          "maximum_signed_half_second_mean_primary_velocity": 2.994224464945489,
+          "first_half_second_mean_at_least95pct_target_sim_s": 13.148,
+          "roll_pitch_max_abs_rad": [
+            0.01940059185999913,
+            0.03257101487693752
+          ],
+          "net_displacement_world_m": [
+            -0.004812174928434335,
+            -0.025427901810914443
+          ],
+          "net_displacement_initial_heading_m": [
+            -0.004871641421712104,
+            -0.025416575849347152
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.06110311078489824,
+            0.06103849587837755
+          ],
+          "yaw_displacement_rad": -54.61369393432779
+        },
+        "pre_fault_truth": {
+          "start_end_sim_s": [
+            10.108,
+            30.108
+          ],
+          "duration_sim_s": 20.0,
+          "samples": 2001,
+          "height_m": {
+            "mean": 0.33606777692779594,
+            "min": 0.32866444001331657,
+            "max": 0.34446256176205897,
+            "rms": 0.3360845294541535,
+            "target": 0.34,
+            "mean_error": -0.0039322230722040885,
+            "rmse_to_target": 0.005169393341438679,
+            "integrated_absolute_error": 0.08567972652538439
+          },
+          "primary_velocity": {
+            "mean": -2.731295963072862,
+            "min": -3.4101391635388154,
+            "max": 0.0015259706254076022,
+            "rms": 2.7888036994127785,
+            "target": -3.0,
+            "mean_error": 0.26870403692713785,
+            "rmse_to_target": 0.6242197493040641,
+            "integrated_absolute_error": 6.562556233240536
+          },
+          "last_up_to2s_primary_velocity": {
+            "mean": -2.9075126634807495,
+            "min": -3.3393618433069605,
+            "max": -2.599447405239289,
+            "rms": 2.911450508370214,
+            "target": -3.0,
+            "mean_error": 0.09248733651925045,
+            "rmse_to_target": 0.17739245137457005,
+            "integrated_absolute_error": 0.29812104770874165
+          },
+          "maximum_signed_primary_velocity": 3.4101391635388154,
+          "maximum_signed_half_second_mean_primary_velocity": 2.994224464945489,
+          "first_half_second_mean_at_least95pct_target_sim_s": 13.148,
+          "roll_pitch_max_abs_rad": [
+            0.01940059185999913,
+            0.03257101487693752
+          ],
+          "net_displacement_world_m": [
+            -0.004812174928434335,
+            -0.025427901810914443
+          ],
+          "net_displacement_initial_heading_m": [
+            -0.004871641421712104,
+            -0.025416575849347152
+          ],
+          "changing_heading_integrated_displacement_m": [
+            0.06110311078489824,
+            0.06103849587837755
+          ],
+          "yaw_displacement_rad": -54.61369393432779
+        },
+        "pre_fault_window_semantics": "Ends at the synchronous motor-threshold sim timestamp when paired with Safety fault; otherwise first10Hz FAULT diagnostic. Whole attempt separately includes the subsequent script-abort observation. A shortened window is not steady-state validation.",
+        "steady_last2s": {
+          "mean": -2.9075126634807495,
+          "min": -3.3393618433069605,
+          "max": -2.599447405239289,
+          "rms": 2.911450508370214,
+          "target": -3.0,
+          "mean_error": 0.09248733651925045,
+          "rmse_to_target": 0.17739245137457005,
+          "integrated_absolute_error": 0.29812104770874165
+        },
+        "short_failure_tail_is_steady": null,
+        "requested_target_reach": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": -3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "governed_target_reach": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": -3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "fault_before_requested_target_reached": false,
+        "failed_attempt_before_requested_target_reached": false,
+        "abort_reason": null,
+        "pre_fault_foot_geometric_clearance_m": {
+          "FR": {
+            "min": -0.0015548040272195564,
+            "max": 0.06706482420069368
+          },
+          "FL": {
+            "min": -0.0006451845966975213,
+            "max": 0.07279161395162367
+          },
+          "RR": {
+            "min": -0.0012110729849996622,
+            "max": 0.06863138622100574
+          },
+          "RL": {
+            "min": -0.002328799351008732,
+            "max": 0.0627397121419258
+          }
+        },
+        "input_sha256": {
+          "sweep.json": "018ed06a4dfc74c76f1314a4b7ed2af882fcdcc2b8010a7ef37798fe89692566",
+          "controller-params.yaml": "1238ebfc93a7c20c445e780bec48bb7e908891dd5bd009691c57b566f2e0a31c",
+          "task.info": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e",
+          "launch.log": "5fb0d0565c919a46e9afb3c45a4e26af5e7ad8f3a6cf4f967e526bd2bd474070"
+        }
+      }
+    ],
+    "original_vs_double": [
+      {
+        "case": "forward",
+        "normal_target": 0.5,
+        "double_target": 1.0,
+        "normal_completed20s": true,
+        "double_completed20s": false,
+        "normal_tracking_passed": false,
+        "double_tracking_passed": false,
+        "normal_whole20s_height_m": {
+          "mean": 0.335163962562614,
+          "min": 0.33097383286368887,
+          "max": 0.34056561937290314,
+          "rms": 0.33516892546519905,
+          "target": 0.34,
+          "mean_error": -0.0048360374373860315,
+          "rmse_to_target": 0.005168564106082547,
+          "integrated_absolute_error": 0.09674469378250952
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.33484919788304374,
+          "min": 0.3275231778988052,
+          "max": 0.34629213085212374,
+          "rms": 0.3348629675119795,
+          "target": 0.34,
+          "mean_error": -0.005150802116956288,
+          "rmse_to_target": 0.005979335285741977,
+          "integrated_absolute_error": 0.05681500776065848
+        },
+        "normal_last2s_primary_velocity": 0.5061308976436687,
+        "double_steady_last2s_primary_velocity": null,
+        "double_requested_reached": {
+          "samples": 106,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.152,
+          "first_target_reached_elapsed_s": 4.447999999999999,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 106,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.152,
+          "first_target_reached_elapsed_s": 4.447999999999999,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 1.1883169982178774,
+        "double_actual_prefault_half_second_peak": 1.1129274969333576,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      },
+      {
+        "case": "backward",
+        "normal_target": -0.5,
+        "double_target": -1.0,
+        "normal_completed20s": true,
+        "double_completed20s": false,
+        "normal_tracking_passed": true,
+        "double_tracking_passed": false,
+        "normal_whole20s_height_m": {
+          "mean": 0.3290312555056136,
+          "min": 0.3263529737090437,
+          "max": 0.3405374981687683,
+          "rms": 0.32903650684368896,
+          "target": 0.34,
+          "mean_error": -0.010968744494386451,
+          "rmse_to_target": 0.01112515582271787,
+          "integrated_absolute_error": 0.21941208434217696
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.3282652153443538,
+          "min": 0.31758173597220607,
+          "max": 0.34074433025802064,
+          "rms": 0.3282941659011305,
+          "target": 0.34,
+          "mean_error": -0.011734784655646202,
+          "rmse_to_target": 0.012518503527114838,
+          "integrated_absolute_error": 0.2114343109401858
+        },
+        "normal_last2s_primary_velocity": -0.4720972013419912,
+        "double_steady_last2s_primary_velocity": null,
+        "double_requested_reached": {
+          "samples": 179,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.454,
+          "first_target_reached_elapsed_s": 4.346,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 179,
+          "max_signed_value": 1.0,
+          "first_target_reached_sim_s": 14.454,
+          "first_target_reached_elapsed_s": 4.346,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -1.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 1.047072084847001,
+        "double_actual_prefault_half_second_peak": 0.9447737551910755,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      },
+      {
+        "case": "left",
+        "normal_target": 0.3,
+        "double_target": 0.6,
+        "normal_completed20s": true,
+        "double_completed20s": true,
+        "normal_tracking_passed": true,
+        "double_tracking_passed": true,
+        "normal_whole20s_height_m": {
+          "mean": 0.333107260050175,
+          "min": 0.33025544802931983,
+          "max": 0.3404993244894784,
+          "rms": 0.3331097952019639,
+          "target": 0.34,
+          "mean_error": -0.006892739949825033,
+          "rmse_to_target": 0.007014187435143288,
+          "integrated_absolute_error": 0.1378914721915796
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.33322771062501394,
+          "min": 0.32629709415038183,
+          "max": 0.3410938402804452,
+          "rms": 0.3332346483224962,
+          "target": 0.34,
+          "mean_error": -0.006772289374986085,
+          "rmse_to_target": 0.007105463926319663,
+          "integrated_absolute_error": 0.13557796758726026
+        },
+        "normal_last2s_primary_velocity": 0.29182755494190327,
+        "double_steady_last2s_primary_velocity": {
+          "mean": 0.5648199770876028,
+          "min": 0.47031039298610655,
+          "max": 0.6727956214088049,
+          "rms": 0.5666316004161209,
+          "target": 0.6,
+          "mean_error": -0.03518002291239719,
+          "rmse_to_target": 0.05733583595807456,
+          "integrated_absolute_error": 0.09266721172506212
+        },
+        "double_requested_reached": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": 0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 0.6916003627792202,
+        "double_actual_prefault_half_second_peak": 0.5882693679941333,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      },
+      {
+        "case": "right",
+        "normal_target": -0.3,
+        "double_target": -0.6,
+        "normal_completed20s": true,
+        "double_completed20s": true,
+        "normal_tracking_passed": true,
+        "double_tracking_passed": true,
+        "normal_whole20s_height_m": {
+          "mean": 0.33297849621185177,
+          "min": 0.3288883588379718,
+          "max": 0.34045423468301955,
+          "rms": 0.3329807347712061,
+          "target": 0.34,
+          "mean_error": -0.007021503788148253,
+          "rmse_to_target": 0.007126872014640644,
+          "integrated_absolute_error": 0.14047193723102752
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.333436509845247,
+          "min": 0.32997821388280973,
+          "max": 0.34024911806652525,
+          "rms": 0.3334399168119523,
+          "target": 0.34,
+          "mean_error": -0.006563490154753049,
+          "rmse_to_target": 0.006734346946342122,
+          "integrated_absolute_error": 0.131284194556435
+        },
+        "normal_last2s_primary_velocity": -0.29256578943349754,
+        "double_steady_last2s_primary_velocity": {
+          "mean": -0.5772028141662022,
+          "min": -0.6248390373930361,
+          "max": -0.5127828028928751,
+          "rms": 0.5777806774647665,
+          "target": -0.6,
+          "mean_error": 0.02279718583379775,
+          "rmse_to_target": 0.03445481464471631,
+          "integrated_absolute_error": 0.052579741993589175
+        },
+        "double_requested_reached": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.434,
+          "first_target_reached_elapsed_s": 2.7299999999999986,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 198,
+          "max_signed_value": 0.6,
+          "first_target_reached_sim_s": 12.434,
+          "first_target_reached_elapsed_s": 2.7299999999999986,
+          "target_comparison_tolerance": 0.005,
+          "last_up_to2s_observed_mean": -0.5999999999999999,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 0.6573366875298289,
+        "double_actual_prefault_half_second_peak": 0.595763788011979,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      },
+      {
+        "case": "yaw_positive",
+        "normal_target": 1.5,
+        "double_target": 3.0,
+        "normal_completed20s": true,
+        "double_completed20s": true,
+        "normal_tracking_passed": true,
+        "double_tracking_passed": true,
+        "normal_whole20s_height_m": {
+          "mean": 0.33490605202941565,
+          "min": 0.32845609742493925,
+          "max": 0.34112725689257517,
+          "rms": 0.3349161994727069,
+          "target": 0.34,
+          "mean_error": -0.005093947970584378,
+          "rmse_to_target": 0.005722349975258788,
+          "integrated_absolute_error": 0.10200001524610719
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.33734675539017955,
+          "min": 0.32568187483683314,
+          "max": 0.3476401597018309,
+          "rms": 0.33736807880941044,
+          "target": 0.34,
+          "mean_error": -0.002653244609820471,
+          "rmse_to_target": 0.004628923657882813,
+          "integrated_absolute_error": 0.07137451901275757
+        },
+        "normal_last2s_primary_velocity": 1.4513241828148549,
+        "double_steady_last2s_primary_velocity": {
+          "mean": 2.907753467773707,
+          "min": 2.33286550700268,
+          "max": 3.289620503087008,
+          "rms": 2.915169945144939,
+          "target": 3.0,
+          "mean_error": -0.09224653222629309,
+          "rmse_to_target": 0.22736535011761547,
+          "integrated_absolute_error": 0.3301275855260397
+        },
+        "double_requested_reached": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.628,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": 3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.938,
+          "first_target_reached_elapsed_s": 2.7279999999999998,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": 2.999608,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 3.4049462640109596,
+        "double_actual_prefault_half_second_peak": 3.042713358241258,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      },
+      {
+        "case": "yaw_negative",
+        "normal_target": -1.5,
+        "double_target": -3.0,
+        "normal_completed20s": true,
+        "double_completed20s": true,
+        "normal_tracking_passed": true,
+        "double_tracking_passed": true,
+        "normal_whole20s_height_m": {
+          "mean": 0.3349072686370251,
+          "min": 0.3287123456236705,
+          "max": 0.341132966915503,
+          "rms": 0.3349169952900373,
+          "target": 0.34,
+          "mean_error": -0.005092731362974945,
+          "rmse_to_target": 0.005696583268045435,
+          "integrated_absolute_error": 0.10205415270362542
+        },
+        "double_pre_fault_height_m": {
+          "mean": 0.33606777692779594,
+          "min": 0.32866444001331657,
+          "max": 0.34446256176205897,
+          "rms": 0.3360845294541535,
+          "target": 0.34,
+          "mean_error": -0.0039322230722040885,
+          "rmse_to_target": 0.005169393341438679,
+          "integrated_absolute_error": 0.08567972652538439
+        },
+        "normal_last2s_primary_velocity": -1.452364715343898,
+        "double_steady_last2s_primary_velocity": {
+          "mean": -2.9075126634807495,
+          "min": -3.3393618433069605,
+          "max": -2.599447405239289,
+          "rms": 2.911450508370214,
+          "target": -3.0,
+          "mean_error": 0.09248733651925045,
+          "rmse_to_target": 0.17739245137457005,
+          "integrated_absolute_error": 0.29812104770874165
+        },
+        "double_requested_reached": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": -3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_governed_reached": {
+          "samples": 198,
+          "max_signed_value": 3.0,
+          "first_target_reached_sim_s": 12.838000000000001,
+          "first_target_reached_elapsed_s": 2.7300000000000004,
+          "target_comparison_tolerance": 0.01,
+          "last_up_to2s_observed_mean": -3.0,
+          "note": "Diagnostic reference samples only. A target reached moment is not proof that true speed or a full steady window reached it."
+        },
+        "double_actual_prefault_peak": 3.4101391635388154,
+        "double_actual_prefault_half_second_peak": 2.994224464945489,
+        "scope_note": "Original is one continuous six-direction run; doubled cases each start in a fresh world. Short failed windows are not equal-duration steady comparisons or a unique-cause experiment."
+      }
+    ],
+    "totals": {
+      "cases": 6,
+      "completed20s_stable": 4,
+      "tracking_passed": 4,
+      "fault_before_requested_target_reached": 0,
+      "failed_attempt_before_requested_target_reached": 0
+    },
+    "limitations": [
+      "Independent truth poses are100Hz; body velocity/yaw rate use centred differences, so protection timing has callback/diagnostic resolution.",
+      "Requested command, governed NMPC reference and independent true velocity are separately reported. A high requested target does not establish that the governed reference or robot reached it.",
+      "A failed/short attempt has no steady_last2s result. Its peak or0.5s mean is descriptive, not a completed steady acceptance.",
+      "Geometric foot clearance uses joint FK plus independent truth base pose; no measured foot-contact force is available.",
+      "No torque warning alone proves calibrated hardware motor/current compliance. No hardware motion was exercised."
+    ]
+  },
+  "independent_analysis_artifact": {
+    "path": "log/double-speed-demo-20261115/double-speed-independent-metrics.json",
+    "sha256": "daf22c02da6f0a2094bf1b4aa6e75d10d8e24b398c8c64a79eb81ed9e13669b2",
+    "bytes": 123307
+  },
+  "plots": {
+    "double-speed-tracking.png": {
+      "path": "log/double-speed-demo-20261115/double-speed-tracking.png",
+      "sha256": "57475aec58d9ba39b0977dd1367861a00d7d6cada652f6727caba21e3a513d52",
+      "bytes": 518990
+    },
+    "double-speed-height.png": {
+      "path": "log/double-speed-demo-20261115/double-speed-height.png",
+      "sha256": "873add8c17e140550899834d9cd0aa08db96ef3e0be0e7344829913c38ad15aa",
+      "bytes": 384402
+    }
+  },
+  "media_attempts": [
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/forward/video/video-metadata.json",
+        "sha256": "e74286cf09c129202304916c253b003dae2a51f1dc1c0439b85ad1ce3188d3c0",
+        "bytes": 2175
+      },
+      "frames": 0,
+      "stop_reason": "capture_error",
+      "capture_exception": "module 'PIL.Image' has no attribute 'Resampling'",
+      "media_errors": [
+        "Fewer than2 actual frames; no video or GIF fabricated"
+      ],
+      "has_mp4": false,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/backward/video/video-metadata.json",
+        "sha256": "83b4ca6bec3372bcea5c802fc27327575541118a10401f6b179e8d64643e7156",
+        "bytes": 2176
+      },
+      "frames": 0,
+      "stop_reason": "capture_error",
+      "capture_exception": "module 'PIL.Image' has no attribute 'Resampling'",
+      "media_errors": [
+        "Fewer than2 actual frames; no video or GIF fabricated"
+      ],
+      "has_mp4": false,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/left/video/video-metadata.json",
+        "sha256": "99043147810fe1ec121bc78a36f31ed3f5c58423493e202417079e186f507aee",
+        "bytes": 2171
+      },
+      "frames": 0,
+      "stop_reason": "capture_error",
+      "capture_exception": "module 'PIL.Image' has no attribute 'Resampling'",
+      "media_errors": [
+        "Fewer than2 actual frames; no video or GIF fabricated"
+      ],
+      "has_mp4": false,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/right/video/video-metadata.json",
+        "sha256": "2c93805cf856dddbf31cf0bbc4fe00b715766781792ad85855549a186af9d547",
+        "bytes": 3033
+      },
+      "frames": 1,
+      "stop_reason": "capture_error",
+      "capture_exception": "Object of type bytes is not JSON serializable",
+      "media_errors": [
+        "Fewer than2 actual frames; no video or GIF fabricated"
+      ],
+      "has_mp4": false,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/yaw_positive/video/video-metadata.json",
+        "sha256": "31cf1711fc1a5e1c957c13103ca167e06ee69cd95030f2979dc3c1f126e18f40",
+        "bytes": 3035
+      },
+      "frames": 1,
+      "stop_reason": "capture_error",
+      "capture_exception": "Object of type bytes is not JSON serializable",
+      "media_errors": [
+        "Fewer than2 actual frames; no video or GIF fabricated"
+      ],
+      "has_mp4": false,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/yaw_positive/video-retry/video-metadata.json",
+        "sha256": "f6c591eb59453f3ab1e6b53b434486aee37d79d2ee732d4cc4310d319606c81d",
+        "bytes": 26740
+      },
+      "frames": 21,
+      "stop_reason": "capture_error",
+      "capture_exception": "ROS clock reset; refusing to mix simulation epochs",
+      "media_errors": [
+        "No contiguous3-4s real nonzero-command MPC_TROT excerpt; GIF omitted"
+      ],
+      "has_mp4": true,
+      "has_gif": false
+    },
+    {
+      "artifact": {
+        "path": "log/double-speed-demo-20261115/yaw_negative/video/video-metadata.json",
+        "sha256": "d996f866b1c413c1dd855394d10a128c8111bf460a32359e7caa9ea2e24e8028",
+        "bytes": 759045
+      },
+      "frames": 663,
+      "stop_reason": "owned_stop_file",
+      "capture_exception": null,
+      "media_errors": [],
+      "has_mp4": true,
+      "has_gif": true
+    }
+  ],
+  "preferred_actual_render_preview": {
+    "path": "log/double-speed-demo-20261115/yaw_negative/video/yaw-minus3-closeup.gif",
+    "sha256": "d9f81f6f89bac80f135befb50dfbc4873d50efb6519d2f28a747c5823ce53682",
+    "bytes": 3375861
+  },
+  "preview_provenance": {
+    "path": "log/double-speed-demo-20261115/yaw_negative/video/closeup-metadata.json",
+    "sha256": "c6bf074a3d0ce95ae1b4421d48f2dcdb2b27b25ef94df3ea01403d225b2c15dc",
+    "bytes": 354
+  },
+  "last_simulation_left_open_paused": true,
+  "limitations": [
+    "Previous demonstration used one continuous six-direction sequence; this test starts each direction in a fresh world. These are not paired identical-initial-state causal comparisons.",
+    "Forward and backward failed before20s; failure-tail velocities are descriptive and never count as completed steady-state acceptance. Their first motor threshold events precede test abort, and pre-protection height is separated from subsequent height loss.",
+    "Passing only one20s trial does not establish repeatability, endurance, hardware torque compliance or real-time deadlines. No physical robot was commanded.",
+    "The test-only horizontal overspeed guard was changed1→2m/s to allow the1m/s request; command settle wait3→6s accommodates unchanged acceleration limits. Original relative tracking/wrong-way formulas scale their effective thresholds with command magnitude; all changes are explicit above.",
+    "Initial five camera attempts had compatibility/serialization failures, preserved in media metadata. All physical direction results rely on independent telemetry and finalized sweep reports. The final yaw-negative capture succeeded and supplies the shown footage. Capture helper changed between attempts; controller/model/task/binaries remained unchanged."
+  ]
+}

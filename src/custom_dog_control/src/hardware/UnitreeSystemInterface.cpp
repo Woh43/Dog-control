@@ -13,6 +13,7 @@
 #include <urdf/model.h>
 
 #include "custom_dog_control/control/JointCommandUtils.hpp"
+#include "custom_dog_control/control/SignedMotorPdBudget.hpp"
 
 namespace custom_dog_control {
 namespace {
@@ -98,6 +99,8 @@ bool UnitreeSystemInterface::ParseHardwareParameters() {
         ParameterOr<std::string>(info_, "rl_port", "/dev/ttyS8")};
     drive_parameters_.base_gear_ratio =
         ParameterOr<double>(info_, "base_gear_ratio", 6.33);
+    signed_budget_enabled_ = ParseBool(
+        ParameterOr<std::string>(info_, "motor_pd_signed_budget", "false"));
     drive_parameters_.calf_total_gear_ratio =
         ParameterOr<double>(info_, "calf_gear_ratio", 12.66);
     drive_parameters_.use_parallel_leg_io = ParseBool(
@@ -413,7 +416,18 @@ bool UnitreeSystemInterface::FillLowCommand() {
     targets.velocity[i] = static_cast<float>(targets.velocity[i]);
   }
   HybridJointCommand bounded;
-  if (!BoundedMotorPdCommand(targets, state_, effort_limits_, bounded)) {
+  auto encoded_limits = effort_limits_;
+  if (signed_budget_enabled_) {
+    // Unlike an L1 bound, signed cancellation is not preserved by independent
+    // float rounding of FF/Kp/Kd. Leave encoding headroom and check the actual
+    // float frame again below; drive/gear quantization remains uncalibrated.
+    for (auto& limit : encoded_limits) limit *= 1.0 - 1e-5;
+  }
+  const bool valid = signed_budget_enabled_
+      ? BoundedSignedMotorPdCommand(targets, state_, encoded_limits,
+                                    MotorPdWindowModel{}, bounded)
+      : BoundedMotorPdCommand(targets, state_, effort_limits_, bounded);
+  if (!valid) {
     return false;
   }
   const auto rounded_toward_zero = [](double value) {
@@ -435,6 +449,13 @@ bool UnitreeSystemInterface::FillLowCommand() {
     if (!std::isfinite(motor.effort) || !std::isfinite(motor.kp) ||
         !std::isfinite(motor.kd)) {
       return false;
+    }
+    if (signed_budget_enabled_) {
+      const double total = motor.effort +
+          motor.kp * (motor.position - state_.position[i]) +
+          motor.kd * (motor.velocity - state_.velocity[i]);
+      if (!std::isfinite(total) || std::abs(total) > effort_limits_[i] ||
+          std::abs(motor.effort) > effort_limits_[i]) return false;
     }
   }
   // Preserve the legacy five-component motor-side PD protocol. The effort

@@ -1,0 +1,1490 @@
+{
+  "date": "2026-11-14",
+  "scope": "Desktop x86 Fortress physics at approximately half real time. No real serial IO, motor commands or hardware motion acceptance.",
+  "default_simulation_passed": true,
+  "assumed_nonideal_scenario_passed": true,
+  "profile": {
+    "controller_hz": 500,
+    "nmpc_hz": 50,
+    "nominal_height_m": 0.34,
+    "trot_period_s": 0.4,
+    "planned_swing_height_m": 0.1,
+    "ground_truth_feedback": false,
+    "joint_pd_and_optimization_weights_changed": false
+  },
+  "defaults": {
+    "simulation_imu_rate_hz": 100,
+    "fortress_imu_orientation_prediction_max_s": 0,
+    "shared_hardware_imu_orientation_prediction_max_s": 0,
+    "simulation_additional_command_delay_s": 0,
+    "simulation_joint_friction": 0
+  },
+  "software_validation": {
+    "control_colcon_report": "121 tests, 0 errors, 0 failures, 0 skipped",
+    "model_colcon_report": "2 tests, 0 errors, 0 failures, 0 skipped",
+    "imu_pty_device_types": [
+      {
+        "passed": true,
+        "valid_stream_messages": 30,
+        "device_type": 0,
+        "orientation_timeout_s": 0.1,
+        "checks": [
+          "no publication before valid AHRS",
+          "valid stream publishes",
+          "gyro-only frames preserve the AHRS host-receive stamp",
+          "combined timestamp exposes cached-attitude age",
+          "new valid AHRS advances the combined stamp",
+          "bad CRC neither poisons cached quaternion nor refreshes age",
+          "gyro-only stream expires",
+          "valid AHRS recovers publication",
+          "bad frame end rejected",
+          "non-finite quaternion rejected",
+          "short AHRS/IMU payload rejected",
+          "parser recovers after short frame"
+        ],
+        "timestamp_semantics": "host receive time of the latest valid AHRS; not device acquisition time",
+        "hardware_access": "PTY only; no real serial device"
+      },
+      {
+        "passed": true,
+        "valid_stream_messages": 30,
+        "device_type": 1,
+        "orientation_timeout_s": 0.1,
+        "checks": [
+          "no publication before valid AHRS",
+          "valid stream publishes",
+          "gyro-only frames preserve the AHRS host-receive stamp",
+          "combined timestamp exposes cached-attitude age",
+          "new valid AHRS advances the combined stamp",
+          "bad CRC neither poisons cached quaternion nor refreshes age",
+          "gyro-only stream expires",
+          "valid AHRS recovers publication",
+          "bad frame end rejected",
+          "non-finite quaternion rejected",
+          "short AHRS/IMU payload rejected",
+          "parser recovers after short frame"
+        ],
+        "timestamp_semantics": "host receive time of the latest valid AHRS; not device acquisition time",
+        "hardware_access": "PTY only; no real serial device"
+      }
+    ],
+    "build_log": "log/nonideal-20261114/build-prediction.log",
+    "test_log": "log/nonideal-20261114/test-prediction.log"
+  },
+  "final_input_sha256": {
+    "src/custom_dog_control/config/controllers.yaml": "37f720353f58825b89f3aa457fcc502fb8da7368bbb1df107a35ee7e3818e3db",
+    "src/custom_dog_control/config/nmpc/task.info": "fc9972f2a83c0d44f0ef55cdbf9c36d8b31a34fa09ba4ace02a04f2488a120a5",
+    "src/custom_dog_control/config/nmpc/reference.info": "4795de7fa80b09a1435a89703fb77b637dabd8e048bf7195297f2e2bc0e8d4c2",
+    "src/custom_dog_control/launch/fortress.launch.py": "3f461d85a06c793a63e2f952c0e7c4d72c65af3477e2b6e279da6f6538dc9857",
+    "src/custom_dog_control/urdf/custom_dog.ros2_control.xacro": "ef83256639ff0a5f27345594865e3bbbb32ef84a66ccac926f4383377f998e89",
+    "src/custom_dog_control/src/nmpc/KinematicStateEstimator.cpp": "f177926cc5702cd6e39508dd2a3b971ff1d45e7d0658a54bce625fb22f58df3a",
+    "src/custom_dog_control/src/controller/NmpcWbcController.cpp": "8c1847b1443d428b645cf069a6bf565157a1e3ff8b6afe4f64ce8b17457c1db4",
+    "src/custom_dog_control/src/hardware/FortressMotorSystem.cpp": "7777f2ac9714b470a6648e07ade91562cc11866bdfa34a5035243f4f2fa6aabc",
+    "src/fdilink_ahrs/src/ahrs_driver.cpp": "7c82abfeb47fc0262f1df12d8e96f4bb3dd0978a4725a506d7214fb532dc3d14",
+    "src/custom_dog_description/urdf/custom_dog.urdf": "bf01f817cfb7fe3d0112333b7c6e767c441a80c03bd78f73a82c5c3b36540741",
+    "install/custom_dog_control/lib/libcustom_dog_control_nmpc_wbc_controller.so": "6eed007a4afeef891de9e247d20f9870e71ff6297c261d0925ca473688e9ce0d",
+    "install/custom_dog_control/lib/libcustom_dog_control_fortress_motor_system.so": "c62c7931da75aabf0ca82a44da9889853b2ad672df5ed117fe33be5751a477c0"
+  },
+  "fingerprint_scope": "Final implementation used for prediction100, delay4-friction, hold100-repeat and hold100-full; baseline100/control250 preceded the optional estimator prediction implementation. Their effective parameters and zero-delay/friction plugin are retained in raw evidence.",
+  "trials": {
+    "baseline100": {
+      "passed": false,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 100,
+      "additional_command_delay_s": 0.0,
+      "coulomb_friction_nm": [
+        0.0
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.0
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 1,
+      "error": "forward test failed; see forward.json/log",
+      "elapsed_wall_s": 26.20549956900004,
+      "evidence_directory": "log/nonideal-20261114/baseline100",
+      "imu_rate_observed": {
+        "received": 1021,
+        "stamp_interval_ns_counts": {
+          "10000000": 1020
+        },
+        "median_observed_hz": 100.0,
+        "timestamp_duration_s": 10.200000000000001,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.3281636891667863,
+          "max_height_m": 0.3529273347131087,
+          "max_abs_roll_rad": 0.16170954258096332,
+          "max_abs_pitch_rad": 0.009895286828378352,
+          "forward_displacement_m": 0.016883958963987523,
+          "lateral_displacement_m": 0.002185249458619777,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "duration_sim_s": 10.0,
+          "min_height_m": null,
+          "max_height_m": null,
+          "max_abs_roll_rad": 0.0,
+          "max_abs_pitch_rad": 0.0,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 0
+        }
+      ],
+      "forward_passed": false,
+      "forward_error": "standing/walking body height out of bounds: 0.361 m",
+      "sampled_diagnostics": {
+        "samples": 39,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.018
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    },
+    "control250": {
+      "passed": true,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 250.0,
+      "additional_command_delay_s": 0.0,
+      "coulomb_friction_nm": [
+        0.0
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.0
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 0,
+      "elapsed_wall_s": 75.89878080300014,
+      "evidence_directory": "log/nonideal-20261114/control250",
+      "imu_rate_observed": {
+        "received": 8765,
+        "stamp_interval_ns_counts": {
+          "4000000": 8764
+        },
+        "median_observed_hz": 250.0,
+        "timestamp_duration_s": 35.056000000000004,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.32816389625100795,
+          "max_height_m": 0.33787403264757154,
+          "max_abs_roll_rad": 9.220690137638144e-05,
+          "max_abs_pitch_rad": 0.003766627979122296,
+          "forward_displacement_m": 0.003148757244154563,
+          "lateral_displacement_m": -5.717684580253625e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 10.000000000000002,
+          "duration_sim_s": 10.0,
+          "min_height_m": 0.3336437628520475,
+          "max_height_m": 0.33653363496336713,
+          "max_abs_roll_rad": 0.0029089298402457764,
+          "max_abs_pitch_rad": 0.012335087723047793,
+          "forward_displacement_m": 0.5815622585255621,
+          "lateral_displacement_m": -0.007455051377227288,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 99
+        },
+        {
+          "name": "automatic_zero_speed_stop",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.33571816724627207,
+          "max_height_m": 0.3400014261027211,
+          "max_abs_roll_rad": 0.00029798277131894103,
+          "max_abs_pitch_rad": 0.00523146882596274,
+          "forward_displacement_m": 0.002847147099286444,
+          "lateral_displacement_m": -0.00038003828449499426,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 20
+        },
+        {
+          "name": "resume_without_rearming",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 6.0000000000000036,
+          "duration_sim_s": 6.0,
+          "min_height_m": 0.3336363376431203,
+          "max_height_m": 0.3396600061318173,
+          "max_abs_roll_rad": 0.0047249283245221615,
+          "max_abs_pitch_rad": 0.012561602735732381,
+          "forward_displacement_m": 0.34766628571156377,
+          "lateral_displacement_m": -0.006416683917273333,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 60
+        },
+        {
+          "name": "explicit_A_stays_in_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0000000000000036,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.3337246890027144,
+          "max_height_m": 0.3400969297910312,
+          "max_abs_roll_rad": 0.0005885721392670934,
+          "max_abs_pitch_rad": 0.012935509510535992,
+          "forward_displacement_m": 0.002303720888879469,
+          "lateral_displacement_m": 0.00038073824217643455,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "final_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.34006785056270716,
+          "max_height_m": 0.34009889857272696,
+          "max_abs_roll_rad": 0.0005532443235905691,
+          "max_abs_pitch_rad": 0.00037173723992919166,
+          "forward_displacement_m": 1.4517197942720378e-06,
+          "lateral_displacement_m": -1.2185496077452995e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 21
+        }
+      ],
+      "forward_passed": true,
+      "forward_distance_m": 0.5815622585255621,
+      "commanded_forward_distance_m": 0.5000000000000001,
+      "forward_distance_error_percent": 16.31245170511239,
+      "sampled_diagnostics": {
+        "samples": 284,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.004
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.02
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    },
+    "prediction100": {
+      "passed": true,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 100.0,
+      "imu_orientation_prediction_max_s": 0.012,
+      "additional_command_delay_s": 0.0,
+      "coulomb_friction_nm": [
+        0.0
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.0
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 0,
+      "planar_returncode": 0,
+      "elapsed_wall_s": 213.53838741799973,
+      "evidence_directory": "log/nonideal-20261114/prediction100",
+      "imu_rate_observed": {
+        "received": 10388,
+        "stamp_interval_ns_counts": {
+          "10000000": 10387
+        },
+        "median_observed_hz": 100.0,
+        "timestamp_duration_s": 103.87,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.3281638969178546,
+          "max_height_m": 0.3378767101833906,
+          "max_abs_roll_rad": 0.00011033198308678483,
+          "max_abs_pitch_rad": 0.0037666290806379035,
+          "forward_displacement_m": 0.003176379903995408,
+          "lateral_displacement_m": -5.472971682058021e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 10.000000000000002,
+          "duration_sim_s": 10.0,
+          "min_height_m": 0.33070194843862366,
+          "max_height_m": 0.3390708091287664,
+          "max_abs_roll_rad": 0.003796599062299643,
+          "max_abs_pitch_rad": 0.01572106060385084,
+          "forward_displacement_m": 0.5868773243944178,
+          "lateral_displacement_m": -0.02393012335843245,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 99
+        },
+        {
+          "name": "automatic_zero_speed_stop",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.3356702835942315,
+          "max_height_m": 0.3400789364239201,
+          "max_abs_roll_rad": 0.00030942114112582467,
+          "max_abs_pitch_rad": 0.008191944676510647,
+          "forward_displacement_m": 0.002410203217129955,
+          "lateral_displacement_m": -0.00032366214527387724,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 20
+        },
+        {
+          "name": "resume_without_rearming",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 6.0000000000000036,
+          "duration_sim_s": 6.0,
+          "min_height_m": 0.3310589633574565,
+          "max_height_m": 0.3397381064571388,
+          "max_abs_roll_rad": 0.0045451108684823995,
+          "max_abs_pitch_rad": 0.014862478064320768,
+          "forward_displacement_m": 0.3580794231757123,
+          "lateral_displacement_m": 0.017486694914797617,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 60
+        },
+        {
+          "name": "explicit_A_stays_in_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0000000000000036,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.33236918561640794,
+          "max_height_m": 0.340542043330812,
+          "max_abs_roll_rad": 0.0019028210691662216,
+          "max_abs_pitch_rad": 0.018407056926764254,
+          "forward_displacement_m": 0.0015900392558616245,
+          "lateral_displacement_m": 0.0013764930030714352,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "final_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.3405287716560506,
+          "max_height_m": 0.3405430089651536,
+          "max_abs_roll_rad": 0.0014952191430286006,
+          "max_abs_pitch_rad": 0.0012848627740109917,
+          "forward_displacement_m": -4.545820717468603e-07,
+          "lateral_displacement_m": -5.221865679456543e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 21
+        },
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3405282678129242,
+          "max_height_m": 0.34054311601601966,
+          "max_abs_roll_rad": 0.0014937997014009819,
+          "max_abs_pitch_rad": 0.001284908990608741,
+          "forward_displacement_m": -1.61883909081989e-07,
+          "lateral_displacement_m": 4.835395565129799e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 11
+        },
+        {
+          "name": "backward",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.33294576072634624,
+          "max_height_m": 0.3385101024606928,
+          "max_abs_roll_rad": 0.003965637891244566,
+          "max_abs_pitch_rad": 0.012863088578154335,
+          "forward_displacement_m": -0.2591292938753227,
+          "lateral_displacement_m": 0.0061306500025715815,
+          "yaw_displacement_rad": 0.0030143480977109383,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_backward",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3345914893077431,
+          "max_height_m": 0.33968097189746144,
+          "max_abs_roll_rad": 0.0025575983140655022,
+          "max_abs_pitch_rad": 0.00770006572630159,
+          "forward_displacement_m": 0.0038214652164933615,
+          "lateral_displacement_m": 0.00013537136357021513,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "left",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.33300611901487526,
+          "max_height_m": 0.33976596488732985,
+          "max_abs_roll_rad": 0.007458275399178125,
+          "max_abs_pitch_rad": 0.012958872042518341,
+          "forward_displacement_m": 0.005414130636476461,
+          "lateral_displacement_m": 0.2553141355054694,
+          "yaw_displacement_rad": 0.0013541964965990251,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_left",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3340082512653352,
+          "max_height_m": 0.33995380194466057,
+          "max_abs_roll_rad": 0.0008829811627251194,
+          "max_abs_pitch_rad": 0.004317170077778688,
+          "forward_displacement_m": 0.0011371690455402024,
+          "lateral_displacement_m": 0.0009148611544239359,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "right",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3320614917514525,
+          "max_height_m": 0.3383698608430413,
+          "max_abs_roll_rad": 0.007215819678669017,
+          "max_abs_pitch_rad": 0.013277385149181075,
+          "forward_displacement_m": 0.02295263568395837,
+          "lateral_displacement_m": -0.2696532326039617,
+          "yaw_displacement_rad": -0.0017206205349442503,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_right",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33543295755561237,
+          "max_height_m": 0.3398337275650145,
+          "max_abs_roll_rad": 0.0010481506533332788,
+          "max_abs_pitch_rad": 0.0033647211496945118,
+          "forward_displacement_m": 0.0028172435316902987,
+          "lateral_displacement_m": -8.263587777204955e-06,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "positive_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3291614283840319,
+          "max_height_m": 0.3381476025242272,
+          "max_abs_roll_rad": 0.007251750456813419,
+          "max_abs_pitch_rad": 0.02026968536006903,
+          "forward_displacement_m": 0.018064953259694178,
+          "lateral_displacement_m": 0.010416648413391136,
+          "yaw_displacement_rad": 0.982014561761947,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_positive_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33603905089322456,
+          "max_height_m": 0.3398547635884717,
+          "max_abs_roll_rad": 0.0009066670400056867,
+          "max_abs_pitch_rad": 0.003148025875129238,
+          "forward_displacement_m": 0.002239539204984229,
+          "lateral_displacement_m": 0.0005492775730240619,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "negative_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3313455122399287,
+          "max_height_m": 0.3383448503714472,
+          "max_abs_roll_rad": 0.0042854916581712985,
+          "max_abs_pitch_rad": 0.013603391413415388,
+          "forward_displacement_m": 0.014450365391408508,
+          "lateral_displacement_m": -0.010230162906546698,
+          "yaw_displacement_rad": -0.9852537155655786,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_negative_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33505343587411474,
+          "max_height_m": 0.3398452107379838,
+          "max_abs_roll_rad": 0.0011536357659928124,
+          "max_abs_pitch_rad": 0.0035745191192075518,
+          "forward_displacement_m": 0.001444836976195572,
+          "lateral_displacement_m": 0.000849540146340518,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_A_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3399140157414351,
+          "max_height_m": 0.34003531091314454,
+          "max_abs_roll_rad": 0.000838307211250521,
+          "max_abs_pitch_rad": 0.0006588656358600516,
+          "forward_displacement_m": -1.0509994560917184e-05,
+          "lateral_displacement_m": -3.721559289248778e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_stance_soak",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 30.0,
+          "duration_sim_s": 30.0,
+          "min_height_m": 0.339994719553568,
+          "max_height_m": 0.34006386835952207,
+          "max_abs_roll_rad": 0.0013484495137505075,
+          "max_abs_pitch_rad": 0.0008990200216638068,
+          "forward_displacement_m": -0.00019942009912490112,
+          "lateral_displacement_m": -0.0005956374889749573,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 298
+        }
+      ],
+      "forward_passed": true,
+      "forward_distance_m": 0.5868773243944178,
+      "commanded_forward_distance_m": 0.5000000000000001,
+      "forward_distance_error_percent": 17.375464878883523,
+      "planar_passed": true,
+      "sampled_diagnostics": {
+        "samples": 965,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "imu_orientation_prediction_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.02
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    },
+    "delay4-friction": {
+      "passed": true,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 100.0,
+      "imu_orientation_prediction_max_s": 0.012,
+      "additional_command_delay_s": 0.004,
+      "coulomb_friction_nm": [
+        0.2,
+        0.3,
+        0.6
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.02,
+        0.03,
+        0.05
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 0,
+      "planar_returncode": 0,
+      "elapsed_wall_s": 212.51609026699998,
+      "evidence_directory": "log/nonideal-20261114/delay4-friction",
+      "imu_rate_observed": {
+        "received": 10336,
+        "stamp_interval_ns_counts": {
+          "10000000": 10335
+        },
+        "median_observed_hz": 100.0,
+        "timestamp_duration_s": 103.35000000000001,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.328040628484984,
+          "max_height_m": 0.335259286720925,
+          "max_abs_roll_rad": 0.00011638172092761383,
+          "max_abs_pitch_rad": 0.0036011682658232207,
+          "forward_displacement_m": 0.0028803948118156938,
+          "lateral_displacement_m": -5.080846458081135e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 10.0,
+          "duration_sim_s": 10.0,
+          "min_height_m": 0.32945354668859284,
+          "max_height_m": 0.33768906986292335,
+          "max_abs_roll_rad": 0.011487589092266562,
+          "max_abs_pitch_rad": 0.014337080380784364,
+          "forward_displacement_m": 0.5488039691985764,
+          "lateral_displacement_m": 0.021589180036635066,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 99
+        },
+        {
+          "name": "automatic_zero_speed_stop",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.33302357449934616,
+          "max_height_m": 0.33891384789490325,
+          "max_abs_roll_rad": 0.008520771053172825,
+          "max_abs_pitch_rad": 0.010528762320687158,
+          "forward_displacement_m": 0.002541799919044338,
+          "lateral_displacement_m": -0.002836763211016377,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 20
+        },
+        {
+          "name": "resume_without_rearming",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 6.0,
+          "duration_sim_s": 6.0,
+          "min_height_m": 0.332160788294835,
+          "max_height_m": 0.33984362479589897,
+          "max_abs_roll_rad": 0.011350210768917478,
+          "max_abs_pitch_rad": 0.017283137142304894,
+          "forward_displacement_m": 0.3193962531019564,
+          "lateral_displacement_m": -0.03667090131126666,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 60
+        },
+        {
+          "name": "explicit_A_stays_in_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0010000000000012,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.33225503747719126,
+          "max_height_m": 0.33985943936697144,
+          "max_abs_roll_rad": 0.003269703164178771,
+          "max_abs_pitch_rad": 0.01988968842363872,
+          "forward_displacement_m": 0.0020710493093015186,
+          "lateral_displacement_m": 0.0007181784206585876,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "final_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.33989280011868134,
+          "max_height_m": 0.34037816764833073,
+          "max_abs_roll_rad": 0.0003949942005722233,
+          "max_abs_pitch_rad": 0.0012137836252681905,
+          "forward_displacement_m": 8.378394048995082e-05,
+          "lateral_displacement_m": -2.928451226274495e-06,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 21
+        },
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3404319248114154,
+          "max_height_m": 0.34047967919146344,
+          "max_abs_roll_rad": 0.0003999382540774146,
+          "max_abs_pitch_rad": 0.0010559079640699261,
+          "forward_displacement_m": 1.0611162130702031e-05,
+          "lateral_displacement_m": -1.9075932030017535e-06,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 11
+        },
+        {
+          "name": "backward",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.32766132404153797,
+          "max_height_m": 0.34010156912998063,
+          "max_abs_roll_rad": 0.010111143753537876,
+          "max_abs_pitch_rad": 0.009440894335963986,
+          "forward_displacement_m": -0.2352899011370925,
+          "lateral_displacement_m": -0.014648039836964572,
+          "yaw_displacement_rad": -0.0031461801748308964,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_backward",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.329849814627859,
+          "max_height_m": 0.3357264240267652,
+          "max_abs_roll_rad": 0.009418651104501649,
+          "max_abs_pitch_rad": 0.004846996248915414,
+          "forward_displacement_m": 0.003727636987874326,
+          "lateral_displacement_m": 0.0026200611253680444,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "left",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.32957319755606096,
+          "max_height_m": 0.33686982387621395,
+          "max_abs_roll_rad": 0.01381137020333405,
+          "max_abs_pitch_rad": 0.012419182061511418,
+          "forward_displacement_m": 0.006861074686082813,
+          "lateral_displacement_m": 0.25099379406834976,
+          "yaw_displacement_rad": 0.006948499441628008,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_left",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3315992381441074,
+          "max_height_m": 0.3361191229027719,
+          "max_abs_roll_rad": 0.002013554738818955,
+          "max_abs_pitch_rad": 0.0047968740762146045,
+          "forward_displacement_m": 0.00090918754534692,
+          "lateral_displacement_m": 0.0006082530460547241,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "right",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.32914796879145164,
+          "max_height_m": 0.3378740864250831,
+          "max_abs_roll_rad": 0.010727560828948494,
+          "max_abs_pitch_rad": 0.009933740737541332,
+          "forward_displacement_m": 0.028362183462280185,
+          "lateral_displacement_m": -0.22191184458173385,
+          "yaw_displacement_rad": -0.0016972799574032451,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_right",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3315874237322954,
+          "max_height_m": 0.3362030046701355,
+          "max_abs_roll_rad": 0.00726819177738031,
+          "max_abs_pitch_rad": 0.00221936608855905,
+          "forward_displacement_m": 0.002958211322553498,
+          "lateral_displacement_m": 0.0024192743480721387,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "positive_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.32929232418368715,
+          "max_height_m": 0.3378452626726287,
+          "max_abs_roll_rad": 0.007239646684976914,
+          "max_abs_pitch_rad": 0.012032671889643253,
+          "forward_displacement_m": 0.008693261315472708,
+          "lateral_displacement_m": 0.014566870673962146,
+          "yaw_displacement_rad": 0.888640533764367,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_positive_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33301611847543283,
+          "max_height_m": 0.3366587477117838,
+          "max_abs_roll_rad": 0.0005368655448615392,
+          "max_abs_pitch_rad": 0.00429763709476151,
+          "forward_displacement_m": 0.002167594171601622,
+          "lateral_displacement_m": 0.00030614952392962595,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "negative_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3242149199152614,
+          "max_height_m": 0.33843226280915756,
+          "max_abs_roll_rad": 0.01364764925178991,
+          "max_abs_pitch_rad": 0.013216833726043669,
+          "forward_displacement_m": 0.013508608477062294,
+          "lateral_displacement_m": -0.021074297430571567,
+          "yaw_displacement_rad": -0.8995169617664454,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_negative_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3314258769489549,
+          "max_height_m": 0.33623879225758846,
+          "max_abs_roll_rad": 0.008516558361220568,
+          "max_abs_pitch_rad": 0.00532568120657255,
+          "forward_displacement_m": 0.003100002756848191,
+          "lateral_displacement_m": 0.0024056663023706002,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_A_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33652687235532364,
+          "max_height_m": 0.33829731952007674,
+          "max_abs_roll_rad": 0.0018384377405149944,
+          "max_abs_pitch_rad": 0.0012782873749978812,
+          "forward_displacement_m": 0.000451667674899212,
+          "lateral_displacement_m": 0.00014848888219253363,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_stance_soak",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 30.0,
+          "duration_sim_s": 30.0,
+          "min_height_m": 0.33840571434300537,
+          "max_height_m": 0.3401464078960387,
+          "max_abs_roll_rad": 0.0019302232035964795,
+          "max_abs_pitch_rad": 0.00044119371822061773,
+          "forward_displacement_m": 0.0005349575615642363,
+          "lateral_displacement_m": 2.236679001664637e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 298
+        }
+      ],
+      "forward_passed": true,
+      "forward_distance_m": 0.5488039691985764,
+      "commanded_forward_distance_m": 0.5,
+      "forward_distance_error_percent": 9.760793839715287,
+      "planar_passed": true,
+      "sampled_diagnostics": {
+        "samples": 961,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "imu_orientation_prediction_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.02
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    },
+    "hold100-repeat": {
+      "passed": true,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 100.0,
+      "imu_orientation_prediction_max_s": 0.0,
+      "additional_command_delay_s": 0.0,
+      "coulomb_friction_nm": [
+        0.0
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.0
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 0,
+      "elapsed_wall_s": 75.23373815099967,
+      "evidence_directory": "log/nonideal-20261114/hold100-repeat",
+      "imu_rate_observed": {
+        "received": 3474,
+        "stamp_interval_ns_counts": {
+          "10000000": 3473
+        },
+        "median_observed_hz": 100.0,
+        "timestamp_duration_s": 34.730000000000004,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.3281638410162505,
+          "max_height_m": 0.3378766071344357,
+          "max_abs_roll_rad": 0.0001150274781909949,
+          "max_abs_pitch_rad": 0.0037666302455933815,
+          "forward_displacement_m": 0.003102791778550507,
+          "lateral_displacement_m": -5.273513166605176e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 10.0,
+          "duration_sim_s": 10.0,
+          "min_height_m": 0.330076434661846,
+          "max_height_m": 0.33890412297102296,
+          "max_abs_roll_rad": 0.005767166781918421,
+          "max_abs_pitch_rad": 0.015305307050714789,
+          "forward_displacement_m": 0.5774168600494823,
+          "lateral_displacement_m": 0.0023965926582936057,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 99
+        },
+        {
+          "name": "automatic_zero_speed_stop",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.33404417413294457,
+          "max_height_m": 0.34003903532928953,
+          "max_abs_roll_rad": 0.0028630624141093917,
+          "max_abs_pitch_rad": 0.005312014957290362,
+          "forward_displacement_m": 0.0025454074818251995,
+          "lateral_displacement_m": -0.0011629387268039459,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 20
+        },
+        {
+          "name": "resume_without_rearming",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 6.0,
+          "duration_sim_s": 6.0,
+          "min_height_m": 0.33048503652059535,
+          "max_height_m": 0.33971418057277075,
+          "max_abs_roll_rad": 0.005113383707468882,
+          "max_abs_pitch_rad": 0.01533965627228639,
+          "forward_displacement_m": 0.35509035198226124,
+          "lateral_displacement_m": -0.00857682002154746,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 60
+        },
+        {
+          "name": "explicit_A_stays_in_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0010000000000012,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.33516270640615176,
+          "max_height_m": 0.34013757149036833,
+          "max_abs_roll_rad": 0.0009494299496930812,
+          "max_abs_pitch_rad": 0.008776447788472665,
+          "forward_displacement_m": 0.00047282385758506094,
+          "lateral_displacement_m": 5.181127677065228e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "final_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.3401003729413752,
+          "max_height_m": 0.34014084038857506,
+          "max_abs_roll_rad": 0.0005497654528926991,
+          "max_abs_pitch_rad": 0.00033453041226026654,
+          "forward_displacement_m": -1.5549919039451688e-05,
+          "lateral_displacement_m": -1.4655329683293956e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 21
+        }
+      ],
+      "forward_passed": true,
+      "forward_distance_m": 0.5774168600494823,
+      "commanded_forward_distance_m": 0.5,
+      "forward_distance_error_percent": 15.483372009896467,
+      "sampled_diagnostics": {
+        "samples": 282,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "imu_orientation_prediction_s": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.02
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    },
+    "hold100-full": {
+      "passed": true,
+      "hardware_io": false,
+      "ros_domain_id": 198,
+      "requested_profile": {
+        "main_hz": 500,
+        "mpc_hz": 50,
+        "trot_period_s": 0.4,
+        "swing_height_m": 0.1,
+        "nominal_height_m": 0.34
+      },
+      "ground_truth_feedback": false,
+      "actuator_model": "motor_pd",
+      "simulation_imu_rate_hz": 100.0,
+      "imu_orientation_prediction_max_s": 0.0,
+      "additional_command_delay_s": 0.0,
+      "coulomb_friction_nm": [
+        0.0
+      ],
+      "viscous_friction_nm_s_per_rad": [
+        0.0
+      ],
+      "friction_velocity_scale_rad_per_s": 0.05,
+      "motor_parameters_measured_on_hardware": false,
+      "forward_returncode": 0,
+      "planar_returncode": 0,
+      "elapsed_wall_s": 213.60258634299998,
+      "evidence_directory": "log/nonideal-20261114/hold100-full",
+      "imu_rate_observed": {
+        "received": 10392,
+        "stamp_interval_ns_counts": {
+          "10000000": 10391
+        },
+        "median_observed_hz": 100.0,
+        "timestamp_duration_s": 103.91000000000001,
+        "meaning": "Observed simulation message stamp intervals, not real device latency"
+      },
+      "phase_results": [
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.32816401453765737,
+          "max_height_m": 0.337873807445797,
+          "max_abs_roll_rad": 0.0001148833730757149,
+          "max_abs_pitch_rad": 0.0037666358220464964,
+          "forward_displacement_m": 0.0031974710567154504,
+          "lateral_displacement_m": -5.4541519881752867e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "first_forward_trot",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 10.000000000000002,
+          "duration_sim_s": 10.0,
+          "min_height_m": 0.330501124724554,
+          "max_height_m": 0.33909885369560905,
+          "max_abs_roll_rad": 0.005602830078247521,
+          "max_abs_pitch_rad": 0.017726039284245588,
+          "forward_displacement_m": 0.5663044357249842,
+          "lateral_displacement_m": -0.03167640486465607,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 99
+        },
+        {
+          "name": "automatic_zero_speed_stop",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.3360043697471963,
+          "max_height_m": 0.3400935381881244,
+          "max_abs_roll_rad": 0.0010851093706990545,
+          "max_abs_pitch_rad": 0.008290912394028075,
+          "forward_displacement_m": 0.0022375147998382984,
+          "lateral_displacement_m": -0.0005075872785646353,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 20
+        },
+        {
+          "name": "resume_without_rearming",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 6.0000000000000036,
+          "duration_sim_s": 6.0,
+          "min_height_m": 0.33089118025137004,
+          "max_height_m": 0.3397428754398226,
+          "max_abs_roll_rad": 0.005056183367502278,
+          "max_abs_pitch_rad": 0.01399358336561322,
+          "forward_displacement_m": 0.3581350917787382,
+          "lateral_displacement_m": -0.03673876184178716,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 60
+        },
+        {
+          "name": "explicit_A_stays_in_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 3.0000000000000036,
+          "duration_sim_s": 3.0,
+          "min_height_m": 0.33415669350872595,
+          "max_height_m": 0.339992041416448,
+          "max_abs_roll_rad": 0.0007637615819683659,
+          "max_abs_pitch_rad": 0.010309276851360342,
+          "forward_displacement_m": 0.0019348155251210947,
+          "lateral_displacement_m": 8.026965004270537e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 30
+        },
+        {
+          "name": "final_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 2.0,
+          "duration_sim_s": 2.0,
+          "min_height_m": 0.33995737646241153,
+          "max_height_m": 0.3399945248402648,
+          "max_abs_roll_rad": 0.0007175931352574685,
+          "max_abs_pitch_rad": 0.0003138271169736999,
+          "forward_displacement_m": -1.648720327260579e-05,
+          "lateral_displacement_m": -2.0724217612067004e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 21
+        },
+        {
+          "name": "initial_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33995594307007404,
+          "max_height_m": 0.33999389081335907,
+          "max_abs_roll_rad": 0.000744358027192286,
+          "max_abs_pitch_rad": 0.0002428253720675971,
+          "forward_displacement_m": 8.425131866211822e-05,
+          "lateral_displacement_m": 1.660701930808371e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 11
+        },
+        {
+          "name": "backward",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3293888781505084,
+          "max_height_m": 0.33838910809760064,
+          "max_abs_roll_rad": 0.005561533026684736,
+          "max_abs_pitch_rad": 0.015513421625045265,
+          "forward_displacement_m": -0.2565927053920023,
+          "lateral_displacement_m": -0.004841323778653331,
+          "yaw_displacement_rad": -0.0004997657115711606,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_backward",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3341213565350715,
+          "max_height_m": 0.339712973294969,
+          "max_abs_roll_rad": 0.001233106003322637,
+          "max_abs_pitch_rad": 0.00869553198294381,
+          "forward_displacement_m": 0.0036727730777179565,
+          "lateral_displacement_m": 0.0005702439055889675,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "left",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3328892476309158,
+          "max_height_m": 0.3397989794207361,
+          "max_abs_roll_rad": 0.006992268607612147,
+          "max_abs_pitch_rad": 0.013783790279227222,
+          "forward_displacement_m": 0.0047726605582502635,
+          "lateral_displacement_m": 0.25513513693891593,
+          "yaw_displacement_rad": 0.0010306084590916108,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_left",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33570319337592885,
+          "max_height_m": 0.33992600732650124,
+          "max_abs_roll_rad": 0.00152648118907346,
+          "max_abs_pitch_rad": 0.006151689033041199,
+          "forward_displacement_m": 0.002955516001337529,
+          "lateral_displacement_m": -0.0001819323344870702,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "right",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.33177798448298057,
+          "max_height_m": 0.3382594305478778,
+          "max_abs_roll_rad": 0.007148483872192926,
+          "max_abs_pitch_rad": 0.01334999026967064,
+          "forward_displacement_m": 0.01991613893143328,
+          "lateral_displacement_m": -0.2685732623672275,
+          "yaw_displacement_rad": -0.000383984923015601,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_right",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33504567471740715,
+          "max_height_m": 0.33978700046121857,
+          "max_abs_roll_rad": 0.0011936556682169868,
+          "max_abs_pitch_rad": 0.0027583999164731278,
+          "forward_displacement_m": 0.00245471683754286,
+          "lateral_displacement_m": -0.0003141160199220235,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "positive_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.329569844558465,
+          "max_height_m": 0.33813949725705106,
+          "max_abs_roll_rad": 0.005877526425087394,
+          "max_abs_pitch_rad": 0.01736140589272427,
+          "forward_displacement_m": 0.014857914461383374,
+          "lateral_displacement_m": 0.010190061728121529,
+          "yaw_displacement_rad": 0.9911507684391893,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_positive_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.33555761273152757,
+          "max_height_m": 0.33993342476373456,
+          "max_abs_roll_rad": 0.0018179780486382747,
+          "max_abs_pitch_rad": 0.007216421799720666,
+          "forward_displacement_m": 0.0026370814713993357,
+          "lateral_displacement_m": 0.0009725192964769652,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "negative_yaw",
+          "required_mode": "MPC_TROT",
+          "elapsed_sim_s": 5.0,
+          "duration_sim_s": 5.0,
+          "min_height_m": 0.3323698233589943,
+          "max_height_m": 0.3383575879374822,
+          "max_abs_roll_rad": 0.005057990059038062,
+          "max_abs_pitch_rad": 0.013239663843773447,
+          "forward_displacement_m": 0.02222815059237816,
+          "lateral_displacement_m": -0.0075577276363822336,
+          "yaw_displacement_rad": -0.97504641371938,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 50
+        },
+        {
+          "name": "zero_speed_stance_after_negative_yaw",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3349889282073466,
+          "max_height_m": 0.33980988702884224,
+          "max_abs_roll_rad": 0.000881002330903681,
+          "max_abs_pitch_rad": 0.005146076184841906,
+          "forward_displacement_m": 0.0026065546271796377,
+          "lateral_displacement_m": 0.0006702029024934826,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_A_zero_speed_stance",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 1.0,
+          "duration_sim_s": 1.0,
+          "min_height_m": 0.3398607274538312,
+          "max_height_m": 0.33994637566492236,
+          "max_abs_roll_rad": 0.0007385709790721091,
+          "max_abs_pitch_rad": 0.000666955172764001,
+          "forward_displacement_m": -3.7073053167164196e-05,
+          "lateral_displacement_m": -4.1312949700386997e-05,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 10
+        },
+        {
+          "name": "final_stance_soak",
+          "required_mode": "MPC_STANCE",
+          "elapsed_sim_s": 30.0,
+          "duration_sim_s": 30.0,
+          "min_height_m": 0.33990619363440777,
+          "max_height_m": 0.339972580884763,
+          "max_abs_roll_rad": 0.0011948701635899083,
+          "max_abs_pitch_rad": 0.0008889625002282185,
+          "forward_displacement_m": -0.00019644233814889117,
+          "lateral_displacement_m": -0.0005483573807988441,
+          "invalid_wbc_samples": 0,
+          "diagnostic_samples": 298
+        }
+      ],
+      "forward_passed": true,
+      "forward_distance_m": 0.5663044357249842,
+      "commanded_forward_distance_m": 0.5000000000000001,
+      "forward_distance_error_percent": 13.260887144996822,
+      "planar_passed": true,
+      "sampled_diagnostics": {
+        "samples": 965,
+        "control_period_ms": {
+          "min": 2.0,
+          "max": 2.0
+        },
+        "imu_age_s": {
+          "min": 0.002,
+          "max": 0.01
+        },
+        "imu_orientation_prediction_s": {
+          "min": 0.0,
+          "max": 0.0
+        },
+        "mpc_policy_age_s": {
+          "min": 0.0,
+          "max": 0.02
+        },
+        "invalid_wbc_samples": 0,
+        "meaning": "Approximately 10 Hz diagnostics, not an every-control-cycle guarantee."
+      }
+    }
+  },
+  "limitations": [
+    "The first 100 Hz held-attitude run failed, but final-version prediction-disabled forward/stop/resume repeated successfully and a separate full-motion plus 30-second-stance run also passed. The failure has not been consistently reproduced; prediction is not proven necessary or a unique fix. Initial IMU-age sequences match; asynchronous MPC policy timing differs. This is not a diagnosis of the physical robot.",
+    "The 4 ms delay and joint friction are assumed stress inputs, not measurements. They were combined; this is not an independent identification of each effect or a delay stability margin.",
+    "Motor delay is additional to one outer cycle plus physics-step phase. Friction is smooth dissipative Coulomb/viscous load, excluding stiction, backlash, efficiency and actual servo bandwidth.",
+    "Fortress prediction uses synchronized sensor acquisition stamps. Prediction remains opt-in in both paths pending stronger evidence; hardware AHRS/gyro timing is not verified. FDILink now preserves attitude host-receipt age, not device acquisition age.",
+    "The true IMU internal latency, bus buffering, per-motor sample times, torque calibration and mechanical response remain unmeasured; real sensor noise and bias were not reproduced.",
+    "Controller periods in these runs use simulation time. These tests do not certify onboard 500 Hz / 50 Hz wall-clock deadlines.",
+    "Low-speed stability passed at the tested settings; forward velocity tracking retains error. No PD, weight or hardware friction compensation tuning is claimed."
+  ],
+  "comparison_figure": "log/nonideal-20261114/imu100-comparison.png"
+}

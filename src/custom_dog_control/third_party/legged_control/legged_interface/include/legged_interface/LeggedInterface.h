@@ -22,6 +22,7 @@
 #include <ocs2_sqp/SqpSettings.h>
 
 #include "legged_interface/SwitchedModelReferenceManager.h"
+#include "legged_interface/SwingReferenceSettings.h"
 
 namespace legged {
 using namespace ocs2;
@@ -40,6 +41,7 @@ class LeggedInterface : public RobotInterface {
   const OptimalControlProblem& getOptimalControlProblem() const override { return *problemPtr_; }
 
   const ModelSettings& modelSettings() const { return modelSettings_; }
+  const SwingReferenceSettings& swingReferenceSettings() const { return swingReferenceSettings_; }
   const ddp::Settings& ddpSettings() const { return ddpSettings_; }
   const mpc::Settings& mpcSettings() const { return mpcSettings_; }
   const rollout::Settings& rolloutSettings() const { return rolloutSettings_; }
@@ -80,6 +82,7 @@ class LeggedInterface : public RobotInterface {
                                                         const std::string& prefix, bool verbose);
 
   ModelSettings modelSettings_;
+  SwingReferenceSettings swingReferenceSettings_;
   mpc::Settings mpcSettings_;
   ddp::Settings ddpSettings_;
   sqp::Settings sqpSettings_;

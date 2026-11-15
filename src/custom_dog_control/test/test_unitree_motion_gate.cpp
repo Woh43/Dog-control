@@ -331,10 +331,12 @@ class UnitreeMotionGate : public ::testing::Test {
  protected:
   virtual bool StartupAlignmentEnabled() const { return false; }
   virtual bool ParallelLegIoEnabled() const { return false; }
+  virtual bool SignedBudgetEnabled() const { return false; }
   void SetUp() override {
     auto info = PtyHardwareInfo(motors_.ports);
     if (StartupAlignmentEnabled()) info.hardware_parameters["startup_alignment_enabled"] = "true";
     if (ParallelLegIoEnabled()) info.hardware_parameters["parallel_leg_io"] = "true";
+    if (SignedBudgetEnabled()) info.hardware_parameters["motor_pd_signed_budget"] = "true";
     info.hardware_parameters["physical_estop_verified"] = "true";
     ASSERT_EQ(hardware_.on_init(info), hardware_interface::CallbackReturn::SUCCESS);
     commands_ = hardware_.export_command_interfaces();
@@ -518,6 +520,140 @@ TEST_F(UnitreeMotionGate, FiveMotorPdFieldsPreserveLegacyGearDirectionAndCalibra
     EXPECT_NE(packets[i][13] | (packets[i][14] << 8), 0);  // Kd
     EXPECT_EQ(Crc(packets[i].data(), 15), packets[i][15] | (packets[i][16] << 8));
   }
+}
+
+class UnitreeSignedMotorBudget : public UnitreeMotionGate {
+ protected:
+  bool SignedBudgetEnabled() const override { return true; }
+
+  std::array<ActuatorCommand, kJointCount> SetPdFrame(
+      double ff, double kp, double kd, double position_error, double velocity_error) {
+    std::array<ActuatorCommand, kJointCount> targets{};
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      const std::string name(kJointNames[i]);
+      auto& target = targets[i];
+      target.mode = static_cast<std::uint32_t>(ActuatorControlMode::COMPOUND);
+      target.position = static_cast<float>(State(name + "/position") + position_error);
+      target.velocity = static_cast<float>(State(name + "/velocity") + velocity_error);
+      target.effort = static_cast<float>(ff);
+      target.kp = static_cast<float>(kp);
+      target.kd = static_cast<float>(kd);
+      Set(name + "/position", target.position);
+      Set(name + "/velocity", target.velocity);
+      Set(name + "/effort", ff);
+      Set(name + "/kp", kp);
+      Set(name + "/kd", kd);
+    }
+    Set("custom_dog/motion_enabled", 1.0);
+    return targets;
+  }
+
+  double InstantEffort(const ActuatorCommand& target, std::size_t i) {
+    const std::string name(kJointNames[i]);
+    return target.effort + target.kp * (target.position - State(name + "/position")) +
+        target.kd * (target.velocity - State(name + "/velocity"));
+  }
+
+  static float TowardZero(double value) {
+    const float nearest = static_cast<float>(value);
+    return std::abs(static_cast<double>(nearest)) > std::abs(value)
+        ? std::nextafter(nearest, 0.0F) : nearest;
+  }
+
+  void ExpectWireFrame(const std::array<ActuatorCommand, kJointCount>& frame) {
+    const DriveParameters parameters;
+    const auto packets = motors_.packets();
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      SCOPED_TRACE(std::string(kJointNames[i]));
+      const auto joint = i % kJointsPerLeg;
+      const float gear = static_cast<float>(joint == 2
+          ? parameters.calf_total_gear_ratio : parameters.base_gear_ratio);
+      const float direction = static_cast<float>(parameters.motor_directions[i]);
+      const float calibration_pose = static_cast<float>(parameters.calibration_pose[joint]);
+      MotorCmd expected;
+      expected.motorType = MotorType::GO_M8010_6;
+      expected.mode = 1;
+      expected.id = joint;
+      expected.q = frame[i].kp == 0.0F ? 0.0F : static_cast<float>(
+          (static_cast<double>(frame[i].position) - calibration_pose) * gear * direction);
+      expected.dq = frame[i].kd == 0.0F ? 0.0F : frame[i].velocity * gear * direction;
+      expected.tau = (frame[i].effort / gear) * direction;
+      expected.kp = frame[i].kp / (gear * gear);
+      expected.kd = frame[i].kd / (gear * gear);
+      expected.hex_len = 17;
+      std::memset(expected.get_motor_send_data(), 0, 17);
+      expected.modify_data(&expected);
+      MotorPtys::Packet expected_packet{};
+      std::copy_n(expected.get_motor_send_data(), expected_packet.size(), expected_packet.begin());
+      EXPECT_EQ(packets[i], expected_packet);
+      EXPECT_EQ((packets[i][2] >> 4) & 0x07, 1);
+      EXPECT_EQ(Crc(packets[i].data(), 15), packets[i][15] | (packets[i][16] << 8));
+    }
+  }
+};
+
+TEST_F(UnitreeSignedMotorBudget, SignedCancellationPreservesTheMotorPdPacketInsteadOfLegacyL1Scaling) {
+  CalibrateAndClaim();
+  const auto targets = SetPdFrame(20.0, 50.0, 0.0, -0.2, 0.0);
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    ASSERT_NEAR(InstantEffort(targets[i], i), 10.0, 1e-5);
+  }
+  ASSERT_EQ(Write(), hardware_interface::return_type::OK);
+  ASSERT_EQ(Read(), hardware_interface::return_type::OK);
+  ASSERT_DOUBLE_EQ(State("custom_dog/motion_enabled"), 1.0);
+  ASSERT_DOUBLE_EQ(State("custom_dog/communication_ok"), 1.0);
+  // Exact SDK bytes retain FF=20 and Kp=50. Legacy L1 would reduce both by
+  // roughly 23.7/30, despite the signed instantaneous total being only 10.
+  ExpectWireFrame(targets);
+}
+
+TEST_F(UnitreeSignedMotorBudget, SignedCancellationRetainsTheIndependentFeedforwardFieldCap) {
+  CalibrateAndClaim();
+  auto expected = SetPdFrame(40.0, 100.0, 0.0, -0.2, 0.0);
+  const double scale = (23.7 * (1.0 - 1e-5)) / 40.0;
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    ASSERT_NEAR(InstantEffort(expected[i], i), 20.0, 2e-5);
+    expected[i].effort = TowardZero(40.0 * scale);
+    expected[i].kp = TowardZero(100.0 * scale);
+    ASSERT_LE(std::abs(expected[i].effort), 23.7);
+    ASSERT_LE(std::abs(InstantEffort(expected[i], i)), 23.7);
+  }
+  ASSERT_EQ(Write(), hardware_interface::return_type::OK);
+  ASSERT_EQ(Read(), hardware_interface::return_type::OK);
+  ASSERT_DOUBLE_EQ(State("custom_dog/motion_enabled"), 1.0);
+  ExpectWireFrame(expected);
+  // The wire's FF field remains within L even though FF+PD alone was feasible.
+  const DriveParameters parameters;
+  const auto packets = motors_.packets();
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    const auto raw = static_cast<std::int16_t>(packets[i][3] | (packets[i][4] << 8));
+    const double gear = i % 3 == 2 ? parameters.calf_total_gear_ratio : parameters.base_gear_ratio;
+    EXPECT_LE(std::abs(raw / 256.0 * gear), 23.7);
+    EXPECT_GT(std::abs(raw / 256.0 * gear), 23.7 - gear / 256.0);
+  }
+}
+
+TEST_F(UnitreeSignedMotorBudget, EncodedInstantaneousTotalScalesFeedforwardAndBothGainsTogether) {
+  CalibrateAndClaim();
+  auto expected = SetPdFrame(20.0, 50.0, 1.0, 0.2, 0.5);
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    const double unbounded_total = InstantEffort(expected[i], i);
+    ASSERT_NEAR(unbounded_total, 30.5, 1e-5);
+    const double scale = (23.7 * (1.0 - 1e-5)) / unbounded_total;
+    expected[i].effort = TowardZero(20.0 * scale);
+    expected[i].kp = TowardZero(50.0 * scale);
+    expected[i].kd = TowardZero(scale);
+    ASSERT_LE(std::abs(expected[i].effort), 23.7);
+    ASSERT_LE(std::abs(InstantEffort(expected[i], i)), 23.7);
+    ASSERT_GT(std::abs(InstantEffort(expected[i], i)), 23.69);
+  }
+  ASSERT_EQ(Write(), hardware_interface::return_type::OK);
+  ASSERT_EQ(Read(), hardware_interface::return_type::OK);
+  ASSERT_DOUBLE_EQ(State("custom_dog/motion_enabled"), 1.0);
+  // Compare the actual PTY packet with SDK encoding of the final bounded float
+  // frame. This verifies the host's encoded frame, not continuous drive torque
+  // after gear/protocol quantization or subsequent feedback changes.
+  ExpectWireFrame(expected);
 }
 
 TEST_F(UnitreeMotionGate, BadFeedbackCrcDisablesTheNextWholeMotorPdFrame) {

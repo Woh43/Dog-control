@@ -15,6 +15,8 @@ namespace custom_dog_control {
 
 Eigen::Vector3d EulerZyxFromRotation(const Eigen::Matrix3d& rotation);
 
+constexpr double kMaxImuOrientationPredictionSeconds = 0.02;
+
 // 世界系采用 z 向上；位置/速度单位为 m、m/s，姿态按 yaw-pitch-roll 排列（rad）。
 // 足端数组沿用 FR、FL、RR、RL 顺序；stamp_seconds 继承本次 IMU 时间戳。
 struct EstimatedState {
@@ -37,10 +39,16 @@ struct EstimatorNoise {
   double foot_sensor_velocity = 0.10;
   double foot_height = 0.01;
   double swing_covariance_scale = 100.0;
+  // Optional confidence schedule for the planned_contacts overload only.
+  // A new planned stance is treated like swing through delay, then smoothly
+  // approaches stance covariance during ramp. These are not contact sensors.
+  // Zero/zero preserves the original binary planned-contact behavior.
+  double planned_contact_delay_s = 0.0;
+  double planned_contact_ramp_s = 0.0;
 };
 
 // 平地接触假设下的线性卡尔曼滤波器：估计基座平移和四足世界位置，
-// 姿态直接来自 IMU，不估计 IMU 偏置。持有独立的 Pinocchio 数据缓存，
+// 姿态来自 IMU，可选有界陀螺仪前推，不估计 IMU 偏置。持有独立的 Pinocchio 数据缓存，
 // 由控制线程串行调用；构造前应通过 ModelValidator 校验模型布局。
 class KinematicStateEstimator {
  public:
@@ -53,21 +61,39 @@ class KinematicStateEstimator {
   // planned_contacts 是规划接触状态，不是触地传感器反馈。IMU 无效或
   // dt 不在 (0, 0.1] 秒时返回 valid=false；调用方仍需检查输出有效性。
   // 平地 z=0 时，URDF 球足中心位于球半径高度，不是地面接触点。
+  // 可选 prediction_seconds 是当前控制时刻相对输入姿态的有界年龄，
+  // 不等于积分步长 dt；默认 0 保留姿态零阶保持。仅姿态/FK 用角速度
+  // 前推，比力仍用原始样本姿态旋转。输入时间戳不变，freshness 由调用方检查。
+  // 非有限、负值或超过 20 ms 的前推请求返回无效状态且不推进滤波器。
   EstimatedState Update(
       const JointSample& joints,
       const ImuSample& imu,
       const std::array<bool, kLegCount>& planned_contacts,
-      double dt);
+      double dt,
+      double prediction_seconds = 0.0);
 
   // Actual (or explicitly estimated) contact with independent height validity.
   // Unknown height is not zero; its observation row is removed.
   EstimatedState Update(const JointSample& joints, const ImuSample& imu,
-                        const ContactSupport& support, double dt);
+                        const ContactSupport& support, double dt,
+                        double prediction_seconds = 0.0);
+
+  // Confidence used by the last valid planned_contacts update, not measured
+  // contact probability. Explicit ContactSupport updates do not alter it.
+  const std::array<double, kLegCount>& plannedContactTrust() const {
+    return planned_contact_trust_;
+  }
 
   // 清除滤波历史；下一次有效 Update 会用支撑腿运动学重新初始化高度。
   void Reset(double nominal_height_m);
 
  private:
+  EstimatedState UpdateImpl(const JointSample& joints, const ImuSample& imu,
+                            const ContactSupport& support, double dt,
+                            double prediction_seconds, bool use_planned_trust);
+  void AdvancePlannedContactTrust(
+      const std::array<bool, kLegCount>& planned_contacts, double dt);
+
   // x = [基座世界位置(3), 基座世界速度(3), 四足世界位置(12)]。
   // y = [基座相对足端位置(12), 四组基座速度(12), 四足高度(4)]。
   using StateVector = Eigen::Matrix<double, 18, 1>;
@@ -86,6 +112,10 @@ class KinematicStateEstimator {
   StateMatrix covariance_ = StateMatrix::Identity() * 100.0;
   ObservationMatrix observation_model_ = ObservationMatrix::Zero();
   bool initialized_ = false;
+  bool planned_contact_history_initialized_ = false;
+  std::array<bool, kLegCount> previous_planned_contacts_{};
+  std::array<double, kLegCount> planned_contact_age_s_{};
+  std::array<double, kLegCount> planned_contact_trust_{};
 };
 
 }  // namespace custom_dog_control

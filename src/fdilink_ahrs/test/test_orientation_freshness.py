@@ -86,6 +86,9 @@ def main():
             stream(.12, attitude)
             assert len(received) == start, 'Fresh gyro/invalid AHRS concealed stale orientation'
 
+        def stamp_ns(message):
+            return message.header.stamp.sec * 1000000000 + message.header.stamp.nanosec
+
         try:
             spin(.7)  # DDS discovery; the driver waits for bytes on the PTY.
             stream(.15)
@@ -94,6 +97,21 @@ def main():
             assert len(received) >= 5, 'Valid IMU/AHRS stream did not publish'
             assert abs(received[-1][1].orientation.w - 1.) < 1e-6
             initial_count = len(received)
+            # New gyro frames must not refresh the cached AHRS receive stamp.
+            # Drain DDS, then keep publishing gyro alone within the AHRS timeout.
+            spin(.01)
+            last_attitude_stamp = stamp_ns(received[-1][1])
+            assert last_attitude_stamp > 0, 'Combined message has a missing timestamp'
+            received.clear()
+            stream(.03)
+            assert len(received) >= 3, 'Repeated gyro frames were not published'
+            assert all(stamp_ns(m) == last_attitude_stamp for _, m in received), \
+                'Gyro frames refreshed the age of the cached AHRS orientation'
+            host_age = (node.get_clock().now().nanoseconds - stamp_ns(received[-1][1])) / 1e9
+            assert host_age >= .025, 'Published stamp concealed the AHRS receive age'
+            stream(.03, packets.ahrs)
+            assert stamp_ns(received[-1][1]) > last_attitude_stamp, \
+                'A new valid AHRS frame did not advance the combined message stamp'
             # An invalid but radically different quaternion must not overwrite the cache.
             received.clear()
             stream(.03, lambda: packets.ahrs(q=(0., 1., 0., 0.), bad_crc=True))
@@ -124,10 +142,14 @@ def main():
                       'device_type': args.device_type,
                       'orientation_timeout_s': timeout,
                       'checks': ['no publication before valid AHRS', 'valid stream publishes',
+                                 'gyro-only frames preserve the AHRS host-receive stamp',
+                                 'combined timestamp exposes cached-attitude age',
+                                 'new valid AHRS advances the combined stamp',
                                  'bad CRC neither poisons cached quaternion nor refreshes age',
                                  'gyro-only stream expires', 'valid AHRS recovers publication',
                                  'bad frame end rejected', 'non-finite quaternion rejected',
                                  'short AHRS/IMU payload rejected', 'parser recovers after short frame'],
+                      'timestamp_semantics': 'host receive time of the latest valid AHRS; not device acquisition time',
                       'hardware_access': 'PTY only; no real serial device'}
             if args.output:
                 with open(args.output, 'w') as output:

@@ -40,7 +40,9 @@ def _configure_controllers(context, common_file, real_file, canonical_urdf):
     atexit.register(shutil.rmtree, runtime, ignore_errors=True)
     path = runtime / 'controllers.yaml'
     path.write_text(yaml.safe_dump(config, sort_keys=False))
-    return [SetLaunchConfiguration('real_controllers_file', str(path))]
+    return [SetLaunchConfiguration('real_controllers_file', str(path)),
+            SetLaunchConfiguration('real_motor_pd_signed_budget',
+                'true' if float(parameters.get('motor_pd_budget_horizon_s', 0.0)) > 0.0 else 'false')]
 
 
 def generate_launch_description():
@@ -58,6 +60,7 @@ def generate_launch_description():
         Command([
             'xacro ', xacro_file,
             ' hardware_mode:=real',
+            ' motor_pd_signed_budget:=', LaunchConfiguration('real_motor_pd_signed_budget'),
             ' description_urdf:=', canonical_urdf,
             ' startup_alignment_enabled:=',
             LaunchConfiguration('startup_alignment_enabled'),

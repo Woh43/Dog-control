@@ -43,6 +43,14 @@ KinematicStateEstimator::KinematicStateEstimator(
     throw std::invalid_argument(
         "flat-ground foot-center height must be finite and non-negative");
   }
+  if (!std::isfinite(noise_.planned_contact_delay_s) ||
+      noise_.planned_contact_delay_s < 0.0 ||
+      !std::isfinite(noise_.planned_contact_ramp_s) ||
+      noise_.planned_contact_ramp_s < 0.0 ||
+      !std::isfinite(noise_.planned_contact_delay_s + noise_.planned_contact_ramp_s)) {
+    throw std::invalid_argument(
+        "planned contact delay/ramp must be finite and non-negative");
+  }
   const auto& model = pinocchio_interface_.getModel();
   for (std::size_t i = 0; i < kJointCount; ++i) {
     const auto joint_id = model.getJointId(std::string(kJointNames[i]));
@@ -62,40 +70,103 @@ void KinematicStateEstimator::Reset(double nominal_height_m) {
   covariance_.setIdentity();
   covariance_ *= 100.0;
   initialized_ = false;
+  planned_contact_history_initialized_ = false;
+  previous_planned_contacts_.fill(false);
+  planned_contact_age_s_.fill(0.0);
+  planned_contact_trust_.fill(0.0);
+}
+
+void KinematicStateEstimator::AdvancePlannedContactTrust(
+    const std::array<bool, kLegCount>& planned_contacts, double dt) {
+  const double full_trust_age =
+      noise_.planned_contact_delay_s + noise_.planned_contact_ramp_s;
+  if (!planned_contact_history_initialized_) {
+    // Reset commonly occurs while already standing. Do not discard those
+    // existing support constraints as though a new touchdown had occurred.
+    for (std::size_t leg = 0; leg < kLegCount; ++leg) {
+      planned_contact_age_s_[leg] = planned_contacts[leg] ? full_trust_age : 0.0;
+      planned_contact_trust_[leg] = planned_contacts[leg] ? 1.0 : 0.0;
+    }
+    previous_planned_contacts_ = planned_contacts;
+    planned_contact_history_initialized_ = true;
+    return;
+  }
+  for (std::size_t leg = 0; leg < kLegCount; ++leg) {
+    if (!planned_contacts[leg]) {
+      planned_contact_age_s_[leg] = 0.0;
+      planned_contact_trust_[leg] = 0.0;
+    } else {
+      // The transition sample starts at age zero; its dt belongs to the
+      // preceding interval, which was still planned swing.
+      planned_contact_age_s_[leg] = previous_planned_contacts_[leg]
+          ? std::min(full_trust_age, planned_contact_age_s_[leg] + dt) : 0.0;
+      if (planned_contact_age_s_[leg] < noise_.planned_contact_delay_s) {
+        planned_contact_trust_[leg] = 0.0;
+      } else if (noise_.planned_contact_ramp_s == 0.0) {
+        planned_contact_trust_[leg] = 1.0;
+      } else {
+        const double alpha = std::clamp(
+            (planned_contact_age_s_[leg] - noise_.planned_contact_delay_s) /
+                noise_.planned_contact_ramp_s, 0.0, 1.0);
+        planned_contact_trust_[leg] = alpha * alpha * (3.0 - 2.0 * alpha);
+      }
+    }
+  }
+  previous_planned_contacts_ = planned_contacts;
 }
 
 EstimatedState KinematicStateEstimator::Update(
     const JointSample& joints,
     const ImuSample& imu,
     const std::array<bool, kLegCount>& planned_contacts,
-    double dt) {
+    double dt,
+    double prediction_seconds) {
   // Compatibility path: the legacy velocity controller explicitly assumes flat ground.
   ContactSupport support;
   support.contact = planned_contacts;
   support.height_valid = planned_contacts;
   support.foot_center_height.fill(flat_ground_foot_center_height_m_);
-  return Update(joints, imu, support, dt);
+  return UpdateImpl(joints, imu, support, dt, prediction_seconds, true);
 }
 
 EstimatedState KinematicStateEstimator::Update(
     const JointSample& joints, const ImuSample& imu,
-    const ContactSupport& support, double dt) {
+    const ContactSupport& support, double dt, double prediction_seconds) {
+  return UpdateImpl(joints, imu, support, dt, prediction_seconds, false);
+}
+
+EstimatedState KinematicStateEstimator::UpdateImpl(
+    const JointSample& joints, const ImuSample& imu,
+    const ContactSupport& support, double dt, double prediction_seconds,
+    bool use_planned_trust) {
   const auto& planned_contacts = support.contact;
   EstimatedState output;
   const double quaternion_norm = Eigen::Vector4d(imu.orientation_wxyz.data()).norm();
   if (!std::isfinite(quaternion_norm) || quaternion_norm < 1e-6) return output;
   for (size_t i=0;i<kJointCount;++i)
     if(joints.valid[i]<.5 || !std::isfinite(joints.position[i]) || !std::isfinite(joints.velocity[i])) return output;
-  if (!imu.valid || !FiniteImuSample(imu) || !std::isfinite(dt) || dt <= 0.0 || dt > 0.1) {
+  if (!imu.valid || !FiniteImuSample(imu) || !std::isfinite(dt) || dt <= 0.0 || dt > 0.1 ||
+      !std::isfinite(prediction_seconds) || prediction_seconds < 0.0 ||
+      prediction_seconds > kMaxImuOrientationPredictionSeconds) {
     return output;
   }
 
-  const Eigen::Quaterniond orientation = QuaternionFrom(imu);
+  const Eigen::Quaterniond sample_orientation = QuaternionFrom(imu);
+  const Eigen::Matrix3d sample_rotation_world_from_body = sample_orientation.toRotationMatrix();
+  const Eigen::Vector3d angular_body(
+      imu.angular_velocity[0], imu.angular_velocity[1], imu.angular_velocity[2]);
+  const double angular_speed = angular_body.norm();
+  if (!std::isfinite(angular_speed)) return output;
+  Eigen::Quaterniond orientation = sample_orientation;
+  if (prediction_seconds > 0.0 && angular_speed > 0.0) {
+    // Body-frame angular velocity acts on the right. Always propagate from
+    // the original sample, never from the previous control cycle's estimate.
+    orientation = (sample_orientation * Eigen::Quaterniond(Eigen::AngleAxisd(
+        angular_speed * prediction_seconds, angular_body / angular_speed))).normalized();
+  }
   const Eigen::Matrix3d rotation_world_from_body = orientation.toRotationMatrix();
   const Eigen::Vector3d euler_zyx =
       EulerZyxFromRotation(rotation_world_from_body);
-  const Eigen::Vector3d angular_body(
-      imu.angular_velocity[0], imu.angular_velocity[1], imu.angular_velocity[2]);
   const Eigen::Vector3d angular_world = rotation_world_from_body * angular_body;
 
   const auto& model = pinocchio_interface_.getModel();
@@ -126,12 +197,26 @@ EstimatedState KinematicStateEstimator::Update(
             model, data, frame_id, pinocchio::LOCAL_WORLD_ALIGNED).linear();
   }
 
+  std::array<double, kLegCount> contact_trust;
+  if (use_planned_trust &&
+      (noise_.planned_contact_delay_s > 0.0 || noise_.planned_contact_ramp_s > 0.0)) {
+    // Input validity and dt have already been checked. Rejected input cannot
+    // consume a touchdown delay or silently advance its confidence schedule.
+    AdvancePlannedContactTrust(planned_contacts, dt);
+    contact_trust = planned_contact_trust_;
+  } else {
+    for (std::size_t leg = 0; leg < kLegCount; ++leg) {
+      contact_trust[leg] = planned_contacts[leg] ? 1.0 : 0.0;
+    }
+    if (use_planned_trust) planned_contact_trust_ = contact_trust;
+  }
+
   // 仅使用可信支撑面的足心高度初始化；未知时保留 Reset 的初始高度。
   if (!initialized_) {
     double height_sum = 0.0;
     int contact_count = 0;
     for (std::size_t leg = 0; leg < kLegCount; ++leg) {
-      if (planned_contacts[leg] && support.height_valid[leg]) {
+      if (contact_trust[leg] > 0.0 && support.height_valid[leg]) {
         height_sum += support.foot_center_height[leg] - foot_in_world_at_origin[leg].z();
         ++contact_count;
       }
@@ -140,7 +225,7 @@ EstimatedState KinematicStateEstimator::Update(
     for (std::size_t leg = 0; leg < kLegCount; ++leg) {
       state_.segment<3>(6 + 3 * leg) =
           state_.head<3>() + foot_in_world_at_origin[leg];
-      if (planned_contacts[leg] && support.height_valid[leg]) {
+      if (contact_trust[leg] > 0.0 && support.height_valid[leg]) {
         state_(6 + 3 * leg + 2) = support.foot_center_height[leg];
       }
     }
@@ -168,7 +253,11 @@ EstimatedState KinematicStateEstimator::Update(
   ObservationVector measurement = ObservationVector::Zero();
   auto observation = observation_model_;
   for (std::size_t leg = 0; leg < kLegCount; ++leg) {
-    const double scale = planned_contacts[leg] ? 1.0 : noise_.swing_covariance_scale;
+    // Preserve the exact legacy arithmetic at trust 0/1. One confidence drives
+    // position, velocity, height and foot-process covariance consistently.
+    const double scale = contact_trust[leg] >= 1.0 ? 1.0 :
+        (contact_trust[leg] <= 0.0 ? noise_.swing_covariance_scale :
+         1.0 + (1.0 - contact_trust[leg]) * (noise_.swing_covariance_scale - 1.0));
     process_noise.block<3, 3>(6 + 3 * leg, 6 + 3 * leg) *= scale;
     measurement_noise.block<3, 3>(3 * leg, 3 * leg) =
         scale * noise_.foot_sensor_position * Eigen::Matrix3d::Identity();
@@ -179,7 +268,7 @@ EstimatedState KinematicStateEstimator::Update(
     measurement.segment<3>(3 * leg) = -foot_in_world_at_origin[leg];
     measurement.segment<3>(12 + 3 * leg) = support.center_velocity[leg] - foot_velocity_at_origin[leg];
     measurement(24 + leg) = support.foot_center_height[leg];
-    if (!planned_contacts[leg] || !support.height_valid[leg]) {
+    if (contact_trust[leg] <= 0.0 || !support.height_valid[leg]) {
       observation.row(24 + leg).setZero();
       measurement(24 + leg) = 0.;
     }
@@ -190,8 +279,9 @@ EstimatedState KinematicStateEstimator::Update(
       imu.linear_acceleration[2]);
   // IMU 输入是机体系比力，静止水平时 z 分量约为 +g；旋转后加入重力，
   // 得到世界系运动加速度。若上游已去重力，此处会重复补偿。
+  // 比力属于原始采样姿态，不能用前推姿态重旋转，否则会制造虚假重力加速度。
   const Eigen::Vector3d acceleration_world =
-      rotation_world_from_body * acceleration_body + Eigen::Vector3d(0.0, 0.0, -9.81);
+      sample_rotation_world_from_body * acceleration_body + Eigen::Vector3d(0.0, 0.0, -9.81);
 
   StateVector predicted_state = transition * state_ + input * acceleration_world;
   for (size_t leg = 0; leg < kLegCount; ++leg) {

@@ -73,6 +73,7 @@ controller_interface::return_type NmpcWbcController::update(
   const auto imu_freshness = EvaluateImuFreshness(
       imu_sample_, now_seconds, safety_monitor_->limits().imu_timeout_s);
   const bool imu_fresh = imu_freshness == ImuFreshnessStatus::Fresh;
+  imu_orientation_prediction_s_ = 0.0;
   const char* estimate_invalid_reason = "kinematic estimator returned invalid state";
   if (!estimation_ready) {
     estimate_invalid_reason = "calibration/operating-mode gate is closed";
@@ -90,7 +91,14 @@ controller_interface::return_type NmpcWbcController::update(
         estimate_.valid &&
         now_seconds - estimate_.stamp_seconds <= ground_truth_timeout_s_;
   } else {
-    estimate_ = estimator_->Update(joints_state_, imu_sample_, contacts, dt);
+    // Predict only a fresh attitude's known host age, never an assumed device
+    // delay. Keep the original IMU timestamp for freshness and diagnostics.
+    if (imu_fresh) {
+      imu_orientation_prediction_s_ = std::min(
+          now_seconds - imu_sample_.stamp_seconds, imu_orientation_prediction_max_s_);
+    }
+    estimate_ = estimator_->Update(joints_state_, imu_sample_, contacts, dt,
+                                   imu_orientation_prediction_s_);
   }
   // 无效估计不推进优化器观测/目标；后面的安全检查和状态机仍会执行。
   if (estimate_.valid) {

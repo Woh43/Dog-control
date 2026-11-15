@@ -187,14 +187,58 @@ void NmpcWbcController::ReadHardwareState() {
 }
 
 void NmpcWbcController::WriteHybridCommand(
-    const HybridJointCommand& command) {
+    const HybridJointCommand& command, bool locomotion_output) {
+  motor_pd_window_budget_ = {};
+  motor_pd_window_budget_.scale.fill(1.0);
+  host_total_torque_budget_ = {};
+  HybridJointCommand bounded;
+  const HybridJointCommand* selected = &command;
+  const bool locomotion = locomotion_output &&
+      (mode_ == OperatingMode::MPC_STANCE || mode_ == OperatingMode::MPC_TROT);
+  if (locomotion && host_total_torque_command_) {
+    // Compose only after handoff/fallback, with exactly this host sample. The
+    // transmitted packet has zero motor gains, so delayed q/dq cannot enlarge
+    // its request. Preserve raw/sent/scale diagnostics before hardware staging.
+    if (!BoundedHostTotalTorqueCommand(
+            command, joints_state_, safety_monitor_->limits().effort_limit,
+            bounded, &host_total_torque_budget_)) {
+      controller_fault_reason_ = "Invalid host total-torque command";
+      RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+      TransitionTo(OperatingMode::FAULT, get_node()->get_clock()->now().seconds());
+      WriteSafeCommand();
+      return;
+    }
+    selected = &bounded;
+  } else if (locomotion && motor_pd_window_model_.horizon_seconds > 0.0) {
+    SignedMotorPdBudget signed_budget;
+    if (!BoundedSignedMotorPdCommand(
+            command, joints_state_, safety_monitor_->limits().effort_limit,
+            motor_pd_window_model_, bounded, &signed_budget)) {
+      controller_fault_reason_ = "Invalid delay-aware motor-PD command budget";
+      RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+      TransitionTo(OperatingMode::FAULT, get_node()->get_clock()->now().seconds());
+      WriteSafeCommand();
+      return;
+    }
+    motor_pd_window_budget_.total_bound_nm = signed_budget.total_abs_bound_nm;
+    motor_pd_window_budget_.scale = signed_budget.scale;
+    selected = &bounded;
+  } else if (motor_pd_window_model_.horizon_seconds > 0.0) {
+    // Preserve the previous sampled L1 boundary for startup/passive/safe
+    // output even when the actuator's instantaneous recheck is signed.
+    // Invalid safe feedback clears the packet directly, without recursion.
+    if (!BoundedMotorPdCommand(command, joints_state_,
+            safety_monitor_->limits().effort_limit, bounded)) bounded = {};
+    selected = &bounded;
+  }
+  const auto& output = *selected;
   if (IsRealHardware() || IsHybridSimulation()) {
     for (std::size_t i = 0; i < kJointCount; ++i) {
-      command_interfaces_[command_interface_indices_[i][0]].set_value(command.position[i]);
-      command_interfaces_[command_interface_indices_[i][1]].set_value(command.velocity[i]);
-      command_interfaces_[command_interface_indices_[i][2]].set_value(command.effort[i]);
-      command_interfaces_[command_interface_indices_[i][3]].set_value(command.kp[i]);
-      command_interfaces_[command_interface_indices_[i][4]].set_value(command.kd[i]);
+      command_interfaces_[command_interface_indices_[i][0]].set_value(output.position[i]);
+      command_interfaces_[command_interface_indices_[i][1]].set_value(output.velocity[i]);
+      command_interfaces_[command_interface_indices_[i][2]].set_value(output.effort[i]);
+      command_interfaces_[command_interface_indices_[i][3]].set_value(output.kp[i]);
+      command_interfaces_[command_interface_indices_[i][4]].set_value(output.kd[i]);
     }
     if (IsHybridSimulation()) {
       const bool motion = mode_ == OperatingMode::STAND_UP ||
@@ -219,7 +263,7 @@ void NmpcWbcController::WriteHybridCommand(
     command_interfaces_[system_command_interface_indices_[2]].set_value(
         motion_enabled ? 1.0 : 0.0);
   } else {
-    WriteSimulationEffort(command, true);
+    WriteSimulationEffort(output, true);
   }
 }
 
@@ -243,6 +287,9 @@ void NmpcWbcController::WriteSimulationEffort(
 }
 
 void NmpcWbcController::WriteSafeCommand(bool reset_calibration) {
+  host_total_torque_budget_ = {};
+  motor_pd_window_budget_ = {};
+  motor_pd_window_budget_.scale.fill(1.0);
   simulation_effort_delay_.Reset();
   // 真机 PASSIVE/CALIBRATION/FAULT 关闭常规 motion_enabled。
   // 仅启动预对位有硬件内部固定小力矩例外；FAULT 仍取消该过程并退零。
@@ -268,7 +315,7 @@ void NmpcWbcController::WriteSafeCommand(bool reset_calibration) {
   // 合并请求而非覆盖，保留尚未发送到硬件的标定复位脉冲。
   reset_calibration_pending_ = reset_calibration_pending_ || reset_calibration;
   if (IsRealHardware() || IsHybridSimulation()) {
-    WriteHybridCommand(command);
+    WriteHybridCommand(command, false);
   } else {
     // Safety output takes effect this cycle; never enqueue it behind motion.
     WriteSimulationEffort(command, false);

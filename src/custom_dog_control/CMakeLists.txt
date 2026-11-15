@@ -124,6 +124,7 @@ add_library(custom_dog_control_legged_interface STATIC
   third_party/legged_control/legged_interface/src/constraint/SwingTrajectoryPlanner.cpp
   third_party/legged_control/legged_interface/src/initialization/LeggedRobotInitializer.cpp
   third_party/legged_control/legged_interface/src/SwitchedModelReferenceManager.cpp
+  third_party/legged_control/legged_interface/src/SwingReferenceSettings.cpp
   third_party/legged_control/legged_interface/src/LeggedRobotPreComputation.cpp
   third_party/legged_control/legged_interface/src/LeggedInterface.cpp
 )
@@ -350,6 +351,7 @@ install(PROGRAMS
   scripts/simulation_smoke_test.py
   scripts/simulation_fortress_test.py
   scripts/simulation_planar_test.py
+  scripts/simulation_speed_sweep_test.py
   scripts/simulation_motion_guard.py
   scripts/simulation_terrain_test.py
   DESTINATION lib/${PROJECT_NAME}
@@ -375,6 +377,11 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/test/test_simulation_motion_guard.py
   )
   add_test(
+    NAME test_simulation_speed_sweep
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_simulation_speed_sweep.py
+  )
+  add_test(
     NAME test_legged_control_provenance
     COMMAND ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/test/check_legged_control_provenance.py
@@ -386,6 +393,29 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
 
   ament_add_gtest(test_joint_command_utils test/test_joint_command_utils.cpp)
   target_include_directories(test_joint_command_utils PRIVATE include)
+
+  ament_add_gtest(test_joint_velocity_reference_limiter test/test_joint_velocity_reference_limiter.cpp)
+  target_include_directories(test_joint_velocity_reference_limiter PRIVATE include)
+
+  ament_add_gtest(test_bounded_cross_track_anchor test/test_bounded_cross_track_anchor.cpp)
+  target_include_directories(test_bounded_cross_track_anchor PRIVATE include)
+
+  ament_add_gtest(test_joint_command_window_budget test/test_joint_command_window_budget.cpp)
+  target_include_directories(test_joint_command_window_budget PRIVATE include)
+
+  ament_add_gtest(test_signed_motor_pd_budget test/test_signed_motor_pd_budget.cpp)
+  target_include_directories(test_signed_motor_pd_budget PRIVATE include)
+
+  ament_add_gtest(test_host_total_torque_command test/test_host_total_torque_command.cpp)
+  target_include_directories(test_host_total_torque_command PRIVATE include)
+
+  ament_add_gtest(test_absolute_swing_reference test/test_absolute_swing_reference.cpp)
+  target_link_libraries(test_absolute_swing_reference custom_dog_control_legged_interface)
+
+  ament_add_gtest(test_nominal_joint_reference test/test_nominal_joint_reference.cpp)
+  target_include_directories(test_nominal_joint_reference PRIVATE include)
+  ament_target_dependencies(test_nominal_joint_reference ocs2_core ocs2_oc)
+  target_link_libraries(test_nominal_joint_reference Eigen3::Eigen)
 
   ament_add_gtest(test_simulation_effort_delay test/test_simulation_effort_delay.cpp)
   target_include_directories(test_simulation_effort_delay PRIVATE include)

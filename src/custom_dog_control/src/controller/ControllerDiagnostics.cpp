@@ -29,6 +29,10 @@ std::string Number(double value) {
   return stream.str();
 }
 
+std::string NumberOrNull(double value) {
+  return std::isfinite(value) ? Number(value) : "null";
+}
+
 // Numeric diagnostic arrays are JSON, including unavailable/non-finite entries.
 // Use a fixed locale so a process locale cannot change decimal points to commas.
 template <typename Values>
@@ -87,7 +91,7 @@ void NmpcWbcController::PublishDiagnostics(
   // 10 Hz diagnostic throttling. Default off; never publishes on real hardware.
   if (simulation_trace_publisher_) {
     std_msgs::msg::Float64MultiArray trace;
-    trace.data.reserve(146);
+    trace.data.reserve(297);
     trace.data = {stamp.seconds(), static_cast<double>(mode_),
                   static_cast<double>(policy.mode), static_cast<double>(policy.sequence),
                   static_cast<double>(estimator_contact_mode), policy.observation_time,
@@ -109,8 +113,36 @@ void NmpcWbcController::PublishDiagnostics(
     for (std::size_t i = 0; i < kJointCount; ++i) {
       trace.data.push_back(command_interfaces_[command_interface_indices_[i][0]].get_value());
     }
+    // v2 preserves the complete v1 prefix, then captures the exported hybrid
+    // targets/gains and explicit budget telemetry. This is before the actuator
+    // write boundary and is not a measured torque stream.
+    for (const std::size_t field : {0u, 1u, 3u, 4u}) {
+      for (std::size_t i = 0; i < kJointCount; ++i) {
+        trace.data.push_back((IsRealHardware() || IsHybridSimulation())
+            ? command_interfaces_[command_interface_indices_[i][field]].get_value()
+            : std::numeric_limits<double>::quiet_NaN());
+      }
+    }
+    append(wbc.pd_window_reservation_nm);
+    append(wbc.joint_pd_gain_scale);
+    append(motor_pd_window_budget_.scale);
+    append(estimator_->plannedContactTrust());
+    trace.data.push_back(wbc.raw_base_az_task_rhs_mps2);
+    trace.data.push_back(wbc.joint_acceleration_coupling_az_mps2);
+    trace.data.push_back(wbc.nominal_height_correction_mps2);
+    trace.data.push_back(static_cast<double>(wbc.velocity_reference_limited_joints));
+    // Retired paired-reference diagnostics occupy 22 reserved zero fields.
+    // Keep the complete v3 260-field prefix, so v4 host fields still start at 260.
+    trace.data.insert(trace.data.end(), 22, 0.0);
+    // v4 preserves the 260-field v3 prefix. Host composition is an explicit
+    // execution mode: raw requests remain visible even when the sent effort
+    // is bounded. These are software requests, not measured motor torque.
+    append(host_total_torque_budget_.raw_total_nm);
+    append(host_total_torque_budget_.sent_total_nm);
+    append(host_total_torque_budget_.scale);
+    trace.data.push_back(host_total_torque_budget_.active ? 1.0 : 0.0);
     trace.layout.dim.resize(1);
-    trace.layout.dim[0].label = "custom_dog_sim_control_trace_v1";
+    trace.layout.dim[0].label = "custom_dog_sim_control_trace_v4";
     trace.layout.dim[0].size = trace.data.size();
     trace.layout.dim[0].stride = trace.data.size();
     simulation_trace_publisher_->publish(trace);
@@ -258,6 +290,7 @@ void NmpcWbcController::PublishDiagnostics(
       KeyValue("estimate_valid", estimate.valid ? "true" : "false"),
       KeyValue("imu_valid", imu_sample_.valid ? "true" : "false"),
       KeyValue("imu_age_s", Number(stamp.seconds() - imu_sample_.stamp_seconds)),
+      KeyValue("imu_orientation_prediction_s", Number(imu_orientation_prediction_s_)),
       KeyValue("trot_enabled", trot_enabled_ ? "true" : "false"),
       KeyValue(
           "gait_transition",
@@ -283,6 +316,37 @@ void NmpcWbcController::PublishDiagnostics(
       KeyValue("base_x_m", Number(estimate.position.x())),
       KeyValue("base_y_m", Number(estimate.position.y())),
       KeyValue("base_z_m", Number(estimate.position.z())),
+      KeyValue("nmpc_reference_base_z_m", Number(nominal_height_m_)),
+      KeyValue("nmpc_cross_track_error_m", Number(backend_->targetCrossTrackErrorMeters())),
+      KeyValue("nmpc_evaluated_base_z_m", policy.valid ? NumberOrNull(policy.state[8]) : "null"),
+      KeyValue("nmpc_evaluated_base_z_valid", policy.valid ? "true" : "false"),
+      KeyValue("wbc_desired_base_z_m", NumberOrNull(wbc.desired_base_z_m)),
+      KeyValue("wbc_task_base_az_mps2", NumberOrNull(wbc.task_base_az_mps2)),
+      KeyValue("wbc_qp_base_az_mps2", NumberOrNull(wbc.qp_base_az_mps2)),
+      KeyValue("wbc_qp_base_az_residual_mps2", NumberOrNull(wbc.qp_base_az_residual_mps2)),
+      KeyValue("wbc_raw_base_az_task_rhs_mps2", NumberOrNull(wbc.raw_base_az_task_rhs_mps2)),
+      KeyValue("wbc_joint_acceleration_coupling_az_mps2", NumberOrNull(wbc.joint_acceleration_coupling_az_mps2)),
+      KeyValue("wbc_nominal_height_correction_mps2", NumberOrNull(wbc.nominal_height_correction_mps2)),
+      KeyValue("wbc_velocity_reference_limited_joints", std::to_string(wbc.velocity_reference_limited_joints)),
+      KeyValue("wbc_pd_window_reservation_nm", JsonNumberArray(wbc.pd_window_reservation_nm)),
+      KeyValue("wbc_pd_gain_scale", JsonNumberArray(wbc.joint_pd_gain_scale)),
+      KeyValue("motor_pd_budget_horizon_s", Number(motor_pd_window_model_.horizon_seconds)),
+      KeyValue("motor_pd_nominal_execution_time_s", Number(motor_pd_window_model_.nominal_time_seconds)),
+      KeyValue("host_total_torque_command", host_total_torque_command_ ? "true" : "false"),
+      KeyValue("host_total_torque_active", host_total_torque_budget_.active ? "true" : "false"),
+      KeyValue("host_total_torque_pd_nm", JsonNumberArray(host_total_torque_budget_.pd_nm)),
+      KeyValue("host_total_torque_raw_nm", JsonNumberArray(host_total_torque_budget_.raw_total_nm)),
+      KeyValue("host_total_torque_sent_nm", JsonNumberArray(host_total_torque_budget_.sent_total_nm)),
+      KeyValue("host_total_torque_scale", JsonNumberArray(host_total_torque_budget_.scale)),
+      KeyValue("motor_pd_budget_semantics", host_total_torque_command_
+          ? "host-composed bounded fixed effort in locomotion; motor gains zero; raw request retained; not measured physical torque"
+          : motor_pd_window_model_.horizon_seconds > 0.0
+          ? "signed total FF+PD window with assumed acceleration; WBC includes nominal PD; not an identified drive limit"
+          : "legacy sampled L1 command budget; no delivery-window guarantee"),
+      KeyValue("motor_pd_window_budget_before_scaling_nm", JsonNumberArray(motor_pd_window_budget_.total_bound_nm)),
+      KeyValue("motor_pd_window_output_scale", JsonNumberArray(motor_pd_window_budget_.scale)),
+      KeyValue("estimator_planned_contact_trust", JsonNumberArray(estimator_->plannedContactTrust())),
+      KeyValue("height_tracking_diagnostic_semantics", "reference is the constant nominal NMPC height; evaluated is policy.state[8]; WBC desired retains the policy state for foot FK; task az is the effective base target after subtracting the QP joint-acceleration coupling from the task RHS when enabled; residual is QP az minus effective target; nominal-height correction affects only the base task; no acceleration is measured; null means unavailable this update"),
       KeyValue("base_yaw_rad", Number(estimate.euler_zyx.x())),
       KeyValue("base_roll_rad", Number(estimate.euler_zyx.z())),
       KeyValue("base_pitch_rad", Number(estimate.euler_zyx.y())),
@@ -319,6 +383,9 @@ void NmpcWbcController::PublishDiagnostics(
       KeyValue(
           "wbc_consecutive_failures",
           std::to_string(consecutive_wbc_failures_)),
+      KeyValue("wbc_command_effort_semantics", host_total_torque_command_
+          ? "internal residual total_qp_minus_same_sample_PD; not the transmitted effort field"
+          : "WBC feedforward effort before final command boundary"),
       KeyValue("wbc_tau_max_abs", Number(wbc_tau_max_abs)),
       KeyValue("wbc_tau_fr_hip", Number(wbc.command.effort[0])),
       KeyValue("wbc_tau_fr_thigh", Number(wbc.command.effort[1])),

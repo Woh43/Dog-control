@@ -37,8 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ocs2_centroidal_model/CentroidalModelPinocchioMapping.h>
 
-#include <ocs2_legged_robot/common/ModelSettings.h>
-
 #include "legged_interface/constraint/EndEffectorLinearConstraint.h"
 #include "legged_interface/constraint/SwingTrajectoryPlanner.h"
 
@@ -49,7 +47,7 @@ namespace legged_robot {
 class LeggedRobotPreComputation : public PreComputation {
  public:
   LeggedRobotPreComputation(PinocchioInterface pinocchioInterface, CentroidalModelInfo info,
-                            const SwingTrajectoryPlanner& swingTrajectoryPlanner, ModelSettings settings);
+                            const SwingTrajectoryPlanner& swingTrajectoryPlanner, scalar_t swingPositionErrorGain = 0.0);
   ~LeggedRobotPreComputation() override = default;
 
   LeggedRobotPreComputation* clone() const override { return new LeggedRobotPreComputation(*this); }
@@ -69,7 +67,7 @@ class LeggedRobotPreComputation : public PreComputation {
   CentroidalModelInfo info_;
   const SwingTrajectoryPlanner* swingTrajectoryPlannerPtr_;
   std::unique_ptr<CentroidalModelPinocchioMapping> mappingPtr_;
-  const ModelSettings settings_;
+  const scalar_t swingPositionErrorGain_;
 
   std::vector<EndEffectorLinearConstraint::Config> eeNormalVelConConfigs_;
 };

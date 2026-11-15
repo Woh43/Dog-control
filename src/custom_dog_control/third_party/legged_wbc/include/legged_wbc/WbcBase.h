@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <limits>
+
 #include "legged_wbc/Task.h"
 
 #include <ocs2_centroidal_model/PinocchioCentroidalDynamics.h>
@@ -30,6 +32,24 @@ class WbcBase {
   bool lastSolverSucceeded() const { return lastSolverSucceeded_; }
   scalar_t lastEqualityResidual() const { return lastEqualityResidual_; }
   scalar_t lastInequalityViolation() const { return lastInequalityViolation_; }
+  // Local read-only telemetry: unweighted world base-z acceleration target
+  // formed by the current task (dynamics feedforward + base feedback).
+  // Not a measured acceleration; NaN until this update forms the task.
+  scalar_t lastBaseVerticalAccelerationTarget() const { return lastBaseVerticalAccelerationTarget_; }
+  const vector_t& lastBaseVerticalJointAccelerationCoupling() const { return lastBaseVerticalJointAccelerationCoupling_; }
+  scalar_t lastNominalHeightCorrection() const { return lastNominalHeightCorrection_; }
+  // Local optional experiment: include the QP joint acceleration in the
+  // centroidal task instead of differentiating a potentially discontinuous MPC
+  // velocity input. This changes the task objective and is disabled by default.
+  void setUseJointAccelerationDecision(bool enabled) { useJointAccelerationDecision_ = enabled; }
+  void resetInputHistory() { inputHistoryInitialized_ = false; }
+  void setJointTorqueUpperBounds(const vector_t& bounds);
+  // The QP torque variables remain the protocol FF fields. Include the known
+  // motor PD in rigid-body dynamics and constrain FF + the entire PD interval.
+  // Zero vectors preserve the upstream FF-only formulation.
+  void setMotorPdTorqueModel(const vector_t& nominal, const vector_t& lower,
+                            const vector_t& upper);
+  void setNominalHeightFeedback(scalar_t reference, scalar_t maxCorrection);
   // Local adapter: optional QP bounds for planned touchdown load transfer.
   void setContactNormalForceUpperBounds(const vector_t& bounds);
 
@@ -67,6 +87,8 @@ class WbcBase {
   // Task Parameters:
   vector_t torqueLimits_;
   vector_t contactNormalForceUpperBounds_;
+  vector_t jointTorqueUpperBounds_;
+  vector_t motorPdNominal_, motorPdLower_, motorPdUpper_;
   scalar_t frictionCoeff_{}, swingKp_{}, swingKd_{};
   vector3_t basePositionKp_ = vector3_t::Zero();
   vector3_t basePositionKd_ = vector3_t::Zero();
@@ -76,6 +98,13 @@ class WbcBase {
   bool lastSolverSucceeded_ = false;
   scalar_t lastEqualityResidual_ = 0.0;
   scalar_t lastInequalityViolation_ = 0.0;
+  scalar_t lastBaseVerticalAccelerationTarget_ = std::numeric_limits<scalar_t>::quiet_NaN();
+  vector_t lastBaseVerticalJointAccelerationCoupling_;
+  scalar_t lastNominalHeightCorrection_ = std::numeric_limits<scalar_t>::quiet_NaN();
+  bool inputHistoryInitialized_ = false;
+  bool useJointAccelerationDecision_ = false;
+  scalar_t nominalHeightReference_ = 0.0;
+  scalar_t maxNominalHeightCorrection_ = 0.0;
 };
 
 }  // namespace legged

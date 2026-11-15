@@ -29,6 +29,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "legged_interface/SwitchedModelReferenceManager.h"
 
+#include <cmath>
+#include <stdexcept>
+
 namespace ocs2 {
 namespace legged_robot {
 
@@ -36,10 +39,16 @@ namespace legged_robot {
 /******************************************************************************************************/
 /******************************************************************************************************/
 SwitchedModelReferenceManager::SwitchedModelReferenceManager(std::shared_ptr<GaitSchedule> gaitSchedulePtr,
-                                                             std::shared_ptr<SwingTrajectoryPlanner> swingTrajectoryPtr)
+                                                             std::shared_ptr<SwingTrajectoryPlanner> swingTrajectoryPtr,
+                                                             scalar_t flatGroundFootCenterHeight)
     : ReferenceManager(TargetTrajectories(), ModeSchedule()),
       gaitSchedulePtr_(std::move(gaitSchedulePtr)),
-      swingTrajectoryPtr_(std::move(swingTrajectoryPtr)) {}
+      swingTrajectoryPtr_(std::move(swingTrajectoryPtr)),
+      flatGroundFootCenterHeight_(flatGroundFootCenterHeight) {
+  if (!std::isfinite(flatGroundFootCenterHeight_)) {
+    throw std::invalid_argument("[SwitchedModelReferenceManager] flat foot-center height must be finite");
+  }
+}
 
 /******************************************************************************************************/
 /******************************************************************************************************/
@@ -64,8 +73,9 @@ void SwitchedModelReferenceManager::modifyReferences(scalar_t initTime, scalar_t
   const auto timeHorizon = finalTime - initTime;
   modeSchedule = gaitSchedulePtr_->getModeSchedule(initTime - timeHorizon, finalTime + timeHorizon);
 
-  const scalar_t terrainHeight = 0.0;
-  swingTrajectoryPtr_->update(modeSchedule, terrainHeight);
+  // An absolute, configured foot-center plane survives observation re-anchoring at each solve.
+  // The planner's swingHeight is a clearance above this plane, not above the current measured foot.
+  swingTrajectoryPtr_->update(modeSchedule, flatGroundFootCenterHeight_);
 }
 
 }  // namespace legged_robot

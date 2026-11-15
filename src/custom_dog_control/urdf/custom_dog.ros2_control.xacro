@@ -4,6 +4,20 @@
   <xacro:arg name="description_urdf" default="$(find custom_dog_description)/urdf/custom_dog.urdf"/>
   <xacro:arg name="controllers_file" default=""/>
   <xacro:arg name="gazebo_control_plugin" default="libgazebo_ros2_control.so"/>
+  <!-- Fortress motor-PD stress defaults: 20 ms extra delay, equal calf
+       friction coefficients. Assumed values, not identified hardware parameters;
+       these actuator parameters never affect real IO. -->
+  <xacro:arg name="simulation_imu_rate_hz" default="100.0"/>
+  <xacro:arg name="simulation_command_delay_s" default="0.020"/>
+  <!-- Enabled together with the controller's signed delivery-window budget.
+       Unknown real-hardware latency retains the legacy budget by default. -->
+  <xacro:arg name="motor_pd_signed_budget" default="false"/>
+  <xacro:arg name="motor_pd_budget_horizon_s" default="0.0"/>
+  <xacro:arg name="motor_pd_nominal_execution_time_s" default="0.0"/>
+  <xacro:arg name="motor_pd_assumed_acceleration_rad_s2" default="100.0"/>
+  <xacro:arg name="simulation_coulomb_friction" default="0 0 0.45"/>
+  <xacro:arg name="simulation_viscous_friction" default="0 0 0.0175"/>
+  <xacro:arg name="simulation_friction_velocity_scale" default="0.05"/>
   <!-- Gazebo needs an abducted folded pose for the belly and folded-leg
        collision shapes to touch down together. Real hardware independently
        defines its current physical prone pose as logical hip=0 on START. -->
@@ -72,9 +86,18 @@
       </xacro:if>
       <xacro:if value="${'$(arg hardware_mode)' == 'fortress_hybrid'}">
         <plugin>custom_dog_control/FortressMotorSystem</plugin>
+        <param name="motor_pd_signed_budget">$(arg motor_pd_signed_budget)</param>
+        <param name="motor_pd_budget_horizon_s">$(arg motor_pd_budget_horizon_s)</param>
+        <param name="motor_pd_nominal_execution_time_s">$(arg motor_pd_nominal_execution_time_s)</param>
+        <param name="motor_pd_assumed_acceleration_rad_s2">$(arg motor_pd_assumed_acceleration_rad_s2)</param>
+        <param name="simulation_command_delay_s">$(arg simulation_command_delay_s)</param>
+        <param name="simulation_coulomb_friction">$(arg simulation_coulomb_friction)</param>
+        <param name="simulation_viscous_friction">$(arg simulation_viscous_friction)</param>
+        <param name="simulation_friction_velocity_scale">$(arg simulation_friction_velocity_scale)</param>
       </xacro:if>
       <xacro:if value="${'$(arg hardware_mode)' == 'real'}">
         <plugin>custom_dog_control/UnitreeSystemInterface</plugin>
+        <param name="motor_pd_signed_budget">$(arg motor_pd_signed_budget)</param>
         <param name="fr_port">$(arg fr_port)</param>
         <param name="fl_port">$(arg fl_port)</param>
         <param name="rr_port">$(arg rr_port)</param>
@@ -143,8 +166,8 @@
   </ros2_control>
 
   <xacro:if value="${'$(arg hardware_mode)' in ('gazebo', 'fortress', 'fortress_hybrid')}">
-    <!-- Folded calves must slide while the legs unfold. Foot friction matches
-         the 0.5 coefficient used by the NMPC and WBC contact constraints. -->
+    <!-- Folded calves must slide while the legs unfold. Simulated foot friction
+         is 1.0; NMPC/WBC use a more conservative 0.5 contact-force constraint. -->
     <xacro:macro name="gazebo_leg_friction" params="prefix">
       <gazebo reference="${prefix}_calf">
         <mu1>0.2</mu1>
@@ -187,7 +210,7 @@
     <gazebo reference="base">
       <sensor name="base_imu" type="imu">
         <always_on>true</always_on>
-        <update_rate>250</update_rate>
+        <update_rate>$(arg simulation_imu_rate_hz)</update_rate>
         <visualize>false</visualize>
         <plugin filename="libgazebo_ros_imu_sensor.so" name="base_imu_plugin">
           <ros>
@@ -224,7 +247,7 @@
     <gazebo reference="base">
       <sensor name="base_imu" type="imu">
         <always_on>true</always_on>
-        <update_rate>250</update_rate>
+        <update_rate>$(arg simulation_imu_rate_hz)</update_rate>
         <visualize>false</visualize>
         <topic>/imu</topic>
         <imu>

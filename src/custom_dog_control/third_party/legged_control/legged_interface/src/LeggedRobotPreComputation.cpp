@@ -34,9 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pinocchio/algorithm/kinematics.hpp>
 
 #include <ocs2_centroidal_model/ModelHelperFunctions.h>
-#include <ocs2_core/misc/Numerics.h>
-
 #include "legged_interface/LeggedRobotPreComputation.h"
+#include "legged_interface/SwingReferenceSettings.h"
 
 namespace ocs2 {
 namespace legged_robot {
@@ -45,12 +44,14 @@ namespace legged_robot {
 /******************************************************************************************************/
 /******************************************************************************************************/
 LeggedRobotPreComputation::LeggedRobotPreComputation(PinocchioInterface pinocchioInterface, CentroidalModelInfo info,
-                                                     const SwingTrajectoryPlanner& swingTrajectoryPlanner, ModelSettings settings)
+                                                     const SwingTrajectoryPlanner& swingTrajectoryPlanner, scalar_t swingPositionErrorGain)
     : pinocchioInterface_(std::move(pinocchioInterface)),
       info_(std::move(info)),
       swingTrajectoryPlannerPtr_(&swingTrajectoryPlanner),
       mappingPtr_(new CentroidalModelPinocchioMapping(info_)),
-      settings_(std::move(settings)) {
+      swingPositionErrorGain_(swingPositionErrorGain) {
+  // Validate even when the first precomputation request is not a constraint request.
+  makeSwingNormalVelocityConstraintConfig(0.0, 0.0, swingPositionErrorGain_);
   eeNormalVelConConfigs_.resize(info_.numThreeDofContacts);
   mappingPtr_->setPinocchioInterface(pinocchioInterface_);
 }
@@ -63,7 +64,7 @@ LeggedRobotPreComputation::LeggedRobotPreComputation(const LeggedRobotPreComputa
       info_(rhs.info_),
       swingTrajectoryPlannerPtr_(rhs.swingTrajectoryPlannerPtr_),
       mappingPtr_(rhs.mappingPtr_->clone()),
-      settings_(rhs.settings_) {
+      swingPositionErrorGain_(rhs.swingPositionErrorGain_) {
   eeNormalVelConConfigs_.resize(rhs.eeNormalVelConConfigs_.size());
   mappingPtr_->setPinocchioInterface(pinocchioInterface_);
 }
@@ -78,14 +79,9 @@ void LeggedRobotPreComputation::request(RequestSet request, scalar_t t, const ve
 
   // lambda to set config for normal velocity constraints
   auto eeNormalVelConConfig = [&](size_t footIndex) {
-    EndEffectorLinearConstraint::Config config;
-    config.b = (vector_t(1) << -swingTrajectoryPlannerPtr_->getZvelocityConstraint(footIndex, t)).finished();
-    config.Av = (matrix_t(1, 3) << 0.0, 0.0, 1.0).finished();
-    if (!numerics::almost_eq(settings_.positionErrorGain, 0.0)) {
-      config.b(0) -= settings_.positionErrorGain * swingTrajectoryPlannerPtr_->getZpositionConstraint(footIndex, t);
-      config.Ax = (matrix_t(1, 3) << 0.0, 0.0, settings_.positionErrorGain).finished();
-    }
-    return config;
+    return makeSwingNormalVelocityConstraintConfig(swingTrajectoryPlannerPtr_->getZpositionConstraint(footIndex, t),
+                                                   swingTrajectoryPlannerPtr_->getZvelocityConstraint(footIndex, t),
+                                                   swingPositionErrorGain_);
   };
 
   if (request.contains(Request::Constraint)) {

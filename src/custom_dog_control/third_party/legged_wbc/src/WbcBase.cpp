@@ -34,6 +34,44 @@ WbcBase::WbcBase(const PinocchioInterface& pinocchioInterface, CentroidalModelIn
   vMeasured_ = vector_t(info_.generalizedCoordinatesNum);
   contactNormalForceUpperBounds_ = vector_t::Constant(
       info_.numThreeDofContacts, std::numeric_limits<scalar_t>::infinity());
+  jointTorqueUpperBounds_ = vector_t::Constant(
+      info_.actuatedDofNum, std::numeric_limits<scalar_t>::infinity());
+  motorPdNominal_ = motorPdLower_ = motorPdUpper_ = vector_t::Zero(info_.actuatedDofNum);
+  lastBaseVerticalJointAccelerationCoupling_ = vector_t::Zero(info_.actuatedDofNum);
+}
+
+void WbcBase::setJointTorqueUpperBounds(const vector_t& bounds) {
+  if (bounds.size() != static_cast<Eigen::Index>(info_.actuatedDofNum)) {
+    throw std::invalid_argument("wrong number of joint torque bounds");
+  }
+  for (Eigen::Index i = 0; i < bounds.size(); ++i) {
+    if (std::isnan(bounds(i)) || bounds(i) < 0.0) {
+      throw std::invalid_argument("joint torque bounds must be nonnegative or +infinity");
+    }
+  }
+  jointTorqueUpperBounds_ = bounds;
+}
+
+void WbcBase::setMotorPdTorqueModel(const vector_t& nominal, const vector_t& lower,
+                                   const vector_t& upper) {
+  const auto size = static_cast<Eigen::Index>(info_.actuatedDofNum);
+  if (nominal.size() != size || lower.size() != size || upper.size() != size ||
+      !nominal.allFinite() || !lower.allFinite() || !upper.allFinite() ||
+      (lower.array() > nominal.array()).any() ||
+      (nominal.array() > upper.array()).any()) {
+    throw std::invalid_argument("invalid motor PD torque interval");
+  }
+  motorPdNominal_ = nominal;
+  motorPdLower_ = lower;
+  motorPdUpper_ = upper;
+}
+
+void WbcBase::setNominalHeightFeedback(scalar_t reference, scalar_t maxCorrection) {
+  if (!std::isfinite(reference) || !std::isfinite(maxCorrection) || maxCorrection < 0.0) {
+    throw std::invalid_argument("invalid nominal height feedback");
+  }
+  nominalHeightReference_ = reference;
+  maxNominalHeightCorrection_ = maxCorrection;
 }
 
 void WbcBase::setContactNormalForceUpperBounds(const vector_t& bounds) {
@@ -50,6 +88,9 @@ void WbcBase::setContactNormalForceUpperBounds(const vector_t& bounds) {
 
 vector_t WbcBase::update(const vector_t& stateDesired, const vector_t& inputDesired, const vector_t& rbdStateMeasured, size_t mode,
                          scalar_t /*period*/) {
+  lastBaseVerticalAccelerationTarget_ = std::numeric_limits<scalar_t>::quiet_NaN();
+  lastBaseVerticalJointAccelerationCoupling_.setZero();
+  lastNominalHeightCorrection_ = std::numeric_limits<scalar_t>::quiet_NaN();
   contactFlag_ = modeNumber2StanceLeg(mode);
   numContacts_ = 0;
   for (bool flag : contactFlag_) {
@@ -135,6 +176,7 @@ Task WbcBase::formulateFloatingBaseEomTask() {
           info_.generalizedCoordinatesNum, info_.actuatedDofNum) =
       -s.transpose();
   vector_t b = -data.nle;
+  b.tail(info_.actuatedDofNum) += motorPdNominal_;
 
   return {a, b, matrix_t(), vector_t()};
 }
@@ -147,8 +189,13 @@ Task WbcBase::formulateTorqueLimitsTask() {
   d.block(info_.actuatedDofNum, info_.generalizedCoordinatesNum + 3 * info_.numThreeDofContacts, info_.actuatedDofNum,
           info_.actuatedDofNum) = -i;
   vector_t f(2 * info_.actuatedDofNum);
-  for (size_t l = 0; l < 2 * info_.actuatedDofNum / 3; ++l) {
-    f.segment<3>(3 * l) = torqueLimits_;
+  for (size_t j = 0; j < info_.actuatedDofNum; ++j) {
+    const scalar_t limit = std::min(torqueLimits_(j % 3), jointTorqueUpperBounds_(j));
+    // Retain the independent FF field cap and additionally bound the total
+    // requested actuator torque for every PD value in the declared window.
+    f(j) = std::min(limit, torqueLimits_(j % 3) - motorPdUpper_(j));
+    f(info_.actuatedDofNum + j) =
+        std::min(limit, torqueLimits_(j % 3) + motorPdLower_(j));
   }
 
   return {matrix_t(), vector_t(), d, f};
@@ -262,8 +309,14 @@ Task WbcBase::formulateBaseAccelTask(const vector_t& stateDesired, const vector_
   a.setZero();
   a.block(0, 0, 6, 6) = matrix_t::Identity(6, 6);
 
-  vector_t jointAccel = centroidal_model::getJointVelocities(inputDesired - inputLast_, info_) / period;
+  // An observation epoch restart must not turn the first velocity target into
+  // a fictitious acceleration over one controller step.
+  vector_t jointAccel = vector_t::Zero(info_.actuatedDofNum);
+  if (inputHistoryInitialized_) {
+    jointAccel = centroidal_model::getJointVelocities(inputDesired - inputLast_, info_) / period;
+  }
   inputLast_ = inputDesired;
+  inputHistoryInitialized_ = true;
   mapping_.setPinocchioInterface(pinocchioInterfaceDesired_);
 
   const auto& model = pinocchioInterfaceDesired_.getModel();
@@ -278,7 +331,17 @@ Task WbcBase::formulateBaseAccelTask(const vector_t& stateDesired, const vector_
   const auto ADot = pinocchio::dccrba(model, data, qDesired, vDesired);
   Vector6 centroidalMomentumRate = info_.robotMass * getNormalizedCentroidalMomentumRate(pinocchioInterfaceDesired_, info_, inputDesired);
   centroidalMomentumRate.noalias() -= ADot * vDesired;
-  centroidalMomentumRate.noalias() -= Aj * jointAccel;
+  if (useJointAccelerationDecision_) {
+    // Ab*qdd_base + Aj*qdd_joint + Adot*v = hdot. Keeping qdd_joint
+    // as a decision variable removes contact-boundary input derivatives.
+    // This is a centroidal-momentum-rate objective, not the legacy base-only
+    // acceleration objective; the switch permits a controlled comparison.
+    const matrix_t coupling = AbInv * Aj;
+    a.block(0, 6, 6, info_.actuatedDofNum) = coupling;
+    lastBaseVerticalJointAccelerationCoupling_ = coupling.row(2).transpose();
+  } else {
+    centroidalMomentumRate.noalias() -= Aj * jointAccel;
+  }
 
   Vector6 b = AbInv * centroidalMomentumRate;
 
@@ -297,6 +360,15 @@ Task WbcBase::formulateBaseAccelTask(const vector_t& stateDesired, const vector_
       baseOrientationKd_.cwiseProduct(
           vDesired.segment<3>(3) - vMeasured_.segment<3>(3));
 
+  // Correct the base-height objective only. Changing stateDesired(8) itself
+  // would also move the desired feet in world coordinates.
+  lastNominalHeightCorrection_ = std::clamp(
+      basePositionKp_(2) * (nominalHeightReference_ - qDesired(2)),
+      -maxNominalHeightCorrection_, maxNominalHeightCorrection_);
+  b(2) += lastNominalHeightCorrection_;
+
+  // Observe the existing target without recomputing the stateful task.
+  lastBaseVerticalAccelerationTarget_ = b(2);
   return {a, b, matrix_t(), vector_t()};
 }
 

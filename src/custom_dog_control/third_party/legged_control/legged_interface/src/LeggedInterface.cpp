@@ -67,6 +67,7 @@ LeggedInterface::LeggedInterface(const std::string& taskFile, const std::string&
 
   // load setting from loading file
   modelSettings_ = loadModelSettings(taskFile, "model_settings", verbose);
+  swingReferenceSettings_ = loadSwingReferenceSettings(taskFile, "swing_reference", verbose);
   mpcSettings_ = mpc::loadSettings(taskFile, "mpc", verbose);
   ddpSettings_ = ddp::loadSettings(taskFile, "ddp", verbose);
   sqpSettings_ = sqp::loadSettings(taskFile, "sqp", verbose);
@@ -160,7 +161,8 @@ void LeggedInterface::setupReferenceManager(const std::string& taskFile, const s
   auto swingTrajectoryPlanner =
       std::make_unique<SwingTrajectoryPlanner>(loadSwingTrajectorySettings(taskFile, "swing_trajectory_config", verbose), 4);
   referenceManagerPtr_ =
-      std::make_shared<SwitchedModelReferenceManager>(loadGaitSchedule(referenceFile, verbose), std::move(swingTrajectoryPlanner));
+      std::make_shared<SwitchedModelReferenceManager>(loadGaitSchedule(referenceFile, verbose), std::move(swingTrajectoryPlanner),
+                                                     swingReferenceSettings_.flatGroundFootCenterHeight);
 }
 
 /******************************************************************************************************/
@@ -169,7 +171,8 @@ void LeggedInterface::setupReferenceManager(const std::string& taskFile, const s
 void LeggedInterface::setupPreComputation(const std::string& taskFile, const std::string& urdfFile, const std::string& referenceFile,
                                           bool verbose) {
   problemPtr_->preComputationPtr = std::make_unique<LeggedRobotPreComputation>(
-      *pinocchioInterfacePtr_, centroidalModelInfo_, *referenceManagerPtr_->getSwingTrajectoryPlanner(), modelSettings_);
+      *pinocchioInterfacePtr_, centroidalModelInfo_, *referenceManagerPtr_->getSwingTrajectoryPlanner(),
+      swingReferenceSettings_.positionErrorGain);
 }
 
 /******************************************************************************************************/

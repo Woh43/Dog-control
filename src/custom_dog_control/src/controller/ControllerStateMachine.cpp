@@ -23,6 +23,11 @@ void NmpcWbcController::TransitionTo(
     return;
   }
   const OperatingMode previous = mode_;
+  if (!(host_total_torque_command_ && previous == OperatingMode::STAND_UP &&
+        next == OperatingMode::MPC_STANCE)) {
+    host_stance_handoff_start_ = {};
+    host_stance_handoff_start_valid_ = false;
+  }
   RCLCPP_INFO(
       get_node()->get_logger(), "Control mode %s -> %s",
       ToString(mode_).data(), ToString(next).data());
@@ -283,6 +288,21 @@ bool NmpcWbcController::ApplyStateMachine(
         estimate_.velocity_world.norm() <=
             stand_up_base_velocity_tolerance_m_s_ &&
         estimate_.valid && policy_available && policy.mode == kStanceMode) {
+      if (host_total_torque_command_) {
+        // Sample the actual last stand command exactly once. A live stand
+        // PD here would become a delayed high-gain feedback loop after the
+        // actuator gains are zeroed by host-total mode.
+        host_stance_handoff_start_valid_ = false;
+        if (!BoundedHostTotalTorqueCommand(command, joints_state_,
+                safety_monitor_->limits().effort_limit, host_stance_handoff_start_)) {
+          controller_fault_reason_ = "Invalid host stance handoff sample";
+          RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+          TransitionTo(OperatingMode::FAULT, now_seconds);
+          return false;
+        }
+        host_stance_handoff_start_valid_ = true;
+        command = host_stance_handoff_start_;
+      }
       TransitionTo(OperatingMode::MPC_STANCE, now_seconds);
     }
     return true;
@@ -305,35 +325,57 @@ bool NmpcWbcController::ApplyStateMachine(
 
     // 未达到连续失败阈值时短暂退回固定站姿 PD，避免单次 QP 失败立即失去支撑。
     // 这是命令回退，不清除失败计数；达到阈值仍进入 FAULT。
-    command = PositionPdCommand(
-        stand_up_joint_positions_,
-        {stand_up_settle_hip_kp_, stand_up_settle_leg_kp_,
-         stand_up_settle_calf_kp_},
-        stand_up_settle_kd_);
+    if (host_total_torque_command_) {
+      // Hold the most recently sent bounded total, not a newly sampled
+      // high-gain stand PD. The original consecutive-failure limit above
+      // still faults after the same number of failed WBC cycles.
+      command = {};
+      command.position = joints_state_.position;
+      if (host_total_torque_budget_.active) {
+        command.effort = host_total_torque_budget_.sent_total_nm;
+      } else if (host_stance_handoff_start_valid_) {
+        command = host_stance_handoff_start_;
+      }
+      // No valid previous output or handoff latch: fail closed to zero.
+    } else {
+      command = PositionPdCommand(
+          stand_up_joint_positions_,
+          {stand_up_settle_hip_kp_, stand_up_settle_leg_kp_,
+           stand_up_settle_calf_kp_},
+          stand_up_settle_kd_);
+    }
     return true;
   }
   consecutive_wbc_failures_ = 0;
   command = wbc.command;
-  for (std::size_t i = 0; i < kJointCount; ++i) {
-    // NMPC 提供位置/速度，WBC 提供前馈力矩；这里补齐控制器配置的关节阻抗。
-    const std::size_t joint_in_leg = i % kJointsPerLeg;
-    command.kp[i] =
-        joint_in_leg == 0 ? wbc_hip_stiffness_
-                          : (joint_in_leg == 1 ? wbc_joint_stiffness_
-                                               : wbc_calf_stiffness_);
-    command.kd[i] = wbc_joint_damping_;
-  }
+  // The backend uses the same final PD gains/targets to reserve torque before
+  // solving. Preserve those gains after the QP's budget check.
   if (mode_ == OperatingMode::MPC_STANCE && stance_handoff_active_) {
     // 仅插值目标和增益会产生力矩交叉项；BlendHybridCommands 用前馈补偿保持总力矩连续。
     const double alpha = SmoothStep(
         (now_seconds - state_entered_seconds_) /
         std::max(0.1, handoff_duration_s_));
-    const auto stand_command = PositionPdCommand(
-        stand_up_joint_positions_,
-        {stand_up_settle_hip_kp_, stand_up_settle_leg_kp_,
-         stand_up_settle_calf_kp_},
-        stand_up_settle_kd_);
-    command = BlendHybridCommands(stand_command, command, joints_state_, alpha);
+    if (host_total_torque_command_) {
+      if (!host_stance_handoff_start_valid_) {
+        controller_fault_reason_ = "Missing host stance handoff effort latch";
+        RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+        TransitionTo(OperatingMode::FAULT, now_seconds);
+        return false;
+      }
+      // BlendHybridCommands preserves the current-sample total identity:
+      // (1-alpha)*fixed_start + alpha*(WBC_FF + same-sample_PD). The
+      // fixed start has zero gains, so it cannot acquire delayed stand PD.
+      // The common final host boundary still validates and caps this total.
+      command = BlendHybridCommands(
+          host_stance_handoff_start_, command, joints_state_, alpha);
+    } else {
+      const auto stand_command = PositionPdCommand(
+          stand_up_joint_positions_,
+          {stand_up_settle_hip_kp_, stand_up_settle_leg_kp_,
+           stand_up_settle_calf_kp_},
+          stand_up_settle_kd_);
+      command = BlendHybridCommands(stand_command, command, joints_state_, alpha);
+    }
   }
   return true;
 }

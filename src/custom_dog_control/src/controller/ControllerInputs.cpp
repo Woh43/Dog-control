@@ -19,7 +19,8 @@ void NmpcWbcController::ImuCallback(
   sample.linear_acceleration = {
       message->linear_acceleration.x, message->linear_acceleration.y,
       message->linear_acceleration.z};
-  // 优先保留采样时刻，使通信延迟计入超时；无时间戳时才以接收时刻兜底。
+  // 保留上游时间戳，不在此刷新旧数据年龄；无时间戳时才以接收时刻兜底。
+  // FDILink 提供姿态帧的主机接收时刻，尚非经校时的设备采样时刻。
   const rclcpp::Time sensor_stamp(message->header.stamp);
   sample.stamp_seconds =
       sensor_stamp.nanoseconds() > 0

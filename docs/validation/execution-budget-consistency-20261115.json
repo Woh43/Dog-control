@@ -1,0 +1,1396 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "branch": "RC2027",
+  "hardware_motion": false,
+  "result": "No new locomotion candidate passed the complete acceptance test; retain C04 and keep experimental modes off. PD/Q/R unchanged. Execution-boundary software implementations and diagnostics are available, but delayed inner-PD peak and full-motion stability are not both resolved.",
+  "default_configuration": {
+    "motor_pd_budget_horizon_s": 0.0,
+    "motor_pd_nominal_execution_time_s": 0.0,
+    "host_total_torque_command": false,
+    "wbc_nominal_joint_reference": false,
+    "wbc_use_joint_acceleration_decision": false,
+    "motion_kp_hip_thigh_calf": [
+      45.0,
+      45.0,
+      65.0
+    ],
+    "motion_kd": 1.0,
+    "pd_parameters_identical_to_turn_start": true,
+    "task_info_identical_to_turn_start": true,
+    "task_info_sha256": "e078948050b0b4a01b5dd5cd690b98b96832189e0541860f1263ff67ace0de5e"
+  },
+  "implemented": {
+    "signed_inner_pd_window": "Signed PD extrema and nominal PD in WBC dynamics and total-torque inequalities; independent FF bound; conditional on assumed acceleration. H0 retains legacy behavior.",
+    "host_total_torque": "Opt-in WBC total request; same-sample decomposition/recomposition after handoff; motor gains0; raw/sent/scale recorded. Initial stand total latched once; short QP failure holds last bounded total. It changes actuator feedback placement.",
+    "joint_reference": "Opt-in direct nominal q/dq from the same active primal solution/time; feedback contact forces retained; dq-only slew bypassed together. It does not provide cross-policy C1 continuity.",
+    "swing_reference": "Independent optional swing-only absolute height correction and flat foot-center plane; stance constraint/global positionErrorGain unchanged. G20/.026 tested only in copied profiles.",
+    "retired_experiments": "Failed paired joint filter, phase-only slew exception, lookahead and dead PD-fraction option removed; historical trace prefix reserved."
+  },
+  "findings": [
+    "Contact acceleration exceeded the A100rad/s2 window assumption and actual signed PD left its predicted envelope; no stale packet window is needed for failure. This is not a strict physical torque guarantee.",
+    "Exact nominal reference sampling fixes the nominal-state/feedback-input source mismatch, but does not by itself stabilize motion or eliminate policy replacement jumps.",
+    "G20 with .026m foot-center plane produced roughly9-10.3cm complete swing peaks under the legacy H0 actuator case, yet still tripped effort protection at5.474/5.216s. Other actuator formulations did not retain that clearance result.",
+    "Unlatched host handoff delayed the high-gain standing PD and failed before TROT. Latching the initial total allowed initial stance; TROT still failed tilt acceptance. Fixed command amplitude alone is insufficient.",
+    "Retained C04 passed fresh-world +/-0.5m/s, each20s TROT plus30s final stance soak. This does not establish1m/s or hardware acceptance."
+  ],
+  "tests": {
+    "ctest": {
+      "passed": 26,
+      "log": "log/signed-budget-consistency-20261115/ctest-host-handoff-final.log",
+      "sha256": "3aa8f7b31b6cf0112e06df30c4e5d47fc81c92b9774c0d3afd8505bea372003b"
+    },
+    "unitree_pty": {
+      "passed": 29,
+      "physical_motor_io": false,
+      "log": "log/signed-budget-consistency-20261115/hardware-final-pty-tests.log",
+      "sha256": "1de3fa5f34ead08cd5519242d201cc419ad8238e9e6d6f78e3949af11ac8613b"
+    },
+    "simulation_fresh_world_cases": 26,
+    "new_candidate_passes": 0,
+    "retained_baseline_passes": 2,
+    "baseline_binary_note": "The C04 run used the cleaned binary before the final host-only handoff fix. That fix is gated by host_total_torque_command=false in C04; the final binary was used for the latched-host regression and26/26CTest."
+  },
+  "latched_host_boundary_evidence": [
+    {
+      "case": "forward",
+      "independent_first_trot_tilt_crossing_sim_s": 9.916,
+      "duration_trot_before_sampled_tilt_crossing_s": 0.21199999999999974,
+      "exported_host_samples_before_tilt_crossing": 1946,
+      "trot_samples_before_tilt_crossing": 106,
+      "raw_total_peak_ratio_to_nominal_limit": 1.0000000000001197,
+      "sent_total_peak_ratio_to_nominal_limit": 1.0,
+      "clamped_joint_samples": 0,
+      "max_abs_exported_motor_kp_kd": 0.0,
+      "max_abs_trot_simulated_effort_ratio": 1.0,
+      "scope": "500Hz controller exports and sampled simulator request effort before the first100Hz independent tilt crossing. Startup may still hold earlier queued stand-PD packets. Not measured physical torque or a complete20s motion test."
+    },
+    {
+      "case": "backward",
+      "independent_first_trot_tilt_crossing_sim_s": 9.916,
+      "duration_trot_before_sampled_tilt_crossing_s": 0.21199999999999974,
+      "exported_host_samples_before_tilt_crossing": 1997,
+      "trot_samples_before_tilt_crossing": 106,
+      "raw_total_peak_ratio_to_nominal_limit": 1.0000000000001357,
+      "sent_total_peak_ratio_to_nominal_limit": 1.0,
+      "clamped_joint_samples": 0,
+      "max_abs_exported_motor_kp_kd": 0.0,
+      "max_abs_trot_simulated_effort_ratio": 1.0,
+      "scope": "500Hz controller exports and sampled simulator request effort before the first100Hz independent tilt crossing. Startup may still hold earlier queued stand-PD packets. Not measured physical torque or a complete20s motion test."
+    }
+  ],
+  "simulation_variants": [
+    {
+      "variant": "absolute_swing_G20_H0",
+      "settings": {
+        "variant": "absolute_swing_G20_H0",
+        "horizon": 0.0,
+        "acceleration": 100.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "coupled_acceleration": false,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": false,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.308 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 5.474,
+            "height_m": {
+              "mean": 0.33211078483418843,
+              "min": 0.3206714515054802,
+              "max": 0.34373787762063396,
+              "rms": 0.33214141515916407,
+              "target": 0.34,
+              "mean_error": -0.007889215165811592,
+              "rmse_to_target": 0.009087682690545508,
+              "integrated_absolute_error": 0.04373987708760288
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0004638445388408769,
+              "over_guard_joint_sample_fraction": 1.2206435232654656e-05,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/absolute_swing_G20_H0/forward/run.json",
+          "run_sha256": "dd23298fc0ed9019a0e12731bcefc7a91519240fdee310da6de81901649e79e3",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=7 joint=RR_thigh_joint effort=26.1996 limit=23.7 threshold=26.07; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 5.215999999999999,
+            "height_m": {
+              "mean": 0.326658279116192,
+              "min": 0.3174478836501907,
+              "max": 0.33989308843484556,
+              "rms": 0.32669137275095844,
+              "target": 0.34,
+              "mean_error": -0.013341720883808028,
+              "rmse_to_target": 0.014128808544782573,
+              "integrated_absolute_error": 0.06959041612994271
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.00012347508272830544,
+              "over_guard_joint_sample_fraction": 6.173754136415271e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/absolute_swing_G20_H0/backward/run.json",
+          "run_sha256": "0abeb2e70ecb3876f111c896f3ad00156c3a3e452b62a0db22cb1a67f5c9aa2b",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "438f4f1948809ca75bd380a460c7d31366bae00af71294dc4e605d5df3e8e8d8"
+    },
+    {
+      "variant": "absolute_swing_G20_H025_A100",
+      "settings": {
+        "variant": "absolute_swing_G20_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": false,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": false,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 197,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.309 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.2319999999999993,
+            "height_m": {
+              "mean": 0.3388456349649344,
+              "min": 0.3329255027373594,
+              "max": 0.3539743519288133,
+              "rms": 0.33886933703277416,
+              "target": 0.34,
+              "mean_error": -0.0011543650350656076,
+              "rmse_to_target": 0.004170827840666532,
+              "integrated_absolute_error": 0.007471067114106881
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 125916,
+              "absolute_error_sum_nm": 49729.827066603,
+              "mean_absolute_error_nm": 0.39494446350426476,
+              "maximum_absolute_error_nm": 14.092701292,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 5.5481580115401686e-05,
+              "over_guard_joint_sample_fraction": 7.925940016485956e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.010483179262365387,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/absolute_swing_G20_H025_A100/forward/run.json",
+          "run_sha256": "d843148cf3221841b50f906de2eb0964e5b012b1fd6b7dfd0745116c93294bf4",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 3.24,
+            "height_m": {
+              "mean": 0.334475987179849,
+              "min": 0.31002502705734664,
+              "max": 0.34572233487098136,
+              "rms": 0.33451927701805834,
+              "target": 0.34,
+              "mean_error": -0.005524012820151025,
+              "rmse_to_target": 0.0077120304970300785,
+              "integrated_absolute_error": 0.01945888639986104
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 131772,
+              "absolute_error_sum_nm": 48510.100897762,
+              "mean_absolute_error_nm": 0.36813663674955227,
+              "maximum_absolute_error_nm": 15.763886434,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.004409130923109614,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/absolute_swing_G20_H025_A100/backward/run.json",
+          "run_sha256": "77c132b6dc3b98ce0c58150b7d0fc12dd944065aa5152be11aa8e452dbae9d17",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "16970edf647d39a77fadffe7654c7b414bf7fe8983d95f871669904c94880967"
+    },
+    {
+      "variant": "budget_only_H025_A100",
+      "settings": {
+        "variant": "budget_only_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.0120000000000005,
+            "height_m": {
+              "mean": 0.33391891104425026,
+              "min": 0.30960658765806154,
+              "max": 0.34074737271241223,
+              "rms": 0.33395302826893547,
+              "target": 0.34,
+              "mean_error": -0.006081088955749769,
+              "rmse_to_target": 0.007730820131281003,
+              "integrated_absolute_error": 0.012288855273091436
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.002471609886439546,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/budget_only_H025_A100/forward/run.json",
+          "run_sha256": "8f2e74c7710481ae8380606d743f54a8d926170cd3716bbb5277b5bf34d99545",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.2479999999999993,
+            "height_m": {
+              "mean": 0.3282160840789218,
+              "min": 0.3099504408010967,
+              "max": 0.3408242707817017,
+              "rms": 0.32826474615774964,
+              "target": 0.34,
+              "mean_error": -0.011783915921078247,
+              "rmse_to_target": 0.013069292113385358,
+              "integrated_absolute_error": 0.026546527760725636
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 5.468066491688539e-05,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.003545599699445853,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/budget_only_H025_A100/backward/run.json",
+          "run_sha256": "d4124c9651f16f0d08b9f5f6602030b3da92efb806f140749ce15e1c198ea648",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "ccb176490d34b7cf082842a061fe445976830d30bfe34828dff09af7174b5a6a"
+    },
+    {
+      "variant": "coupled_H025_A100",
+      "settings": {
+        "variant": "coupled_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "coupled_acceleration": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.0519999999999996,
+            "height_m": {
+              "mean": 0.3337250860804883,
+              "min": 0.3096829807509929,
+              "max": 0.3400549416278206,
+              "rms": 0.3337533803352868,
+              "target": 0.34,
+              "mean_error": -0.006274913919511738,
+              "rmse_to_target": 0.0076328468148272,
+              "integrated_absolute_error": 0.01287722219539459
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.0021209084836339345,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/coupled_H025_A100/forward/run.json",
+          "run_sha256": "8971addd796fe21ea8d8236019b40112339d5fa04068379fee2adf4b38b629f7",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.7799999999999994,
+            "height_m": {
+              "mean": 0.32960818583784934,
+              "min": 0.3098388338397645,
+              "max": 0.3411670456339283,
+              "rms": 0.32965971922958615,
+              "target": 0.34,
+              "mean_error": -0.010391814162150681,
+              "rmse_to_target": 0.011914869398866688,
+              "integrated_absolute_error": 0.0290173099814002
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 3.0300275732509167e-05,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.0071114146933819065,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/coupled_H025_A100/backward/run.json",
+          "run_sha256": "237197152ef0811e34e202a201100e4e1b34c84e10d257b7e21837dd6eebec25",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "087909dbc6759f0f41b95ed74b7100e0d8dafee5374f0d537be7e7ce3a0dad38"
+    },
+    {
+      "variant": "execution_D022_H025_A100",
+      "settings": {
+        "variant": "execution_D022_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "execution_time": 0.022,
+        "policy_lookahead": 0.0,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "coupled_acceleration": false,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": false,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=5 joint=FL_calf_joint effort=50.3434 limit=45 threshold=49.5; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.2599999999999998,
+            "height_m": {
+              "mean": 0.33700701932565685,
+              "min": 0.33178035560502467,
+              "max": 0.34136321143035686,
+              "rms": 0.33702384066911933,
+              "target": 0.34,
+              "mean_error": -0.002992980674343171,
+              "rmse_to_target": 0.004505112420047942,
+              "integrated_absolute_error": 0.0008975422297567672
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "signed_budget_samples": 102252,
+              "absolute_error_sum_nm": 6458.994396349,
+              "mean_absolute_error_nm": 0.06316741380461019,
+              "maximum_absolute_error_nm": 36.540958654,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 1.9511433700148287e-05,
+              "over_guard_joint_sample_fraction": 9.755716850074144e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.0016723389273559442,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/execution_D022_H025_A100/forward/run.json",
+          "run_sha256": "d6c3c69ef1e754b828f8e89e4de3d6c2a84228161adb804cd8fba9651f405483",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=5 joint=FL_calf_joint effort=52.3935 limit=45 threshold=49.5; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.2599999999999998,
+            "height_m": {
+              "mean": 0.3369231644281511,
+              "min": 0.33187242686388974,
+              "max": 0.3414888503308668,
+              "rms": 0.33694166165768663,
+              "target": 0.34,
+              "mean_error": -0.0030768355718489016,
+              "rmse_to_target": 0.004683113227357034,
+              "integrated_absolute_error": 0.0009304409464205582
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "signed_budget_samples": 102252,
+              "absolute_error_sum_nm": 6669.045981978,
+              "mean_absolute_error_nm": 0.06522166785958221,
+              "maximum_absolute_error_nm": 39.00022339,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 9.755716850074144e-06,
+              "over_guard_joint_sample_fraction": 9.755716850074144e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.001642999647928647,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/execution_D022_H025_A100/backward/run.json",
+          "run_sha256": "1bb343723a56accb0f47c6c634f47e9fd23fa6d175c1d247453b14d5e300c124",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "ccee81a224c478cbe13dc573708410003b63498354adc8f5645c0af15f6f8b90"
+    },
+    {
+      "variant": "final_C04_baseline_half_speed",
+      "settings": {
+        "variant": "final_C04_baseline_half_speed",
+        "horizon": 0.0,
+        "acceleration": 100.0,
+        "host_total_torque": false,
+        "speed": 0.5,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": null,
+        "foot_center_height": null,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": false,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": false,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": true,
+          "error": null,
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 20.0,
+            "height_m": {
+              "mean": 0.33545636992167915,
+              "min": 0.3304161894325228,
+              "max": 0.3411821595218655,
+              "rms": 0.3354623098541883,
+              "target": 0.34,
+              "mean_error": -0.0045436300783208705,
+              "rmse_to_target": 0.0049628405138201995,
+              "integrated_absolute_error": 0.09102018365823167
+            },
+            "steady_last2s_velocity_mps": {
+              "mean": 0.48758519094756186,
+              "min": 0.3963857133255568,
+              "max": 0.5594321636780373,
+              "rms": 0.48882320483147196,
+              "target": 0.5,
+              "mean_error": -0.012414809052438136,
+              "rmse_to_target": 0.036917944608947664,
+              "integrated_absolute_error": 0.057720153932662804
+            },
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/final_C04_baseline_half_speed/forward/run.json",
+          "run_sha256": "71fb89dae8ddb4c740ecf85cb58e5bbcf9bc2d8550178da31868d05ba3b5006b",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": true,
+          "error": null,
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 20.0,
+            "height_m": {
+              "mean": 0.3297230697194521,
+              "min": 0.3263682779406604,
+              "max": 0.33983930722578354,
+              "rms": 0.32972911518600145,
+              "target": 0.34,
+              "mean_error": -0.010276930280547936,
+              "rmse_to_target": 0.010469097005758104,
+              "integrated_absolute_error": 0.20553860561095824
+            },
+            "steady_last2s_velocity_mps": {
+              "mean": -0.4791061997480024,
+              "min": -0.5160277049331203,
+              "max": -0.41442364609532606,
+              "rms": 0.47966905275795796,
+              "target": -0.5,
+              "mean_error": 0.020893800251997607,
+              "rmse_to_target": 0.031244206274351295,
+              "integrated_absolute_error": 0.04542984534004527
+            },
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/final_C04_baseline_half_speed/backward/run.json",
+          "run_sha256": "021178e56f67888653f0fd669f84677d2f2d4de0fd92bcbbafef80ecf18b7930",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "402245edbb3c06bb99fe6cde281a31dbda9d591f388b87c9beda01714780143b"
+    },
+    {
+      "variant": "host_latched_nominal_absolute_coupled_G20_H0",
+      "settings": {
+        "variant": "host_latched_nominal_absolute_coupled_G20_H0",
+        "horizon": 0.0,
+        "acceleration": 100.0,
+        "host_total_torque": true,
+        "speed": 1.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": true,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "simulated body roll/pitch exceeded the acceptance limit",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.20800000000000018,
+            "height_m": {
+              "mean": 0.3404415248483208,
+              "min": 0.3377453740292171,
+              "max": 0.35378458639817156,
+              "rms": 0.34045667135542107,
+              "target": 0.34,
+              "mean_error": 0.00044152484832077343,
+              "rmse_to_target": 0.003241631310771825,
+              "integrated_absolute_error": 0.0003878636453361969
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/host_latched_nominal_absolute_coupled_G20_H0/forward/run.json",
+          "run_sha256": "29d686af9bb8f9e5ceddd8eecef3e71a75033ce5c24ef069464acd787e21975f",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "simulated body roll/pitch exceeded the acceptance limit",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.20800000000000018,
+            "height_m": {
+              "mean": 0.33870591571663505,
+              "min": 0.33530040454810545,
+              "max": 0.3489089279219228,
+              "rms": 0.338717072056957,
+              "target": 0.34,
+              "mean_error": -0.0012940842833649713,
+              "rmse_to_target": 0.003038456108945713,
+              "integrated_absolute_error": 0.00048541315308095126
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/host_latched_nominal_absolute_coupled_G20_H0/backward/run.json",
+          "run_sha256": "d5e3a14e2f472bc943baf2376353f020b03f42c3bcc565e38719ca32e66409c3",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "26e63d82750db3afda9defdcc20652b89e3f5665d243ac121bdd179d63d50efc"
+    },
+    {
+      "variant": "host_nominal_absolute_coupled_G20_H0",
+      "settings": {
+        "variant": "host_nominal_absolute_coupled_G20_H0",
+        "horizon": 0.0,
+        "acceleration": 100.0,
+        "host_total_torque": true,
+        "speed": 1.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": true,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "simulated body roll/pitch exceeded the acceptance limit",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": null,
+            "height_m": null,
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": null,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": null
+          },
+          "run_record": "log/signed-budget-consistency-20261115/host_nominal_absolute_coupled_G20_H0/forward/run.json",
+          "run_sha256": "908b851be218c3fb7bb1d3d20002f012a7e5ad2321c63c903cac61ebeb5de95e",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "simulated body roll/pitch exceeded the acceptance limit",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": null,
+            "height_m": null,
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": null,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": null
+          },
+          "run_record": "log/signed-budget-consistency-20261115/host_nominal_absolute_coupled_G20_H0/backward/run.json",
+          "run_sha256": "642331f29235bd2a0bb962ec26b4ca5a4a4800164c128c010a8bb18abc83de58",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "2b78e20149f45b50e0cb327be49bc1987933b8953981154406cac0030dd38711"
+    },
+    {
+      "variant": "lead_nominal_phase_coupled_D022_H025_A100",
+      "settings": {
+        "variant": "lead_nominal_phase_coupled_D022_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "execution_time": 0.022,
+        "policy_lookahead": 0.022,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "coupled_acceleration": true,
+        "phase_aware_reference": true,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=5 joint=FL_calf_joint effort=52.0177 limit=45 threshold=49.5; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.23199999999999932,
+            "height_m": {
+              "mean": 0.3369899024105065,
+              "min": 0.33194210912083794,
+              "max": 0.34116129080344154,
+              "rms": 0.3370041016234978,
+              "target": 0.34,
+              "mean_error": -0.003010097589493499,
+              "rmse_to_target": 0.004316349373770271,
+              "integrated_absolute_error": 0.0007855003972168899
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "signed_budget_samples": 102468,
+              "absolute_error_sum_nm": 7478.806478576,
+              "mean_absolute_error_nm": 0.0729867517525081,
+              "maximum_absolute_error_nm": 40.707161504,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 2.9205607476635515e-05,
+              "over_guard_joint_sample_fraction": 9.735202492211838e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.002244603193192021,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/lead_nominal_phase_coupled_D022_H025_A100/forward/run.json",
+          "run_sha256": "fb6a98e3b06283c379694d24152a8d3a81eb6ffe9d542124f668a153b5ee059f",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.309 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.2159999999999993,
+            "height_m": {
+              "mean": 0.33580601773995256,
+              "min": 0.32940083456804914,
+              "max": 0.3408989915244143,
+              "rms": 0.3358335199932745,
+              "target": 0.34,
+              "mean_error": -0.0041939822600474685,
+              "rmse_to_target": 0.006005088501039356,
+              "integrated_absolute_error": 0.0009638538111446084
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "signed_budget_samples": 101724,
+              "absolute_error_sum_nm": 6301.04927952,
+              "mean_absolute_error_nm": 0.06194260233101333,
+              "maximum_absolute_error_nm": 39.530779379,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 9.80622891660783e-06,
+              "over_guard_joint_sample_fraction": 9.80622891660783e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.0014844087924187016,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/lead_nominal_phase_coupled_D022_H025_A100/backward/run.json",
+          "run_sha256": "4a15782d089315a6d23eeaded143cd6a6079fc54c3a6ed3f6a36ae47799cca41",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "6caea24226c986700244becc5cd6cfc71f9e042a48d875c772cbd799920733f0"
+    },
+    {
+      "variant": "nominal_absolute_coupled_G20_H0",
+      "settings": {
+        "variant": "nominal_absolute_coupled_G20_H0",
+        "horizon": 0.0,
+        "acceleration": 100.0,
+        "host_total_torque": false,
+        "speed": 1.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": true,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=7 joint=RR_thigh_joint effort=26.4324 limit=23.7 threshold=26.07; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.734,
+            "height_m": {
+              "mean": 0.337857171812843,
+              "min": 0.3282417467232935,
+              "max": 0.35247758867675605,
+              "rms": 0.33791681486922437,
+              "target": 0.34,
+              "mean_error": -0.0021428281871569976,
+              "rmse_to_target": 0.006700517788084808,
+              "integrated_absolute_error": 0.004186989299521998
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 9.242827565808932e-05,
+              "over_guard_joint_sample_fraction": 9.242827565808931e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/nominal_absolute_coupled_G20_H0/forward/run.json",
+          "run_sha256": "0c2e549e57173f97593208382b7aa7807eca885c7aca0671e2817d32dda92092",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "controller entered FAULT: joint effort limit: index=0 joint=FR_hip_joint effort=27.5174 limit=23.7 threshold=26.07; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.4740000000000002,
+            "height_m": {
+              "mean": 0.337241959756335,
+              "min": 0.3317891025573015,
+              "max": 0.3474976259640096,
+              "rms": 0.33726055951383377,
+              "target": 0.34,
+              "mean_error": -0.0027580402436650497,
+              "rmse_to_target": 0.004489139035094599,
+              "integrated_absolute_error": 0.001811444913507558
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": true,
+            "physical_pd_prediction_error_nm": {
+              "available": false,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 0,
+              "absolute_error_sum_nm": 0.0,
+              "mean_absolute_error_nm": null,
+              "maximum_absolute_error_nm": null,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 4.7586416933150603e-05,
+              "over_guard_joint_sample_fraction": 9.51728338663012e-06,
+              "envelope_violation_fraction_of_signed_budget_samples": null,
+              "stale_window_fraction_of_signed_budget_samples": null
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/nominal_absolute_coupled_G20_H0/backward/run.json",
+          "run_sha256": "2a8278db26cc1d4278d5722d6f426d759335ca50d8fc7f69dc55413cc4c0f05b",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "18dcef590c7e6e464bc622077632ad3e8ecb705d303a0fa1e65315db4772817e"
+    },
+    {
+      "variant": "nominal_phase_coupled_H025_A100",
+      "settings": {
+        "variant": "nominal_phase_coupled_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "paired_reference": false,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "coupled_acceleration": true,
+        "phase_aware_reference": true,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 1.8680000000000003,
+            "height_m": {
+              "mean": 0.3350724343258164,
+              "min": 0.30994782977820146,
+              "max": 0.3419248397770441,
+              "rms": 0.3351050192700676,
+              "target": 0.34,
+              "mean_error": -0.0049275656741836205,
+              "rmse_to_target": 0.0067910675476873265,
+              "integrated_absolute_error": 0.009434863625012524
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.0017869071476285905,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/nominal_phase_coupled_H025_A100/forward/run.json",
+          "run_sha256": "32d478df6410e4744fdec5f5ccc69071aa666f167e91b692b2e2a364347d57fc",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.0280000000000005,
+            "height_m": {
+              "mean": 0.32732983775058494,
+              "min": 0.30994557863770933,
+              "max": 0.3402007640427521,
+              "rms": 0.3273966349901553,
+              "target": 0.34,
+              "mean_error": -0.012670162249415085,
+              "rmse_to_target": 0.014292198308141206,
+              "integrated_absolute_error": 0.025700354273185646
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.007356379425517702,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/nominal_phase_coupled_H025_A100/backward/run.json",
+          "run_sha256": "52e158f7e4fe1768e211e7d9a7c24f0d72b46f99226478deafdde33adebeceae",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "81700b5ccebc2b38ddd3fe74a1a838a403b3758708c50e10beacfe24ee76d7f1"
+    },
+    {
+      "variant": "paired_H025_A100",
+      "settings": {
+        "variant": "paired_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "paired_reference": true,
+        "paired_reference_param": "wbc_swing_reference_enabled",
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "controller entered FAULT: FAULT; NMPC: ",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.0220000000000002,
+            "height_m": {
+              "mean": 0.3379251141623613,
+              "min": 0.31930762198102797,
+              "max": 0.34582378352469767,
+              "rms": 0.33794959890642373,
+              "target": 0.34,
+              "mean_error": -0.002074885837638707,
+              "rmse_to_target": 0.004566592888248126,
+              "integrated_absolute_error": 0.007152588036392437
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 4.0547554171532377e-05,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.004729400292540225,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/paired_H025_A100/forward/run.json",
+          "run_sha256": "0d8250768f92f8590f1513d9ed42d3ae1c1a2f7a4782e40568d28a3d303b3e07",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.310 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.0,
+            "height_m": {
+              "mean": 0.3268854512222049,
+              "min": 0.30973289760376616,
+              "max": 0.34025727886685897,
+              "rms": 0.32695597144573185,
+              "target": 0.34,
+              "mean_error": -0.01311454877779511,
+              "rmse_to_target": 0.014768223756528967,
+              "integrated_absolute_error": 0.02623871706144448
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": null,
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 2.4328532502919423e-05,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.006785307979847229,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/paired_H025_A100/backward/run.json",
+          "run_sha256": "c1c2b22a5e387d87f5e8f5e8d787ee494c85beef8667157a1e799f1e03fdbce9",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "a2c2839a7c98d760fc62170bdfcbe7e7393b2f2ea87613c3a2890681aae1321f"
+    },
+    {
+      "variant": "signed_nominal_absolute_coupled_G20_H025_A100",
+      "settings": {
+        "variant": "signed_nominal_absolute_coupled_G20_H025_A100",
+        "horizon": 0.025,
+        "acceleration": 100.0,
+        "host_total_torque": false,
+        "speed": 1.0,
+        "execution_time": 0.0,
+        "policy_lookahead": 0.0,
+        "swing_position_gain": 20.0,
+        "foot_center_height": 0.026,
+        "paired_reference": false,
+        "paired_reference_param": null,
+        "coupled_acceleration": true,
+        "phase_aware_reference": false,
+        "nominal_joint_reference": true,
+        "cases": [
+          "forward",
+          "backward"
+        ],
+        "domain_id": 199,
+        "startup_timeout": 900.0,
+        "test_timeout": 900.0
+      },
+      "cases": [
+        {
+          "case": "forward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.360 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 0.7140000000000004,
+            "height_m": {
+              "mean": 0.3428811843202494,
+              "min": 0.33614591419597567,
+              "max": 0.3603994494533471,
+              "rms": 0.34294541409970813,
+              "target": 0.34,
+              "mean_error": 0.0028811843202493637,
+              "rmse_to_target": 0.007235448448486461,
+              "integrated_absolute_error": 0.003272980510834409
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 95760,
+              "absolute_error_sum_nm": 16351.356324189,
+              "mean_absolute_error_nm": 0.17075351215736218,
+              "maximum_absolute_error_nm": 8.245153689,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 0.0,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 5.2213868003341685e-05,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/signed_nominal_absolute_coupled_G20_H025_A100/forward/run.json",
+          "run_sha256": "f811fd78c7082a0a58830c414b35e4d19fe41e4086d4254831df0cb41afb569b",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        },
+        {
+          "case": "backward",
+          "passed": false,
+          "error": "standing/walking body height out of bounds: 0.309 m",
+          "reached_trot": false,
+          "independent": {
+            "active_motion_duration_s": 2.2159999999999993,
+            "height_m": {
+              "mean": 0.34308741293228506,
+              "min": 0.3091928961147516,
+              "max": 0.35696702137743785,
+              "rms": 0.34321900287779056,
+              "target": 0.34,
+              "mean_error": 0.0030874129322850385,
+              "rmse_to_target": 0.009992154045599848,
+              "integrated_absolute_error": 0.017135978622429396
+            },
+            "steady_last2s_velocity_mps": null,
+            "motor_effort_protection_during_motion": false,
+            "physical_pd_prediction_error_nm": {
+              "available": true,
+              "telemetry_fields_present": true,
+              "signed_budget_samples": 127860,
+              "absolute_error_sum_nm": 59675.615554859,
+              "mean_absolute_error_nm": 0.4667262283345769,
+              "maximum_absolute_error_nm": 15.580967509,
+              "semantics": "Actual signed P+D minus the originating packet nominal P+D; absolute statistics over the same signed_budget_samples branch, before separate friction. Not a calibrated motor torque prediction error."
+            },
+            "physical_fractions": {
+              "over_nominal_joint_sample_fraction": 2.341701011614837e-05,
+              "over_guard_joint_sample_fraction": 0.0,
+              "envelope_violation_fraction_of_signed_budget_samples": 0.02544971062099171,
+              "stale_window_fraction_of_signed_budget_samples": 0.0
+            }
+          },
+          "run_record": "log/signed-budget-consistency-20261115/signed_nominal_absolute_coupled_G20_H025_A100/backward/run.json",
+          "run_sha256": "b41ee4f3352f66cc5ada4b256e1a7283afcb2db1434aebc0077b8145eae1c1b9",
+          "inputs_unchanged": true,
+          "sources_unchanged": true,
+          "owned_processes_reaped": true
+        }
+      ],
+      "independent_report_sha256": "5e983bea5c922db9500c20393cb0abc93df7a7a01478dc6e24702dee95de3c66"
+    }
+  ],
+  "limitations": [
+    "Simulation request effort is raw FF+PD and is applied before separate passive friction; real reported effort semantics and firmware combined limiting are unidentified.",
+    "Host fixed effort bounds the transmitted software request, not physical torque, current, thermal duty or transmission efficiency.",
+    "No hardware stand-up/walking; no new gain scan before stable execution/reference regression.",
+    "All cases retained the existing acceptance bounds, nominal torque limits,20ms simulated command delay,100Hz IMU,500Hz control and50Hz NMPC. Experimental speed ceilings were isolated copies.",
+    "Ignored raw logs/source snapshots and per-run runner snapshots remain local; this report embeds compact results for review."
+  ]
+}

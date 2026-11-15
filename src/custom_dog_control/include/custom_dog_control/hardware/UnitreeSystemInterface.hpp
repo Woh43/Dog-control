@@ -71,6 +71,7 @@ class UnitreeSystemInterface final : public hardware_interface::SystemInterface 
   bool command_written_ = false;
   bool require_physical_estop_confirmation_ = true;
   bool physical_estop_verified_ = false;
+  bool signed_budget_enabled_ = false;
   int consecutive_failures_ = 0;
 };
 

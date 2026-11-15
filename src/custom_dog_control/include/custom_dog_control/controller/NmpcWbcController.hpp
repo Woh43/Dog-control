@@ -19,6 +19,7 @@
 #include "custom_dog_control/control/ControlTypes.hpp"
 #include "custom_dog_control/control/CalibrationGate.hpp"
 #include "custom_dog_control/control/JoystickMapping.hpp"
+#include "custom_dog_control/control/HostTotalTorqueCommand.hpp"
 #include "custom_dog_control/control/SimulationEffortDelay.hpp"
 #include "custom_dog_control/control/TimingStatistics.hpp"
 #include "custom_dog_control/nmpc/KinematicStateEstimator.hpp"
@@ -68,7 +69,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   void UpdateLocomotionSupervisor(
       double now_seconds, const VelocityCommand& command, const JoyInput& joy,
       const PolicySample& policy, double policy_age_seconds);
-  void WriteHybridCommand(const HybridJointCommand& command);
+  void WriteHybridCommand(const HybridJointCommand& command,
+                          bool locomotion_output = true);
   void WriteSimulationEffort(
       const HybridJointCommand& command, bool allow_delay);
   void WriteSafeCommand(bool reset_calibration = false);
@@ -93,6 +95,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   bool legacy_joy_layout_ = false;
   bool use_sim_ground_truth_ = true;
   double ground_truth_timeout_s_ = 0.10;
+  double imu_orientation_prediction_max_s_ = 0.0;
+  double imu_orientation_prediction_s_ = 0.0;
 
   VelocityLimits velocity_limits_;
   double command_timeout_s_ = 0.30;
@@ -114,6 +118,10 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   double stand_up_base_velocity_tolerance_m_s_ = 0.05;
   double handoff_duration_s_ = 1.0;
   bool stance_handoff_active_ = false;
+  // Host-only first handoff starts from one sampled, already bounded effort,
+  // never a high-gain stand PD recomputed through the delivery delay.
+  HybridJointCommand host_stance_handoff_start_;
+  bool host_stance_handoff_start_valid_ = false;
   double wbc_joint_stiffness_ = 0.0;
   double wbc_hip_stiffness_ = 0.0;
   // Resolved joint-side calf Kp; an omitted parameter follows thigh Kp.
@@ -180,6 +188,10 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   TimingWindow<512> control_timing_;
   TimingWindow<512> io_timing_;
   TimingWindow<512> mpc_timing_;
+  MotorPdWindowModel motor_pd_window_model_;
+  MotorPdWindowBudget motor_pd_window_budget_;
+  bool host_total_torque_command_ = false;
+  HostTotalTorqueBudget host_total_torque_budget_;
 
   std::unique_ptr<NmpcBackend> backend_;
   std::unique_ptr<KinematicStateEstimator> estimator_;

@@ -92,7 +92,13 @@ bool SafetyMonitor::Evaluate(const SafetyInput& input) {
     }
     // 对实测力矩留出 10% 瞬态裕量；这是故障判据，命令限幅在输出链路完成。
     if (std::abs(input.joints.effort[i]) > limits_.effort_limit[i] * 1.10) {
-      return Trip("joint effort limit");
+      std::ostringstream reason;
+      reason << "joint effort limit: index=" << i
+             << " joint=" << kJointNames[i]
+             << " effort=" << input.joints.effort[i]
+             << " limit=" << limits_.effort_limit[i]
+             << " threshold=" << limits_.effort_limit[i] * 1.10;
+      return Trip(reason.str());
     }
   }
   // Dwell uses the caller's ROS clock. A paused simulation contributes no

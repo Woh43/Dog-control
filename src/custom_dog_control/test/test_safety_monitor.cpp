@@ -101,6 +101,26 @@ TEST(SafetyMonitor, JointLimitToleranceRejectsOnlyMaterialViolations) {
   }
 }
 
+TEST(SafetyMonitor, EffortFaultReportsJointSignedEffortAndBothLimits) {
+  auto limits = Limits();
+  limits.effort_limit[4] = 23.7;
+  SafetyMonitor monitor(limits);
+  auto input = ValidInput();
+  input.joints.effort[4] = -limits.effort_limit[4] * 1.10;
+  EXPECT_TRUE(monitor.Evaluate(input));  // Equality retains the existing boundary.
+  input.joints.effort[4] = -26.8;
+  EXPECT_FALSE(monitor.Evaluate(input));
+  const auto first_reason = monitor.reason();
+  EXPECT_EQ(first_reason.find("joint effort limit: index=4"), 0U);
+  EXPECT_NE(first_reason.find("joint=FL_thigh_joint"), std::string::npos);
+  EXPECT_NE(first_reason.find("effort=-26.8"), std::string::npos);
+  EXPECT_NE(first_reason.find("limit=23.7"), std::string::npos);
+  EXPECT_NE(first_reason.find("threshold=26.07"), std::string::npos);
+  input.joints.effort[0] = 100.0;
+  EXPECT_FALSE(monitor.Evaluate(input));
+  EXPECT_EQ(monitor.reason(), first_reason);  // Later peaks cannot replace the cause.
+}
+
 TEST(SafetyMonitor, DefaultInfiniteSpeedLimitsPreserveExistingEnvelope) {
   SafetyMonitor monitor(Limits());
   auto input = ValidInput();

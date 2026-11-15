@@ -45,7 +45,8 @@ namespace legged_robot {
  */
 class SwitchedModelReferenceManager : public ReferenceManager {
  public:
-  SwitchedModelReferenceManager(std::shared_ptr<GaitSchedule> gaitSchedulePtr, std::shared_ptr<SwingTrajectoryPlanner> swingTrajectoryPtr);
+  SwitchedModelReferenceManager(std::shared_ptr<GaitSchedule> gaitSchedulePtr, std::shared_ptr<SwingTrajectoryPlanner> swingTrajectoryPtr,
+                                scalar_t flatGroundFootCenterHeight = 0.0);
 
   ~SwitchedModelReferenceManager() override = default;
 
@@ -56,6 +57,7 @@ class SwitchedModelReferenceManager : public ReferenceManager {
   const std::shared_ptr<GaitSchedule>& getGaitSchedule() { return gaitSchedulePtr_; }
 
   const std::shared_ptr<SwingTrajectoryPlanner>& getSwingTrajectoryPlanner() { return swingTrajectoryPtr_; }
+  scalar_t getFlatGroundFootCenterHeight() const { return flatGroundFootCenterHeight_; }
 
  protected:
   void modifyReferences(scalar_t initTime, scalar_t finalTime, const vector_t& initState, TargetTrajectories& targetTrajectories,
@@ -63,6 +65,8 @@ class SwitchedModelReferenceManager : public ReferenceManager {
 
   std::shared_ptr<GaitSchedule> gaitSchedulePtr_;
   std::shared_ptr<SwingTrajectoryPlanner> swingTrajectoryPtr_;
+  // Configured flat-plane world z of the foot frame. This is not a terrain/contact measurement.
+  const scalar_t flatGroundFootCenterHeight_;
 };
 
 }  // namespace legged_robot
