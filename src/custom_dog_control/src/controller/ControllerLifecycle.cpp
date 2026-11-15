@@ -125,6 +125,9 @@ controller_interface::CallbackReturn NmpcWbcController::on_init() {
     auto_declare<double>("wbc_nominal_height_correction_limit_mps2", 0.0);
     auto_declare<double>("estimator_planned_contact_delay_s", 0.0);
     auto_declare<double>("estimator_planned_contact_ramp_s", 0.0);
+    // Optional flat-ground no-slip sphere model, disabled for all deployments
+    // unless explicitly configured. This is not a measured contact signal.
+    auto_declare<double>("estimator_rolling_foot_radius_m", 0.0);
     auto_declare<double>("locomotion_max_hip_angle_rad", 0.20);
     auto_declare<double>("locomotion_joint_limit_margin_rad", 0.03);
     auto_declare<double>("stance_reanchor_distance_m", 1.0);
@@ -420,6 +423,8 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
         node->get_parameter("estimator_planned_contact_delay_s").as_double();
     estimator_noise.planned_contact_ramp_s =
         node->get_parameter("estimator_planned_contact_ramp_s").as_double();
+    estimator_noise.rolling_foot_radius_m =
+        node->get_parameter("estimator_rolling_foot_radius_m").as_double();
     estimator_ = std::make_unique<KinematicStateEstimator>(
         backend_->pinocchioInterface(), backend_->modelInfo(), estimator_noise);
     estimator_->Reset(nominal_height_m_);

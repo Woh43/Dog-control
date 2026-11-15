@@ -51,6 +51,10 @@ KinematicStateEstimator::KinematicStateEstimator(
     throw std::invalid_argument(
         "planned contact delay/ramp must be finite and non-negative");
   }
+  if (!std::isfinite(noise_.rolling_foot_radius_m) ||
+      noise_.rolling_foot_radius_m < 0.0 || noise_.rolling_foot_radius_m > 0.05) {
+    throw std::invalid_argument("rolling_foot_radius_m must be finite and in [0, 0.05] m");
+  }
   const auto& model = pinocchio_interface_.getModel();
   for (std::size_t i = 0; i < kJointCount; ++i) {
     const auto joint_id = model.getJointId(std::string(kJointNames[i]));
@@ -189,12 +193,23 @@ EstimatedState KinematicStateEstimator::UpdateImpl(
 
   std::array<Eigen::Vector3d, kLegCount> foot_in_world_at_origin{};
   std::array<Eigen::Vector3d, kLegCount> foot_velocity_at_origin{};
+  // Explicit ContactSupport remains authoritative, including caller-supplied
+  // rolling motion. Only the flat-ground planned-contact overload synthesizes it.
+  auto center_velocity = support.center_velocity;
   for (std::size_t leg = 0; leg < kLegCount; ++leg) {
     const auto frame_id = model.getFrameId(std::string(kFootFrameNames[leg]));
     foot_in_world_at_origin[leg] = data.oMf[frame_id].translation();
-    foot_velocity_at_origin[leg] =
-        pinocchio::getFrameVelocity(
-            model, data, frame_id, pinocchio::LOCAL_WORLD_ALIGNED).linear();
+    const auto foot_motion = pinocchio::getFrameVelocity(
+        model, data, frame_id, pinocchio::LOCAL_WORLD_ALIGNED);
+    foot_velocity_at_origin[leg] = foot_motion.linear();
+    if (use_planned_trust && planned_contacts[leg] && noise_.rolling_foot_radius_m > 0.0) {
+      // With world-frame center-to-contact r=(0,0,-radius), a stationary
+      // no-slip contact requires v_center + omega_foot x r = 0. The angular
+      // velocity includes both base rotation and joints; base translation
+      // being zero in this FK has no effect on it. Swing is not constrained.
+      center_velocity[leg] = -foot_motion.angular().cross(
+          Eigen::Vector3d(0.0, 0.0, -noise_.rolling_foot_radius_m));
+    }
   }
 
   std::array<double, kLegCount> contact_trust;
@@ -247,8 +262,8 @@ EstimatedState KinematicStateEstimator::UpdateImpl(
       noise_.foot_process_position * dt *
       Eigen::Matrix<double, 12, 12>::Identity();
 
-  // 支撑足近似静止：v_base = -v_foot_relative。摆动时该假设不成立，
-  // 通过更大的协方差降低权重；未知支撑高度不构成高度观测。
+  // 支撑足速度观测：v_base = v_center - v_foot_relative；默认点足 v_center=0。
+  // 摆动/触地延迟仍由原协方差降低权重；未知支撑高度不构成高度观测。
   ObservationCovariance measurement_noise = ObservationCovariance::Zero();
   ObservationVector measurement = ObservationVector::Zero();
   auto observation = observation_model_;
@@ -266,7 +281,7 @@ EstimatedState KinematicStateEstimator::UpdateImpl(
     measurement_noise(24 + leg, 24 + leg) =
         scale * noise_.foot_height;
     measurement.segment<3>(3 * leg) = -foot_in_world_at_origin[leg];
-    measurement.segment<3>(12 + 3 * leg) = support.center_velocity[leg] - foot_velocity_at_origin[leg];
+    measurement.segment<3>(12 + 3 * leg) = center_velocity[leg] - foot_velocity_at_origin[leg];
     measurement(24 + leg) = support.foot_center_height[leg];
     if (contact_trust[leg] <= 0.0 || !support.height_valid[leg]) {
       observation.row(24 + leg).setZero();
@@ -285,9 +300,9 @@ EstimatedState KinematicStateEstimator::UpdateImpl(
 
   StateVector predicted_state = transition * state_ + input * acceleration_world;
   for (size_t leg = 0; leg < kLegCount; ++leg) {
-    if (!support.center_velocity[leg].allFinite()) return output;
+    if (!center_velocity[leg].allFinite()) return output;
     if (support.contact[leg])
-      predicted_state.segment<3>(6 + 3 * leg) += dt * support.center_velocity[leg];
+      predicted_state.segment<3>(6 + 3 * leg) += dt * center_velocity[leg];
   }
   const StateMatrix predicted_covariance =
       transition * covariance_ * transition.transpose() + process_noise;

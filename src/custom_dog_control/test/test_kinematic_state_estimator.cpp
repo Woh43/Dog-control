@@ -5,8 +5,10 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+#include <Eigen/LU>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/kinematics.hpp>
+#include <pinocchio/algorithm/jacobian.hpp>
 
 #include "custom_dog_control/model/RobotModel.hpp"
 #include "custom_dog_control/nmpc/KinematicStateEstimator.hpp"
@@ -63,6 +65,54 @@ class KinematicStateEstimatorTest : public testing::Test {
       height -= data.oMf[model.getFrameId(std::string(foot))].translation().z() / kLegCount;
     }
     return height;
+  }
+
+  // Generate a sustained rolling stance from the full robot contact Jacobian,
+  // not from synthetic center velocities supplied to the estimator. World base
+  // velocity is known, base attitude is fixed, and contact-point velocity is zero.
+  ocs2::vector_t RollingStanceVelocity(const ocs2::vector_t& q,
+                                     const Eigen::Vector3d& base_velocity,
+                                     double radius) {
+    const auto& model = robot_.pin.getModel();
+    auto& data = robot_.pin.getData();
+    pinocchio::computeJointJacobians(model, data, q);
+    pinocchio::updateFramePlacements(model, data);
+    ocs2::vector_t v = ocs2::vector_t::Zero(model.nv);
+    v.head<3>() = base_velocity;
+    Eigen::Matrix3d radius_cross;
+    radius_cross << 0.0, radius, 0.0, -radius, 0.0, 0.0, 0.0, 0.0, 0.0;
+    for (std::size_t leg = 0; leg < kLegCount; ++leg) {
+      Eigen::Matrix<double, 6, Eigen::Dynamic> jacobian(6, model.nv);
+      jacobian.setZero();
+      pinocchio::getFrameJacobian(model, data,
+          model.getFrameId(std::string(kFootFrameNames[leg])),
+          pinocchio::LOCAL_WORLD_ALIGNED, jacobian);
+      const Eigen::Matrix<double, 3, Eigen::Dynamic> contact_jacobian =
+          jacobian.topRows<3>() - radius_cross * jacobian.bottomRows<3>();
+      Eigen::Matrix3d leg_jacobian;
+      std::array<int, 3> slots;
+      for (std::size_t joint = 0; joint < 3; ++joint) {
+        const auto id = model.getJointId(std::string(kJointNames[3 * leg + joint]));
+        slots[joint] = model.joints[id].idx_v();
+        leg_jacobian.col(joint) = contact_jacobian.col(slots[joint]);
+      }
+      const Eigen::Vector3d leg_velocity = leg_jacobian.fullPivLu().solve(
+          -contact_jacobian.leftCols<6>() * v.head<6>());
+      for (std::size_t joint = 0; joint < 3; ++joint) v(slots[joint]) = leg_velocity(joint);
+    }
+    return v;
+  }
+
+  JointSample JointFeedback(const ocs2::vector_t& q, const ocs2::vector_t& v) {
+    JointSample sample;
+    sample.valid.fill(1.0);
+    const auto& model = robot_.pin.getModel();
+    for (std::size_t joint = 0; joint < kJointCount; ++joint) {
+      const auto id = model.getJointId(std::string(kJointNames[joint]));
+      sample.position[joint] = q(model.joints[id].idx_q());
+      sample.velocity[joint] = v(model.joints[id].idx_v());
+    }
+    return sample;
   }
 
   void CheckMinuteOfStaticSupport(bool imu_at_100_hz, int control_hz = 250) {
@@ -523,6 +573,177 @@ TEST_F(KinematicStateEstimatorTest, InvalidPlannedTrustTimingIsRejected) {
     noise.planned_contact_delay_s = 0.0;
     noise.planned_contact_ramp_s = invalid;
     EXPECT_THROW(KinematicStateEstimator(robot_.pin, robot_.info, noise), std::invalid_argument);
+  }
+}
+
+TEST_F(KinematicStateEstimatorTest, RollingSphericalStanceRecoversVelocityAndDisplacement) {
+  constexpr double radius = 0.026;
+  constexpr double dt = 0.001;
+  constexpr int steps = 500;
+  for (double yaw : {0.0, 0.6}) {
+    for (double vx : {0.2, -0.2}) {
+      SCOPED_TRACE(testing::Message() << "yaw=" << yaw << " vx=" << vx);
+      EstimatorNoise rolling_noise;
+      rolling_noise.rolling_foot_radius_m = radius;
+      KinematicStateEstimator rolling(robot_.pin, robot_.info, rolling_noise),
+          legacy(robot_.pin, robot_.info);
+      rolling.Reset(0.34);
+      legacy.Reset(0.34);
+      const auto& model = robot_.pin.getModel();
+      auto& data = robot_.pin.getData();
+      ocs2::vector_t q = ocs2::vector_t::Zero(model.nq);
+      q(3) = yaw;
+      const auto initial = Pose();
+      for (std::size_t joint = 0; joint < kJointCount; ++joint) {
+        const auto id = model.getJointId(std::string(kJointNames[joint]));
+        q(model.joints[id].idx_q()) = initial.position[joint];
+      }
+      const Eigen::Vector3d truth_velocity(vx, 0.0, 0.0);
+      const double truth_height = FlatGroundHeight(initial);
+      auto imu = RestingImu();
+      imu.orientation_wxyz = {std::cos(yaw / 2.0), 0.0, 0.0, std::sin(yaw / 2.0)};
+      EstimatedState corrected, old;
+      Eigen::Vector3d corrected_tail = Eigen::Vector3d::Zero();
+      Eigen::Vector3d legacy_tail = Eigen::Vector3d::Zero();
+      for (int cycle = 0; cycle <= steps; ++cycle) {
+        const auto v = RollingStanceVelocity(q, truth_velocity, radius);
+        ASSERT_TRUE(v.allFinite());
+        // Check the independent no-slip contact constraint on every generated
+        // trajectory sample, so arbitrary joint motion cannot satisfy this test.
+        pinocchio::forwardKinematics(model, data, q, v);
+        pinocchio::updateFramePlacements(model, data);
+        for (const auto foot : kFootFrameNames) {
+          const auto motion = pinocchio::getFrameVelocity(model, data,
+              model.getFrameId(std::string(foot)), pinocchio::LOCAL_WORLD_ALIGNED);
+          EXPECT_LT((motion.linear() + motion.angular().cross(
+              Eigen::Vector3d(0.0, 0.0, -radius))).norm(), 1e-9);
+        }
+        const auto feedback = JointFeedback(q, v);
+        imu.stamp_seconds = cycle * dt;
+        corrected = rolling.Update(feedback, imu, ContactFlags(kStanceMode), dt);
+        old = legacy.Update(feedback, imu, ContactFlags(kStanceMode), dt);
+        ASSERT_TRUE(FiniteEstimate(corrected));
+        ASSERT_TRUE(FiniteEstimate(old));
+        if (cycle > steps - 200) {
+          corrected_tail += corrected.velocity_world / 200.0;
+          legacy_tail += old.velocity_world / 200.0;
+        }
+        // Midpoint integration changes joints only. Base translation is kept
+        // out of estimator FK, while truth x advances independently at vx.
+        ocs2::vector_t midpoint = q;
+        midpoint.tail<12>() += 0.5 * dt * v.tail<12>();
+        const auto midpoint_v = RollingStanceVelocity(midpoint, truth_velocity, radius);
+        q.tail<12>() += dt * midpoint_v.tail<12>();
+      }
+      EXPECT_LT((corrected_tail - truth_velocity).norm(), 5e-4);
+      EXPECT_GT((legacy_tail - truth_velocity).norm(), 0.005);
+      const Eigen::Vector3d truth_position(vx * steps * dt, 0.0, truth_height);
+      EXPECT_LT((corrected.position - truth_position).norm(), 0.001);
+      EXPECT_GT((old.position - truth_position).norm(), 0.003);
+      // The position bound also detects a partial fix that changes velocity
+      // measurements but leaves the KF foot-center prediction stationary.
+    }
+  }
+}
+
+TEST_F(KinematicStateEstimatorTest, ZeroRollingRadiusPreservesPointFootBehaviorExactly) {
+  EstimatorNoise point_noise;
+  point_noise.rolling_foot_radius_m = 0.0;
+  KinematicStateEstimator planned(robot_.pin, robot_.info, point_noise),
+      explicit_point(robot_.pin, robot_.info);
+  planned.Reset(0.34);
+  explicit_point.Reset(0.34);
+  auto imu = RestingImu();
+  imu.angular_velocity = {0.03, -0.02, 0.01};
+  for (int cycle = 0; cycle < 200; ++cycle) {
+    auto joints = Pose(0.8 + 0.02 * std::sin(cycle * 0.01), -1.6);
+    for (std::size_t joint = 0; joint < kJointCount; ++joint)
+      joints.velocity[joint] = 0.04 * std::cos(cycle * 0.01 + joint);
+    const auto contacts = ContactFlags(cycle < 50 ? kStanceMode :
+        (cycle < 100 ? std::size_t{6} : (cycle < 150 ? std::size_t{9} : std::size_t{0})));
+    ContactSupport support;
+    support.contact = contacts;
+    support.height_valid = contacts;
+    support.foot_center_height.fill(RobotModelConfig{}.foot_radius_m);
+    imu.stamp_seconds = cycle * 0.002;
+    const auto actual = planned.Update(joints, imu, contacts, 0.002);
+    const auto expected = explicit_point.Update(joints, imu, support, 0.002);
+    ASSERT_TRUE(FiniteEstimate(actual));
+    ASSERT_TRUE(FiniteEstimate(expected));
+    EXPECT_TRUE(actual.position == expected.position);
+    EXPECT_TRUE(actual.velocity_world == expected.velocity_world);
+    for (std::size_t leg = 0; leg < kLegCount; ++leg)
+      EXPECT_TRUE(actual.foot_position_world[leg] == expected.foot_position_world[leg]);
+  }
+}
+
+TEST_F(KinematicStateEstimatorTest, ExplicitSupportRetainsCallerVelocityWithRollingConfigured) {
+  EstimatorNoise noise;
+  noise.rolling_foot_radius_m = 0.026;
+  noise.planned_contact_delay_s = 0.020;
+  noise.planned_contact_ramp_s = 0.010;
+  KinematicStateEstimator configured(robot_.pin, robot_.info, noise),
+      reference(robot_.pin, robot_.info);
+  configured.Reset(0.34);
+  reference.Reset(0.34);
+  auto imu = RestingImu();
+  imu.angular_velocity = {0.1, -0.2, 0.3};
+  for (int cycle = 0; cycle < 200; ++cycle) {
+    auto joints = Pose();
+    joints.velocity.fill(0.2);
+    ContactSupport support;
+    support.contact = ContactFlags(cycle < 50 ? kStanceMode :
+        (cycle < 100 ? std::size_t{6} : (cycle < 150 ? std::size_t{9} : std::size_t{0})));
+    support.height_valid = support.contact;
+    support.foot_center_height.fill(RobotModelConfig{}.foot_radius_m);
+    for (std::size_t leg = 0; leg < kLegCount; ++leg)
+      support.center_velocity[leg] = Eigen::Vector3d(0.04 + leg * 0.001, -0.03, 0.0);
+    imu.stamp_seconds = cycle * 0.002;
+    const auto actual = configured.Update(joints, imu, support, 0.002);
+    const auto expected = reference.Update(joints, imu, support, 0.002);
+    ASSERT_TRUE(FiniteEstimate(actual));
+    ASSERT_TRUE(FiniteEstimate(expected));
+    EXPECT_TRUE(actual.position == expected.position);
+    EXPECT_TRUE(actual.velocity_world == expected.velocity_world);
+    for (std::size_t leg = 0; leg < kLegCount; ++leg) {
+      EXPECT_TRUE(actual.foot_position_world[leg] == expected.foot_position_world[leg]);
+      EXPECT_DOUBLE_EQ(configured.plannedContactTrust()[leg], 0.0);
+    }
+  }
+}
+
+TEST_F(KinematicStateEstimatorTest, RollingStaticStancePreservesPlannedContactTrust) {
+  EstimatorNoise noise;
+  noise.planned_contact_delay_s = 0.020;
+  noise.planned_contact_ramp_s = 0.010;
+  KinematicStateEstimator point(robot_.pin, robot_.info, noise);
+  noise.rolling_foot_radius_m = 0.026;
+  KinematicStateEstimator sphere(robot_.pin, robot_.info, noise);
+  point.Reset(0.34);
+  sphere.Reset(0.34);
+  for (int cycle = 0; cycle < 100; ++cycle) {
+    const auto contacts = ContactFlags(cycle < 20 || cycle >= 60 ? kStanceMode : std::size_t{0});
+    const auto actual = sphere.Update(Pose(), RestingImu(), contacts, 0.002);
+    const auto expected = point.Update(Pose(), RestingImu(), contacts, 0.002);
+    ASSERT_TRUE(FiniteEstimate(actual));
+    ASSERT_TRUE(FiniteEstimate(expected));
+    EXPECT_EQ(sphere.plannedContactTrust(), point.plannedContactTrust());
+    EXPECT_TRUE(actual.position == expected.position);
+    EXPECT_TRUE(actual.velocity_world == expected.velocity_world);
+  }
+}
+
+TEST_F(KinematicStateEstimatorTest, InvalidRollingFootRadiusIsRejected) {
+  for (double invalid : {-0.001, 0.050001, std::numeric_limits<double>::quiet_NaN(),
+                          std::numeric_limits<double>::infinity()}) {
+    EstimatorNoise noise;
+    noise.rolling_foot_radius_m = invalid;
+    EXPECT_THROW(KinematicStateEstimator(robot_.pin, robot_.info, noise), std::invalid_argument);
+  }
+  for (double valid : {0.0, 0.026, 0.05}) {
+    EstimatorNoise noise;
+    noise.rolling_foot_radius_m = valid;
+    EXPECT_NO_THROW(KinematicStateEstimator(robot_.pin, robot_.info, noise));
   }
 }
 

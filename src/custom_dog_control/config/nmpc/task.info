@@ -144,7 +144,7 @@ mpc
   coldStart                       false
   debugPrint                      false
   mpcDesiredFrequency             50
-  mrtDesiredFrequency             500
+  mrtDesiredFrequency             1000
 }
 
 initialState
@@ -283,8 +283,8 @@ frictionConeTask
 
 swingLegTask
 {
-  kp                     350
-  kd                     37
+  kp                     500
+  kd                     45
 }
 
 baseAccelTask

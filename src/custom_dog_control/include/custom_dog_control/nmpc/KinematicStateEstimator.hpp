@@ -45,6 +45,11 @@ struct EstimatorNoise {
   // Zero/zero preserves the original binary planned-contact behavior.
   double planned_contact_delay_s = 0.0;
   double planned_contact_ramp_s = 0.0;
+  // Optional no-slip spherical-sole model on flat ground (world normal +z),
+  // applied only to planned_contacts. Radius 0 preserves the point-foot model.
+  // This predicts foot-center motion from kinematics, not measured sole force
+  // or ground velocity. It does not change the configured foot-center height.
+  double rolling_foot_radius_m = 0.0;
 };
 
 // 平地接触假设下的线性卡尔曼滤波器：估计基座平移和四足世界位置，

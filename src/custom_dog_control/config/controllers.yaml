@@ -1,7 +1,7 @@
 controller_manager:
   ros__parameters:
     use_sim_time: true
-    update_rate: 500
+    update_rate: 1000
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -66,12 +66,12 @@ nmpc_wbc_controller:
     stand_up_base_velocity_tolerance_m_s: 0.05
     handoff_duration_s: 2.0
     # Joint-side impedance for MPC_STANCE/TROT, shared by hardware and simulation.
-    # Combined motion profile: Kp 45/45/65, Kd=1.0 with NMPC momentum Qx=100 and height Qzz=2000.
+    # Firmer motion impedance: Kp 60/60/90, Kd=2.0; validate motion after retuning.
     # Stand-up and settling retain their independently configured gains above.
-    wbc_joint_stiffness: 45.0
-    wbc_hip_stiffness: 45.0
-    wbc_calf_stiffness: 65.0
-    wbc_joint_damping: 1.0
+    wbc_joint_stiffness: 60.0
+    wbc_hip_stiffness: 60.0
+    wbc_calf_stiffness: 90.0
+    wbc_joint_damping: 2.0
     # Shape the velocity input shared by WBC and motor PD; positions stay raw.
     wbc_joint_velocity_acceleration_limit: 400.0
     # Add bounded Kpz*(nominal_z-policy_z) to the existing base-height task.

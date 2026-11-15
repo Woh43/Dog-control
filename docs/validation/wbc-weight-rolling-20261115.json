@@ -1,0 +1,2304 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-15",
+  "hardware_io": false,
+  "physics": "Gazebo Fortress motor_pd; fresh world per attempt",
+  "protocol": {
+    "controller_hz": 1000,
+    "nmpc_hz": 50,
+    "imu_hz": 100,
+    "extra_command_delay_s": 0.02,
+    "trot_period_s": 0.4,
+    "planned_swing_height_m": 0.1,
+    "nominal_base_origin_height_m": 0.34,
+    "calf_coulomb_nm": 0.45,
+    "calf_viscous_nms_rad": 0.0175,
+    "motion_s": 20,
+    "final_stance_s": 30,
+    "comparison_window_after_motion_start_s": [
+      6,
+      20
+    ],
+    "ground_truth_feedback": false,
+    "imu_prediction_s": 0,
+    "nominal_torque_nm_hip_thigh_calf": [
+      23.7,
+      23.7,
+      45
+    ],
+    "guard_ratio": 1.1
+  },
+  "sequence": [
+    "WBC baseAccel weights1,1.5,2 with fixed joint PD60/60/90,Kd2 at forward/backward1m/s plus baseline +/-0.5m/s",
+    "At weight1.5 change only joint Kp to45/45/65 keeping Kd2, then only Kd to2.5",
+    "After no parameter candidate passed all criteria, add optional spherical-foot rolling velocity model to the estimator only",
+    "Rebuild, run all26 CTest groups, then repeat weight1,Kp60/60/90,Kd2 with rolling radius0 and.026m, forward/backward1m/s"
+  ],
+  "counts": {
+    "fresh_world_cases": 16,
+    "completed_20s_motion_plus_30s_final_stance": 16,
+    "script_passes": 2,
+    "script_and_nominal_budget_passes": 2,
+    "cases_with_recorded_nominal_torque_excursions": 3,
+    "guard_torque_excursions": 0.0
+  },
+  "build_and_tests": {
+    "build": "Release incremental build; real hardware OFF; tests ON",
+    "ctest_groups_passed": 26,
+    "ctest_groups_failed": 0,
+    "kinematic_estimator_tests_passed": 22,
+    "new_rolling_tests": 5,
+    "log_directory": "log/wbc-weight-pd-20261115-154629"
+  },
+  "decision": {
+    "new_parameter_candidate_promoted": false,
+    "retained_shared_joint_kp": [
+      60,
+      60,
+      90
+    ],
+    "retained_shared_joint_kd": 2,
+    "retained_wbc_base_weight": 1,
+    "nmpc_Q_R_changed": false,
+    "rolling_estimator_parameter": "estimator_rolling_foot_radius_m",
+    "rolling_default_m": 0,
+    "rolling_experiment_m": 0.026,
+    "reason": "No new configuration demonstrated balanced improvement in speed, height and foot tracking while passing the unchanged original acceptance and nominal total-torque checks. No new formal foot-error threshold was introduced. Rolling compensation reduces estimation bias, but actual speed decreases, height remains below target, and off-axis tracking still fails. It remains opt-in."
+  },
+  "semantics_and_limits": [
+    "Velocity/height use independent simulation truth, not controller estimates. Common-window velocity is pose finite difference rotated into body axes, with sample-time weighting.",
+    "Foot error is exported joint-reference vs measured-joint body-frame FK during planned swing; includes delay, not absolute world foot placement or measured contact. World foot errors in the raw report also include estimator odometry drift.",
+    "Torque means delayed motor-PD FF+PD request before passive friction, not measured hardware torque/current/thermal capability. Peak uses physical cumulative statistics; the final unprinted tail is checked separately with sampled effort. Excursion counts are joint samples, not elapsed milliseconds.",
+    "Weights multiply task A and b before squared cost; weights1/1.5/2 mean squared coefficients1/2.25/4.",
+    "Rolling estimation assumes a rigid no-slip spherical sole on flat ground; uses only IMU, joint kinematics and radius. It updates velocity observations and foot-position prediction; explicit ContactSupport remains authoritative.",
+    "Planned contact delay/ramp covariance is preserved; rolling is generated for planned stance even before full trust. There are no sole contact sensors or measured contact forces.",
+    "NMPC/WBC point-contact constraints and the default FF-only WBC torque model remain unchanged. Strict q/dq integrability and delayed execution total-torque guarantees are not fixed by this estimator patch.",
+    "Each profile/direction has one trial in this sweep; rolling-off repeats the original baseline after rebuilding. Millimeter differences do not establish statistical significance.",
+    "No hardware movement, board real-time acceptance or calibrated actuator/friction model is established."
+  ],
+  "cases": [
+    {
+      "variant": "pd45_kd25_w150_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          45.0,
+          45.0,
+          65.0
+        ],
+        "joint_kd": 2.5,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.9336628154372308,
+      "truth_body_vx_rmse_mps": 0.07344881304203095,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3248171027438355,
+        "rms": 0.3248226277334439,
+        "bias": -0.015182897256164507,
+        "rmse": 0.015300641223534061,
+        "p05": 0.32194590100702736,
+        "p95": 0.32803067669531855,
+        "min": 0.3199580917703237,
+        "max": 0.33017239571184165,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3199580917703237,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.010743615792056401,
+          "rms": 0.01361823467162416,
+          "bias": 0.010743615792056401,
+          "rmse": 0.01361823467162416,
+          "p05": 0.0036958130202003727,
+          "p95": 0.03233484491438069,
+          "min": 0.003141733336455906,
+          "max": 0.03649726075701717
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.011976469529632158,
+          "rms": 0.015321001766762737,
+          "bias": 0.011976469529632158,
+          "rmse": 0.015321001766762737,
+          "p05": 0.003959665905579865,
+          "p95": 0.03666437586792948,
+          "min": 0.0028400609175865156,
+          "max": 0.03973136025291366
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.010395796420853224,
+          "rms": 0.013066415040074723,
+          "bias": 0.010395796420853224,
+          "rmse": 0.013066415040074723,
+          "p05": 0.0030550241779242772,
+          "p95": 0.029963712272459888,
+          "min": 0.0025614202625214603,
+          "max": 0.03317492749588172
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.010101451411397936,
+          "rms": 0.012641966489424224,
+          "bias": 0.010101451411397936,
+          "rmse": 0.012641966489424224,
+          "p05": 0.0031122728212142894,
+          "p95": 0.029431118344910072,
+          "min": 0.002698510148844984,
+          "max": 0.03264642899205887
+        }
+      },
+      "worst_leg_foot_p95_m": 0.03666437586792948,
+      "physics_peak_ratio_to_nominal": 0.930708767,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 69.414,
+        "trace_end_sim_s": 69.435,
+        "tail_trace_peak_ratio_to_nominal": 0.12185834692221306
+      },
+      "lateral_displacement_m": -0.32624831139349403,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": 0.07314426069789415,
+        "rms": 0.0748787399400084,
+        "bias": 0.07314426069789415,
+        "rmse": 0.0748787399400084,
+        "p05": 0.04747827341675437,
+        "p95": 0.0977849125715512,
+        "min": -0.01132859918761464,
+        "max": 0.1334904017079902,
+        "estimated_mean_mps": -0.861450907496656,
+        "truth_mean_mps": -0.9345951681945501
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.006118700472953,
+        0.015108192851563076,
+        0.0009512354952504449
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.3638716726936826,
+        0.010442666586753973,
+        -3.410237599238419e-05
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.5397662379615404,
+        -0.022913299804925718,
+        -2.8528099815350316e-05
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "5c34a6da96ba583e9707313cb6fab45efaf1ef68a2e09f8a8867cea2f78e6d04",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/pd45_kd25_w150_v10/backward/run.json",
+      "run_json_sha256": "b1fbd3b8511469cb5b972f2f3557a97302f2c8c4e61efc6eea44fedc84faba8f"
+    },
+    {
+      "variant": "pd45_kd25_w150_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          45.0,
+          45.0,
+          65.0
+        ],
+        "joint_kd": 2.5,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9626652352996201,
+      "truth_body_vx_rmse_mps": 0.04492259374489292,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.33678716136618114,
+        "rms": 0.3367930831781505,
+        "bias": -0.003212838633818882,
+        "rmse": 0.0037830077506422343,
+        "p05": 0.3340756997838863,
+        "p95": 0.34078752308979077,
+        "min": 0.3320491453027656,
+        "max": 0.345011769808166,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3320491453027656,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.00999930885885092,
+          "rms": 0.012302713518518756,
+          "bias": 0.00999930885885092,
+          "rmse": 0.012302713518518756,
+          "p05": 0.0035248561622108067,
+          "p95": 0.02756165799125231,
+          "min": 0.00311821447697844,
+          "max": 0.03225351027195794
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.010000605153233186,
+          "rms": 0.012310003532550044,
+          "bias": 0.010000605153233186,
+          "rmse": 0.012310003532550044,
+          "p05": 0.0035148207024505826,
+          "p95": 0.027333776330002717,
+          "min": 0.003273809689348406,
+          "max": 0.03258468718069611
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.01055568565517432,
+          "rms": 0.013347897611597158,
+          "bias": 0.01055568565517432,
+          "rmse": 0.013347897611597158,
+          "p05": 0.003365454290924232,
+          "p95": 0.03169910203428058,
+          "min": 0.0024625252821206065,
+          "max": 0.03442045966770124
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.010562755051243532,
+          "rms": 0.01334580208154293,
+          "bias": 0.010562755051243532,
+          "rmse": 0.01334580208154293,
+          "p05": 0.00340745722720658,
+          "p95": 0.032140226913614955,
+          "min": 0.002073615683924824,
+          "max": 0.03398238164227818
+        }
+      },
+      "worst_leg_foot_p95_m": 0.032140226913614955,
+      "physics_peak_ratio_to_nominal": 0.979304933,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.414,
+        "trace_end_sim_s": 69.407,
+        "tail_trace_peak_ratio_to_nominal": 0.12078159603523084
+      },
+      "lateral_displacement_m": 0.3818682438760462,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13982,
+        "mean": -0.09599802160132705,
+        "rms": 0.0995577040922482,
+        "bias": -0.09599802160132705,
+        "rmse": 0.0995577040922482,
+        "p05": -0.15736474089963415,
+        "p95": -0.06846729341724123,
+        "min": -0.23331296959072012,
+        "max": -0.032640378514990465,
+        "estimated_mean_mps": 0.8677156371651014,
+        "truth_mean_mps": 0.9637136587664286
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.244853229721807,
+        0.02489324455964271,
+        0.0018739298693792753
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.46109698495416174,
+        0.0031468050257353226,
+        0.0014601436062244844
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.9001504295772964,
+        0.0006506511200757709,
+        0.0014231047675872244
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "5c34a6da96ba583e9707313cb6fab45efaf1ef68a2e09f8a8867cea2f78e6d04",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/pd45_kd25_w150_v10/forward/run.json",
+      "run_json_sha256": "5ed8a7d7b44d5effb641f7ba9790b3d22e7572378b281bc3c0012a3d4e50a641"
+    },
+    {
+      "variant": "pd45_w150_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          45.0,
+          45.0,
+          65.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.9288407249012206,
+      "truth_body_vx_rmse_mps": 0.0811305443053312,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.32510849658178465,
+        "rms": 0.32511653760776565,
+        "bias": -0.01489150341821538,
+        "rmse": 0.015066033003021943,
+        "p05": 0.321383421870325,
+        "p95": 0.3290790284500008,
+        "min": 0.31972204732720094,
+        "max": 0.3311300130833087,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.31972204732720094,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.012297466001858035,
+          "rms": 0.015475962126456591,
+          "bias": 0.012297466001858035,
+          "rmse": 0.015475962126456591,
+          "p05": 0.003615282267124722,
+          "p95": 0.03516422023093997,
+          "min": 0.002403068453877226,
+          "max": 0.039895002408263124
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.010551467170498477,
+          "rms": 0.013069297361954531,
+          "bias": 0.010551467170498477,
+          "rmse": 0.013069297361954531,
+          "p05": 0.003338189870578034,
+          "p95": 0.030550402274380457,
+          "min": 0.002450630173754151,
+          "max": 0.034452824805974794
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.009994018027464574,
+          "rms": 0.012222449860364719,
+          "bias": 0.009994018027464574,
+          "rmse": 0.012222449860364719,
+          "p05": 0.0033927569935512125,
+          "p95": 0.027825271658526555,
+          "min": 0.0026659358730866623,
+          "max": 0.03129619789239994
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.010480647495990128,
+          "rms": 0.01291621661178637,
+          "bias": 0.010480647495990128,
+          "rmse": 0.01291621661178637,
+          "p05": 0.003501127441980922,
+          "p95": 0.029789084673493196,
+          "min": 0.0022553367233026163,
+          "max": 0.031726692649806224
+        }
+      },
+      "worst_leg_foot_p95_m": 0.03516422023093997,
+      "physics_peak_ratio_to_nominal": 1.00200029,
+      "over_nominal_joint_samples": 1.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.515,
+        "trace_end_sim_s": 69.404,
+        "tail_trace_peak_ratio_to_nominal": 0.12374006534002507
+      },
+      "lateral_displacement_m": -0.3919033781496866,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": 0.06866919667229966,
+        "rms": 0.07117095269774242,
+        "bias": 0.06866919667229966,
+        "rmse": 0.07117095269774242,
+        "p05": 0.03712502037988896,
+        "p95": 0.09668617733358742,
+        "min": -0.051433408713812856,
+        "max": 0.14181312352223163,
+        "estimated_mean_mps": -0.8611260112061847,
+        "truth_mean_mps": -0.9297952078784844
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.9563818832008567,
+        0.010086153549415168,
+        0.0008600769014700264
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.3565785411716189,
+        0.002882654827878037,
+        -0.0005730813757772735
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.4374973689496944,
+        0.030881071240318164,
+        0.001431440867540934
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "d8ef2b5d4de655fec289b2dc7f162e8f7ca98fe41bdd5a5202da6fab0e2dfd78",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/pd45_w150_v10/backward/run.json",
+      "run_json_sha256": "34ff78e3ea2f06534a1fd83e2b27dfa8838c743299182d8b20bcccba99d0c662"
+    },
+    {
+      "variant": "pd45_w150_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          45.0,
+          45.0,
+          65.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9711256697077416,
+      "truth_body_vx_rmse_mps": 0.03933536414834722,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.33595464296021244,
+        "rms": 0.33595667268629303,
+        "bias": -0.004045357039787589,
+        "rmse": 0.004210547411033743,
+        "p05": 0.33391038774154025,
+        "p95": 0.33768956225556035,
+        "min": 0.33260153552843047,
+        "max": 0.33903374092926813,
+        "duration_s": 13.988000000000001,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.33260153552843047,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.008205856737490814,
+          "rms": 0.0103697488337419,
+          "bias": 0.008205856737490814,
+          "rmse": 0.0103697488337419,
+          "p05": 0.002379244665320482,
+          "p95": 0.02418517046440762,
+          "min": 0.0014808701839180477,
+          "max": 0.026176563975921552
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.008222022130236996,
+          "rms": 0.010456203541971661,
+          "bias": 0.008222022130236996,
+          "rmse": 0.010456203541971661,
+          "p05": 0.0023366912315622842,
+          "p95": 0.024440692125358727,
+          "min": 0.0009837979366069053,
+          "max": 0.026515354056818423
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.008542550958852195,
+          "rms": 0.011074499956349116,
+          "bias": 0.008542550958852195,
+          "rmse": 0.011074499956349116,
+          "p05": 0.0019759132760581986,
+          "p95": 0.027452218946137964,
+          "min": 0.0011632446700566674,
+          "max": 0.03211924150882093
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.008425471524314177,
+          "rms": 0.010855642162387855,
+          "bias": 0.008425471524314177,
+          "rmse": 0.010855642162387855,
+          "p05": 0.0018999631615461221,
+          "p95": 0.02510488159913851,
+          "min": 0.0010346157143461088,
+          "max": 0.029217099733615665
+        }
+      },
+      "worst_leg_foot_p95_m": 0.027452218946137964,
+      "physics_peak_ratio_to_nominal": 0.973405026,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.215,
+        "trace_end_sim_s": 69.003,
+        "tail_trace_peak_ratio_to_nominal": 0.12152332040808814
+      },
+      "lateral_displacement_m": 0.432353644494051,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13994,
+        "mean": -0.09555059478808407,
+        "rms": 0.09848295812431757,
+        "bias": -0.09555059478808407,
+        "rmse": 0.09848295812431757,
+        "p05": -0.15219244139179733,
+        "p95": -0.06617193960744905,
+        "min": -0.21694803227537618,
+        "max": -0.03691925769289328,
+        "estimated_mean_mps": 0.8764816977427003,
+        "truth_mean_mps": 0.9720322925307844
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.250876318134956,
+        0.029006662157055496,
+        0.0017535389159685792
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.44160817893880644,
+        0.009198185930780289,
+        0.0019029313321367591
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.9142254493244089,
+        -0.055162292889013795,
+        0.0028889136080930133
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "d8ef2b5d4de655fec289b2dc7f162e8f7ca98fe41bdd5a5202da6fab0e2dfd78",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/pd45_w150_v10/forward/run.json",
+      "run_json_sha256": "c76a767f65deea59900bccd39f2ea9f3ca436ae3d041eb3b6456325086c45bdb"
+    },
+    {
+      "variant": "rolling_off_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": 0.0
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.9136222256643921,
+      "truth_body_vx_rmse_mps": 0.0929612093466411,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3227289926356939,
+        "rms": 0.3227333369195626,
+        "bias": -0.017271007364306146,
+        "rmse": 0.01735199605129223,
+        "p05": 0.32027320412230276,
+        "p95": 0.32550910415778805,
+        "min": 0.3183976050523766,
+        "max": 0.3274286608544979,
+        "duration_s": 13.991999999999997,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3183976050523766,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 699,
+          "mean": 0.014592644126069032,
+          "rms": 0.017647876247892363,
+          "bias": 0.014592644126069032,
+          "rmse": 0.017647876247892363,
+          "p05": 0.0023830066653997392,
+          "p95": 0.03783704903787814,
+          "min": 0.001377608013105671,
+          "max": 0.04603031484803504
+        },
+        "FL": {
+          "samples": 701,
+          "mean": 0.01463318018309952,
+          "rms": 0.017740045337892474,
+          "bias": 0.01463318018309952,
+          "rmse": 0.017740045337892474,
+          "p05": 0.00229454721052653,
+          "p95": 0.035918591100364244,
+          "min": 0.0011080360053938216,
+          "max": 0.046650971986045495
+        },
+        "RR": {
+          "samples": 701,
+          "mean": 0.013286825632026282,
+          "rms": 0.01582359465514955,
+          "bias": 0.013286825632026282,
+          "rmse": 0.01582359465514955,
+          "p05": 0.001840274114582345,
+          "p95": 0.03172439159110161,
+          "min": 0.0010067888763987775,
+          "max": 0.037725118934011
+        },
+        "RL": {
+          "samples": 699,
+          "mean": 0.013308361072374125,
+          "rms": 0.01582144147713282,
+          "bias": 0.013308361072374125,
+          "rmse": 0.01582144147713282,
+          "p05": 0.0018725232053668792,
+          "p95": 0.03266194170967666,
+          "min": 0.0012850137132960403,
+          "max": 0.037336665618447076
+        }
+      },
+      "worst_leg_foot_p95_m": 0.03783704903787814,
+      "physics_peak_ratio_to_nominal": 0.934706888,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.917,
+        "trace_end_sim_s": 69.814,
+        "tail_trace_peak_ratio_to_nominal": 0.12309001929009297
+      },
+      "lateral_displacement_m": -0.4084443594262449,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift",
+        "governed reference differs from command by 0.007; reference lead limiter remains enabled"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13999,
+        "mean": 0.06717059997685683,
+        "rms": 0.06998199055657026,
+        "bias": 0.06717059997685683,
+        "rmse": 0.06998199055657026,
+        "p05": 0.03448912674138538,
+        "p95": 0.09277235111514648,
+        "min": -0.07516886314295701,
+        "max": 0.13165521296906613,
+        "estimated_mean_mps": -0.8473058043248093,
+        "truth_mean_mps": -0.9144764043016662
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.9084542247724907,
+        0.026564275367463492,
+        0.0006781421317551918
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.32708793555142845,
+        0.006165964552174354,
+        -0.00013925943253134676
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.3674101849141636,
+        0.00874813021558759,
+        -5.805448349494036e-06
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "44642d161965394792bba4a59bc2e3a90a86beb4f6362184a301dad24c1e3e22",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/rolling_off_v10/backward/run.json",
+      "run_json_sha256": "8c10fb836e6b86fffc6b4dc299f65b1c92f1d70d903415579e19829bd90287ca"
+    },
+    {
+      "variant": "rolling_off_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": 0.0
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9618352850832078,
+      "truth_body_vx_rmse_mps": 0.05002757209904539,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.33496506872670634,
+        "rms": 0.3349687769949169,
+        "bias": -0.005034931273293686,
+        "rmse": 0.005275872184775683,
+        "p05": 0.3321470817133132,
+        "p95": 0.33716832885672027,
+        "min": 0.3292002532631898,
+        "max": 0.3394118085384157,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3292002532631898,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.01134031942688109,
+          "rms": 0.013486635950260764,
+          "bias": 0.01134031942688109,
+          "rmse": 0.013486635950260764,
+          "p05": 0.0036004779877886403,
+          "p95": 0.027575354600952926,
+          "min": 0.0024660111000018837,
+          "max": 0.033178580662394944
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.011289581711652175,
+          "rms": 0.013427174807858332,
+          "bias": 0.011289581711652175,
+          "rmse": 0.013427174807858332,
+          "p05": 0.0032685016907097486,
+          "p95": 0.026772520896347088,
+          "min": 0.002383094235229167,
+          "max": 0.03302331410172542
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.011672569313643407,
+          "rms": 0.01385085425855625,
+          "bias": 0.011672569313643407,
+          "rmse": 0.01385085425855625,
+          "p05": 0.004516651826846592,
+          "p95": 0.03031838010135436,
+          "min": 0.004071325329228654,
+          "max": 0.03308160223651733
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.011814142398624503,
+          "rms": 0.014012852759165811,
+          "bias": 0.011814142398624503,
+          "rmse": 0.014012852759165811,
+          "p05": 0.004541880033619726,
+          "p95": 0.030369640500219015,
+          "min": 0.00402886517854744,
+          "max": 0.033419859247075134
+        }
+      },
+      "worst_leg_foot_p95_m": 0.030369640500219015,
+      "physics_peak_ratio_to_nominal": 0.919843864,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.414,
+        "trace_end_sim_s": 69.326,
+        "tail_trace_peak_ratio_to_nominal": 0.12060417797537855
+      },
+      "lateral_displacement_m": 0.31388176594323375,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": -0.08727887326714989,
+        "rms": 0.08999287325808875,
+        "bias": -0.08727887326714989,
+        "rmse": 0.08999287325808875,
+        "p05": -0.12504628312988342,
+        "p95": -0.04442663048906759,
+        "min": -0.17543245570621135,
+        "max": 0.015462527479481403,
+        "estimated_mean_mps": 0.8752121823769974,
+        "truth_mean_mps": 0.9624910556441474
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.2013687124514372,
+        0.057803281700935995,
+        0.0016854911252781291
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.436991449941758,
+        0.02735149200558877,
+        0.0018230327127323753
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.8318036569200569,
+        0.07356104055704302,
+        0.0013244788083865977
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "44642d161965394792bba4a59bc2e3a90a86beb4f6362184a301dad24c1e3e22",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/rolling_off_v10/forward/run.json",
+      "run_json_sha256": "9c343831151719d92665b682f7bbe9367fbde6e877da4dee00e8c3f97b400b33"
+    },
+    {
+      "variant": "rolling_on_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": 0.026
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.8692140496489077,
+      "truth_body_vx_rmse_mps": 0.13497374981014945,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.32577626785821767,
+        "rms": 0.3257814509916485,
+        "bias": -0.014223732141782353,
+        "rmse": 0.014341954770387562,
+        "p05": 0.3229049912796582,
+        "p95": 0.32912889374459653,
+        "min": 0.32127456766141554,
+        "max": 0.33105129894085694,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.32127456766141554,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.011522180017129376,
+          "rms": 0.01359285856887998,
+          "bias": 0.011522180017129376,
+          "rmse": 0.01359285856887998,
+          "p05": 0.0036950144163735914,
+          "p95": 0.029399435396902252,
+          "min": 0.0021365711974391413,
+          "max": 0.032247547909632926
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.012827906473290959,
+          "rms": 0.015402439594097195,
+          "bias": 0.012827906473290959,
+          "rmse": 0.015402439594097195,
+          "p05": 0.003522981781627461,
+          "p95": 0.03423507346468206,
+          "min": 0.0017967014230600205,
+          "max": 0.03674113717264232
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.01122688074139872,
+          "rms": 0.013236396103314304,
+          "bias": 0.01122688074139872,
+          "rmse": 0.013236396103314304,
+          "p05": 0.002769458878930741,
+          "p95": 0.02842332311547916,
+          "min": 0.0021604588709195228,
+          "max": 0.030615884765141103
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.010924178138207813,
+          "rms": 0.012824006578909447,
+          "bias": 0.010924178138207813,
+          "rmse": 0.012824006578909447,
+          "p05": 0.0029955585515400182,
+          "p95": 0.02748116711614319,
+          "min": 0.001894951605249792,
+          "max": 0.02965803935473162
+        }
+      },
+      "worst_leg_foot_p95_m": 0.03423507346468206,
+      "physics_peak_ratio_to_nominal": 0.940537138,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.414,
+        "trace_end_sim_s": 69.387,
+        "tail_trace_peak_ratio_to_nominal": 0.1233058783887029
+      },
+      "lateral_displacement_m": -0.3397315221598526,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": -0.0012973729861003906,
+        "rms": 0.020565987049127873,
+        "bias": -0.0012973729861003906,
+        "rmse": 0.020565987049127873,
+        "p05": -0.04342990099911803,
+        "p95": 0.022223732530040285,
+        "min": -0.1616282245821753,
+        "max": 0.04715929320838885,
+        "estimated_mean_mps": -0.8711853706221985,
+        "truth_mean_mps": -0.8698879976360979
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.13700814531208771,
+        0.004868298165265774,
+        0.0007834203242394867
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.06625443699348477,
+        0.0009912267484296286,
+        0.000320375630350922
+      ],
+      "estimator_world_xyz_end_error_m": [
+        0.19849995606639403,
+        0.002037612990135801,
+        0.0012239079215191628
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "88ae1fe752ee0741186b52752d9d02eb4fe9834538fe9bc8946bda8be0d1d8cd",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/rolling_on_v10/backward/run.json",
+      "run_json_sha256": "7b4892954811175f81f54e470ae305effdd1c2db8996b5b9b5147b6cf647625c"
+    },
+    {
+      "variant": "rolling_on_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": 0.026
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.8962474892731329,
+      "truth_body_vx_rmse_mps": 0.10921526971594904,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.33483348777304994,
+        "rms": 0.33483671191802966,
+        "bias": -0.005166512226950082,
+        "rmse": 0.005371402275347799,
+        "p05": 0.3323828022523925,
+        "p95": 0.3370780628672355,
+        "min": 0.33043530731833937,
+        "max": 0.34028637074864276,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.33043530731833937,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.01156419344649479,
+          "rms": 0.013435703522432346,
+          "bias": 0.01156419344649479,
+          "rmse": 0.013435703522432346,
+          "p05": 0.0044942011353378795,
+          "p95": 0.02743330784198302,
+          "min": 0.0023483809267060636,
+          "max": 0.030021982862993554
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.011487932849735143,
+          "rms": 0.013366836154847858,
+          "bias": 0.011487932849735143,
+          "rmse": 0.013366836154847858,
+          "p05": 0.0033947663183401897,
+          "p95": 0.028504322808460426,
+          "min": 0.0019403366784541119,
+          "max": 0.030190455710891212
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.01181085631137372,
+          "rms": 0.013690854230017459,
+          "bias": 0.01181085631137372,
+          "rmse": 0.013690854230017459,
+          "p05": 0.004977188005924085,
+          "p95": 0.02937597004675663,
+          "min": 0.004622858087273446,
+          "max": 0.031428063907330446
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.011915848022907155,
+          "rms": 0.013815048257240848,
+          "bias": 0.011915848022907155,
+          "rmse": 0.013815048257240848,
+          "p05": 0.0050108417159682155,
+          "p95": 0.02937701527186527,
+          "min": 0.004752922741582265,
+          "max": 0.03070652093960928
+        }
+      },
+      "worst_leg_foot_p95_m": 0.02937701527186527,
+      "physics_peak_ratio_to_nominal": 0.949361948,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.616,
+        "trace_end_sim_s": 69.413,
+        "tail_trace_peak_ratio_to_nominal": 0.1212841537355739
+      },
+      "lateral_displacement_m": 0.37025696435001315,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": -0.008685861952932288,
+        "rms": 0.024513156555572162,
+        "bias": -0.008685861952932288,
+        "rmse": 0.024513156555572162,
+        "p05": -0.047051478210815234,
+        "p95": 0.03446855684923944,
+        "min": -0.10974483013418934,
+        "max": 0.13829846671048385,
+        "estimated_mean_mps": 0.8881744327363869,
+        "truth_mean_mps": 0.8968602946893194
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.24062521127410075,
+        0.01499430956946078,
+        0.0018121508963154411
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.08995756928968479,
+        -0.020992210611905458,
+        0.0020914810763376646
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -0.3732852124236281,
+        0.012201568857158937,
+        0.0027438580774602483
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "88ae1fe752ee0741186b52752d9d02eb4fe9834538fe9bc8946bda8be0d1d8cd",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/rolling_on_v10/forward/run.json",
+      "run_json_sha256": "adad7df713389e722387bad9622d01bd462cda385bad329c5469250383b6e947"
+    },
+    {
+      "variant": "w100_v05",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 0.5,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": true,
+      "script_and_nominal_budget_passed": true,
+      "truth_body_vx_mean_mps": -0.48416627437378096,
+      "truth_body_vx_rmse_mps": 0.020697974793414797,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3288147884518149,
+        "rms": 0.3288158052898574,
+        "bias": -0.011185211548185137,
+        "rmse": 0.011215064029388589,
+        "p05": 0.32767927891947296,
+        "p95": 0.33018902969613406,
+        "min": 0.3266837746990851,
+        "max": 0.3310774565269487,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3266837746990851,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.008751358057431697,
+          "rms": 0.009764684529611422,
+          "bias": 0.008751358057431697,
+          "rmse": 0.009764684529611422,
+          "p05": 0.003159500094954661,
+          "p95": 0.01744451354295022,
+          "min": 0.0024330640992542654,
+          "max": 0.01939948615783115
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.00877111810377293,
+          "rms": 0.009781290104845396,
+          "bias": 0.00877111810377293,
+          "rmse": 0.009781290104845396,
+          "p05": 0.0031274078442712887,
+          "p95": 0.017432847053145493,
+          "min": 0.002607703366474149,
+          "max": 0.019390851460127503
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.008435725787019724,
+          "rms": 0.009384485658467267,
+          "bias": 0.008435725787019724,
+          "rmse": 0.009384485658467267,
+          "p05": 0.0026411545591008678,
+          "p95": 0.015167207561404019,
+          "min": 0.0024333886526959,
+          "max": 0.017907437728442034
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.008444448104642727,
+          "rms": 0.009398081123819622,
+          "bias": 0.008444448104642727,
+          "rmse": 0.009398081123819622,
+          "p05": 0.002661563965348042,
+          "p95": 0.015119346356390242,
+          "min": 0.002274519616694284,
+          "max": 0.01848876109849744
+        }
+      },
+      "worst_leg_foot_p95_m": 0.01744451354295022,
+      "physics_peak_ratio_to_nominal": 0.60804934,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 66.414,
+        "trace_end_sim_s": 66.764,
+        "tail_trace_peak_ratio_to_nominal": 0.1231778393138652
+      },
+      "lateral_displacement_m": -0.2075013419596219,
+      "tracking_failures": [],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": 0.0442198314573655,
+        "rms": 0.04469872516090569,
+        "bias": 0.0442198314573655,
+        "rmse": 0.04469872516090569,
+        "p05": 0.035002068436720934,
+        "p95": 0.056851896976229,
+        "min": 0.011860263680466443,
+        "max": 0.08266763681228328,
+        "estimated_mean_mps": -0.4399846227299961,
+        "truth_mean_mps": -0.4842044541873616
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.595968211539643,
+        0.0057850701104479865,
+        0.00046486363914423925
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.2301018168420752,
+        0.005959976406972342,
+        0.0004372370180577567
+      ],
+      "estimator_world_xyz_end_error_m": [
+        0.8986708354083479,
+        0.00744010686344684,
+        0.00022605785333540407
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w100_v05/backward/run.json",
+      "run_json_sha256": "bafcb623152f02682d3e9f78252484239d43595e2794f52aa7329b3206ca06c1"
+    },
+    {
+      "variant": "w100_v05",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 0.5,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": true,
+      "script_and_nominal_budget_passed": true,
+      "truth_body_vx_mean_mps": 0.5136318891566415,
+      "truth_body_vx_rmse_mps": 0.026588620309458542,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.33781418799769103,
+        "rms": 0.3378165816319876,
+        "bias": -0.0021858120023089955,
+        "rmse": 0.00252883117099544,
+        "p05": 0.33587902882309745,
+        "p95": 0.3399239085548321,
+        "min": 0.33342425262341935,
+        "max": 0.34324122446159144,
+        "duration_s": 13.988000000000001,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.33342425262341935,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.008721157242192282,
+          "rms": 0.009867708158275111,
+          "bias": 0.008721157242192282,
+          "rmse": 0.009867708158275111,
+          "p05": 0.00206357702000744,
+          "p95": 0.016953357441685097,
+          "min": 0.00113777592731646,
+          "max": 0.022158294069578643
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.008807703523703424,
+          "rms": 0.009991742273800045,
+          "bias": 0.008807703523703424,
+          "rmse": 0.009991742273800045,
+          "p05": 0.001812751321249706,
+          "p95": 0.019172720373056812,
+          "min": 0.0012056004157238397,
+          "max": 0.025119149265950696
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.009122336001769479,
+          "rms": 0.010464954612257153,
+          "bias": 0.009122336001769479,
+          "rmse": 0.010464954612257153,
+          "p05": 0.00267935130953056,
+          "p95": 0.021356941962526587,
+          "min": 0.0024862225868040096,
+          "max": 0.026497505389318946
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.009000978456668645,
+          "rms": 0.010302136062573037,
+          "bias": 0.009000978456668645,
+          "rmse": 0.010302136062573037,
+          "p05": 0.002631835046012247,
+          "p95": 0.017437816691070404,
+          "min": 0.00249190532881106,
+          "max": 0.024088427268178034
+        }
+      },
+      "worst_leg_foot_p95_m": 0.021356941962526587,
+      "physics_peak_ratio_to_nominal": 0.678569014,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 66.215,
+        "trace_end_sim_s": 66.32,
+        "tail_trace_peak_ratio_to_nominal": 0.1217108882401307
+      },
+      "lateral_displacement_m": 0.2231983359278125,
+      "tracking_failures": [],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13994,
+        "mean": -0.04649245329196742,
+        "rms": 0.047487399660371354,
+        "bias": -0.04649245329196742,
+        "rmse": 0.047487399660371354,
+        "p05": -0.05717818543900932,
+        "p95": -0.025689680826000094,
+        "min": -0.0928396600100867,
+        "max": 0.009443504906227362,
+        "estimated_mean_mps": 0.46713059581118505,
+        "truth_mean_mps": 0.5136230491031525
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.678850109537982,
+        0.0022703451041517267,
+        0.0006187274652744483
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.28836078576544333,
+        0.0026892745308415705,
+        0.00032473146584843793
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.0027199507648348,
+        -0.0028670582870623067,
+        0.0004965331293085851
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w100_v05/forward/run.json",
+      "run_json_sha256": "31d4659544616b58ee70a917259afcfcb2d1773fa427b9610e85d366b14ac365"
+    },
+    {
+      "variant": "w100_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.9117350702826162,
+      "truth_body_vx_rmse_mps": 0.09575461934695727,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3226803497677048,
+        "rms": 0.32268528458859685,
+        "bias": -0.017319650232295203,
+        "rmse": 0.01741134825292013,
+        "p05": 0.3199528850983815,
+        "p95": 0.32584003475885603,
+        "min": 0.3182335367390986,
+        "max": 0.3275027770176898,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3182335367390986,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.012680406983437632,
+          "rms": 0.015338066271504762,
+          "bias": 0.012680406983437632,
+          "rmse": 0.015338066271504762,
+          "p05": 0.004229089857720635,
+          "p95": 0.03404457971239254,
+          "min": 0.001797116952267608,
+          "max": 0.038080477103107344
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.012223124005976966,
+          "rms": 0.014767967576963784,
+          "bias": 0.012223124005976966,
+          "rmse": 0.014767967576963784,
+          "p05": 0.003365126738977835,
+          "p95": 0.03240691043451823,
+          "min": 0.0015069162801920504,
+          "max": 0.049504295439342996
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.011259485845920113,
+          "rms": 0.013381832022535137,
+          "bias": 0.011259485845920113,
+          "rmse": 0.013381832022535137,
+          "p05": 0.003592088128679702,
+          "p95": 0.02894284698765405,
+          "min": 0.0018332077987517415,
+          "max": 0.04408703484780717
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.011360836971935703,
+          "rms": 0.013494041314061385,
+          "bias": 0.011360836971935703,
+          "rmse": 0.013494041314061385,
+          "p05": 0.004290228608990626,
+          "p95": 0.02924805513518718,
+          "min": 0.0018397635806304713,
+          "max": 0.031113725575891694
+        }
+      },
+      "worst_leg_foot_p95_m": 0.03404457971239254,
+      "physics_peak_ratio_to_nominal": 0.970152689,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 69.414,
+        "trace_end_sim_s": 69.414,
+        "tail_trace_peak_ratio_to_nominal": 0.0
+      },
+      "lateral_displacement_m": -0.3855674671029413,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": 0.06681391513471667,
+        "rms": 0.06992105483158823,
+        "bias": 0.06681391513471667,
+        "rmse": 0.06992105483158823,
+        "p05": 0.03264634295061464,
+        "p95": 0.09392593655879111,
+        "min": -0.08956142817104984,
+        "max": 0.14266010728930956,
+        "estimated_mean_mps": -0.8457958165776045,
+        "truth_mean_mps": -0.9126097317123211
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.8754639279722716,
+        0.013675895969208905,
+        0.0006736112947209425
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.3095855704906092,
+        0.014564927787154219,
+        0.0015497151380462482
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.3392727291845734,
+        0.028159475317278505,
+        0.0003905668249216676
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w100_v10/backward/run.json",
+      "run_json_sha256": "aa88e4b407464a7c6e92013cd7ac829d79b2bb36b11d78f4f0385523914ed231"
+    },
+    {
+      "variant": "w100_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9616387059864018,
+      "truth_body_vx_rmse_mps": 0.05070988973183519,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3349872215375887,
+        "rms": 0.3349911233026,
+        "bias": -0.005012778462411327,
+        "rmse": 0.005267071859911519,
+        "p05": 0.33208406391678336,
+        "p95": 0.3373790408442646,
+        "min": 0.3304653333749106,
+        "max": 0.3378751022087231,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3304653333749106,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.011349230295839221,
+          "rms": 0.013491794980476878,
+          "bias": 0.011349230295839221,
+          "rmse": 0.013491794980476878,
+          "p05": 0.0032182355875257336,
+          "p95": 0.026714677596986095,
+          "min": 0.002291812487925802,
+          "max": 0.03274207650768179
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.011250562208905359,
+          "rms": 0.013374784945359755,
+          "bias": 0.011250562208905359,
+          "rmse": 0.013374784945359755,
+          "p05": 0.00343814623765552,
+          "p95": 0.026270777428343793,
+          "min": 0.00232282877053002,
+          "max": 0.032921808750470245
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.011591576603010047,
+          "rms": 0.013775662607110238,
+          "bias": 0.011591576603010047,
+          "rmse": 0.013775662607110238,
+          "p05": 0.004477754849959093,
+          "p95": 0.03003732450493354,
+          "min": 0.003964954167547116,
+          "max": 0.03304287295147336
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.011856070010996454,
+          "rms": 0.014074271305794002,
+          "bias": 0.011856070010996454,
+          "rmse": 0.014074271305794002,
+          "p05": 0.004546829916181413,
+          "p95": 0.030730204180431375,
+          "min": 0.004020795941614755,
+          "max": 0.03363948096337012
+        }
+      },
+      "worst_leg_foot_p95_m": 0.030730204180431375,
+      "physics_peak_ratio_to_nominal": 0.93020102,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 69.414,
+        "trace_end_sim_s": 69.416,
+        "tail_trace_peak_ratio_to_nominal": 0.1196706275854177
+      },
+      "lateral_displacement_m": 0.2632950537504552,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": -0.0872987312217251,
+        "rms": 0.09008711035631183,
+        "bias": -0.0872987312217251,
+        "rmse": 0.09008711035631183,
+        "p05": -0.1249288355103696,
+        "p95": -0.045063142924185784,
+        "min": -0.17993755947591084,
+        "max": 0.009986990969760523,
+        "estimated_mean_mps": 0.8749958877799008,
+        "truth_mean_mps": 0.9622946190016258
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.2002541968750131,
+        0.07942574596501861,
+        0.001731607528251383
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.441777730139739,
+        0.010650635007087881,
+        0.0012851022257023281
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.8249292253611955,
+        0.12107352857798184,
+        0.0015133771333913915
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "3650a560ee2aa3a574601e411aa7dc3b28c38f77c58cee0a9d93de7609c67066"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w100_v10/forward/run.json",
+      "run_json_sha256": "1fb4c0bc071194b0399d25b0c10be47e9d073bb4f56b4303ed4b52990174c864"
+    },
+    {
+      "variant": "w150_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.915113315620883,
+      "truth_body_vx_rmse_mps": 0.0920401216317221,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.32286947500138474,
+        "rms": 0.32287347919598836,
+        "bias": -0.017130524998615282,
+        "rmse": 0.01720582945343512,
+        "p05": 0.32056246186582993,
+        "p95": 0.32569126047416885,
+        "min": 0.31868327568613175,
+        "max": 0.32743324936003904,
+        "duration_s": 13.988000000000001,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.31868327568613175,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.009476570815441185,
+          "rms": 0.012041897921144271,
+          "bias": 0.009476570815441185,
+          "rmse": 0.012041897921144271,
+          "p05": 0.0026913810139289744,
+          "p95": 0.027871464645942163,
+          "min": 0.0019192981355963543,
+          "max": 0.04559582074241911
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.009504989323281874,
+          "rms": 0.012068219463454538,
+          "bias": 0.009504989323281874,
+          "rmse": 0.012068219463454538,
+          "p05": 0.0026496383348869534,
+          "p95": 0.02795028125804003,
+          "min": 0.0019836590348519425,
+          "max": 0.032186290089871526
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.008507258677025235,
+          "rms": 0.010679143118619339,
+          "bias": 0.008507258677025235,
+          "rmse": 0.010679143118619339,
+          "p05": 0.002730004412784217,
+          "p95": 0.02289991666591858,
+          "min": 0.0017035234248130595,
+          "max": 0.02857064248445759
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.008596632637007336,
+          "rms": 0.010789071819219034,
+          "bias": 0.008596632637007336,
+          "rmse": 0.010789071819219034,
+          "p05": 0.002759587029434436,
+          "p95": 0.02455855895194459,
+          "min": 0.001736243228174969,
+          "max": 0.04063430953965364
+        }
+      },
+      "worst_leg_foot_p95_m": 0.02795028125804003,
+      "physics_peak_ratio_to_nominal": 1.053232363,
+      "over_nominal_joint_samples": 2.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.215,
+        "trace_end_sim_s": 69.019,
+        "tail_trace_peak_ratio_to_nominal": 0.12295559749359633
+      },
+      "lateral_displacement_m": -0.3423060237079171,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13994,
+        "mean": 0.06842251317969585,
+        "rms": 0.07187434340670242,
+        "bias": 0.06842251317969585,
+        "rmse": 0.07187434340670242,
+        "p05": 0.03205857756126673,
+        "p95": 0.09381643119703498,
+        "min": -0.09889658969251269,
+        "max": 0.13083759608703893,
+        "estimated_mean_mps": -0.8475159437113194,
+        "truth_mean_mps": -0.9159384568910153
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.8925893393269746,
+        0.007863097677269983,
+        0.0006618436529476959
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.31348987397789374,
+        0.0037909875775652465,
+        0.00021101348017388277
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.3721535822260158,
+        0.002116012265104175,
+        0.0026193009515730337
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w150_v10/backward/run.json",
+      "run_json_sha256": "6694cdf7782df514df2ed3c95d43bb42f1f779e45052758f893dc86d8e2c99d2"
+    },
+    {
+      "variant": "w150_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 1.5,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9790307995059846,
+      "truth_body_vx_rmse_mps": 0.03624513542617046,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3370814550748028,
+        "rms": 0.3370865160131902,
+        "bias": -0.0029185449251972195,
+        "rmse": 0.0034539581706777116,
+        "p05": 0.33406012420127185,
+        "p95": 0.3402280342773221,
+        "min": 0.33119706625682427,
+        "max": 0.3428681079416471,
+        "duration_s": 13.988000000000001,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.33119706625682427,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.01173669330827106,
+          "rms": 0.014093096403160662,
+          "bias": 0.01173669330827106,
+          "rmse": 0.014093096403160662,
+          "p05": 0.002026422808575759,
+          "p95": 0.02585067178010911,
+          "min": 0.0012847358603276019,
+          "max": 0.035142858325922656
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.011780157508236912,
+          "rms": 0.014163133699591554,
+          "bias": 0.011780157508236912,
+          "rmse": 0.014163133699591554,
+          "p05": 0.0023011276331723544,
+          "p95": 0.026333121203837066,
+          "min": 0.0012091447883650949,
+          "max": 0.03628826458267802
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.012276017021501044,
+          "rms": 0.014774214173036012,
+          "bias": 0.012276017021501044,
+          "rmse": 0.014774214173036012,
+          "p05": 0.004802575198245915,
+          "p95": 0.028290703645521265,
+          "min": 0.0037343467732594954,
+          "max": 0.03947882542433129
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.012187538727955275,
+          "rms": 0.014646801073979603,
+          "bias": 0.012187538727955275,
+          "rmse": 0.014646801073979603,
+          "p05": 0.004778646028872026,
+          "p95": 0.027043004512100954,
+          "min": 0.004080786640089007,
+          "max": 0.03791259305803473
+        }
+      },
+      "worst_leg_foot_p95_m": 0.028290703645521265,
+      "physics_peak_ratio_to_nominal": 1.05107521,
+      "over_nominal_joint_samples": 9.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.215,
+        "trace_end_sim_s": 68.962,
+        "tail_trace_peak_ratio_to_nominal": 0.12001536464437902
+      },
+      "lateral_displacement_m": 0.39042523296901516,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13994,
+        "mean": -0.08934947050912725,
+        "rms": 0.09105522400653471,
+        "bias": -0.08934947050912725,
+        "rmse": 0.09105522400653471,
+        "p05": -0.12255834602461002,
+        "p95": -0.059874972798050985,
+        "min": -0.18056582080058425,
+        "max": -0.020131276580198643,
+        "estimated_mean_mps": 0.8901115688709013,
+        "truth_mean_mps": 0.9794610393800285
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.1953460643009597,
+        0.008309230844025383,
+        0.001320604336787325
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.42665640115605186,
+        0.005569347871988832,
+        0.0007943503858285905
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.8257903471704182,
+        -0.010093281565809638,
+        0.003110154592810277
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "5611cedf1c48c24d6a1f73683bc21370859f2b7b58d3b7b46889f29b5af73653"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w150_v10/forward/run.json",
+      "run_json_sha256": "7fc77bdbe7376249905e9274eb27d1fac2dba31cf0f5315fd60beef58d66c0aa"
+    },
+    {
+      "variant": "w200_v10",
+      "case": "backward",
+      "parameters": {
+        "base_weight": 2.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": -0.9121134754359166,
+      "truth_body_vx_rmse_mps": 0.0949376051590539,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3225269710284814,
+        "rms": 0.322531054059245,
+        "bias": -0.017473028971518645,
+        "rmse": 0.01754823447530371,
+        "p05": 0.3202306122920853,
+        "p95": 0.3254055738286736,
+        "min": 0.3185328550199988,
+        "max": 0.327197127493826,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3185328550199988,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.01155963087420026,
+          "rms": 0.014033081425536081,
+          "bias": 0.01155963087420026,
+          "rmse": 0.014033081425536081,
+          "p05": 0.0036694094481534005,
+          "p95": 0.03139977908048815,
+          "min": 0.001721044276811167,
+          "max": 0.03828338440085055
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.012047463627000002,
+          "rms": 0.01471531570294996,
+          "bias": 0.012047463627000002,
+          "rmse": 0.01471531570294996,
+          "p05": 0.0032727366485179213,
+          "p95": 0.033042331816305774,
+          "min": 0.0019108266053430786,
+          "max": 0.03803906540998911
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.010741927590316173,
+          "rms": 0.012856800305276455,
+          "bias": 0.010741927590316173,
+          "rmse": 0.012856800305276455,
+          "p05": 0.0032390005401125277,
+          "p95": 0.02863641230342437,
+          "min": 0.002250332868393515,
+          "max": 0.029906121772467414
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.01063448096292282,
+          "rms": 0.01268261491716714,
+          "bias": 0.01063448096292282,
+          "rmse": 0.01268261491716714,
+          "p05": 0.0035559421178486565,
+          "p95": 0.0279186699844372,
+          "min": 0.002277719980032299,
+          "max": 0.03001015567941304
+        }
+      },
+      "worst_leg_foot_p95_m": 0.033042331816305774,
+      "physics_peak_ratio_to_nominal": 0.986505169,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 69.414,
+        "trace_end_sim_s": 69.426,
+        "tail_trace_peak_ratio_to_nominal": 0.12139246263328361
+      },
+      "lateral_displacement_m": -0.347675400605748,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": 0.06704059048082703,
+        "rms": 0.07013615053055804,
+        "bias": 0.06704059048082703,
+        "rmse": 0.07013615053055804,
+        "p05": 0.03212406762723519,
+        "p95": 0.09264037107237122,
+        "min": -0.08003050777369491,
+        "max": 0.1265063305287879,
+        "estimated_mean_mps": -0.845911421917859,
+        "truth_mean_mps": -0.912952012398686
+      },
+      "estimator_world_xyz_rmse_m": [
+        0.8812680442624398,
+        0.012963230962307896,
+        0.0006225131310431508
+      ],
+      "estimator_world_xyz_start_error_m": [
+        0.3193650569628015,
+        0.016414824750044587,
+        5.814263961256838e-05
+      ],
+      "estimator_world_xyz_end_error_m": [
+        1.3558537265069024,
+        -0.01249293464668904,
+        -0.0001251913759921508
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "cd6ad52e20e9628a6ff29fc42c68a611e1409b0f3512c5c26f476a355b2f7817"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w200_v10/backward/run.json",
+      "run_json_sha256": "0e36d6b9a2d984e49ded1a05b089669e5c56b7a8dd0d33b7917500903d9c5b61"
+    },
+    {
+      "variant": "w200_v10",
+      "case": "forward",
+      "parameters": {
+        "base_weight": 2.0,
+        "joint_kp": [
+          60.0,
+          60.0,
+          90.0
+        ],
+        "joint_kd": 2.0,
+        "requested_speed_mps": 1.0,
+        "trot_period_s": 0.4,
+        "horizon_s": 0.0,
+        "rolling_radius_m": null
+      },
+      "motion_s": 20.0,
+      "final_stance_s": 30,
+      "script_passed": false,
+      "script_and_nominal_budget_passed": false,
+      "truth_body_vx_mean_mps": 0.9584437880838038,
+      "truth_body_vx_rmse_mps": 0.055711058850716,
+      "truth_height_m": {
+        "samples": 1400,
+        "mean": 0.3346572386131872,
+        "rms": 0.3346629858275748,
+        "bias": -0.005342761386812833,
+        "rmse": 0.005691381735591727,
+        "p05": 0.33143462647048005,
+        "p95": 0.3380715303734925,
+        "min": 0.3292715897821507,
+        "max": 0.33926011679621393,
+        "duration_s": 13.988,
+        "max_dt_s": 0.012000000000000455,
+        "gap_weight_cap_s": 0.03,
+        "gaps_exceeding_cap": 0
+      },
+      "motion_min_height_m": 0.3292715897821507,
+      "body_frame_swing_foot_error_m": {
+        "FR": {
+          "samples": 700,
+          "mean": 0.010082611622294955,
+          "rms": 0.01226587653429054,
+          "bias": 0.010082611622294955,
+          "rmse": 0.01226587653429054,
+          "p05": 0.0034754996790365557,
+          "p95": 0.023276725371727123,
+          "min": 0.0026134616821904206,
+          "max": 0.03290257728260679
+        },
+        "FL": {
+          "samples": 700,
+          "mean": 0.01004027939804369,
+          "rms": 0.012213423707529283,
+          "bias": 0.01004027939804369,
+          "rmse": 0.012213423707529283,
+          "p05": 0.0034736168624787114,
+          "p95": 0.02303074885587854,
+          "min": 0.002595523868903449,
+          "max": 0.0326571028469055
+        },
+        "RR": {
+          "samples": 700,
+          "mean": 0.010411468797858143,
+          "rms": 0.012666144287005403,
+          "bias": 0.010411468797858143,
+          "rmse": 0.012666144287005403,
+          "p05": 0.0035554566094470144,
+          "p95": 0.027057459472003064,
+          "min": 0.002996444910852931,
+          "max": 0.03394324445495739
+        },
+        "RL": {
+          "samples": 700,
+          "mean": 0.010499224306380478,
+          "rms": 0.012743458252478244,
+          "bias": 0.010499224306380478,
+          "rmse": 0.012743458252478244,
+          "p05": 0.003507694079198224,
+          "p95": 0.026798365382739775,
+          "min": 0.0030096223379837035,
+          "max": 0.03379820971801279
+        }
+      },
+      "worst_leg_foot_p95_m": 0.027057459472003064,
+      "physics_peak_ratio_to_nominal": 0.959611605,
+      "over_nominal_joint_samples": 0.0,
+      "over_guard_joint_samples": 0.0,
+      "safety_faults": [],
+      "physics_stats_tail_check": {
+        "last_physics_cumulative_sim_s": 68.417,
+        "trace_end_sim_s": 69.404,
+        "tail_trace_peak_ratio_to_nominal": 0.12139010590548517
+      },
+      "lateral_displacement_m": 0.3680994203992509,
+      "tracking_failures": [
+        "excessive off-axis/yaw drift"
+      ],
+      "estimated_minus_truth_world_vx_mps": {
+        "samples": 13990,
+        "mean": -0.08478781060586345,
+        "rms": 0.08811409472941521,
+        "bias": -0.08478781060586345,
+        "rmse": 0.08811409472941521,
+        "p05": -0.12324666726238243,
+        "p95": -0.03909409890970916,
+        "min": -0.1913431571175992,
+        "max": 0.05152014228471424,
+        "estimated_mean_mps": 0.8744027329503755,
+        "truth_mean_mps": 0.9591905435562388
+      },
+      "estimator_world_xyz_rmse_m": [
+        1.151301724424513,
+        0.016428945545087816,
+        0.0019943997861780905
+      ],
+      "estimator_world_xyz_start_error_m": [
+        -0.43099754787707223,
+        -0.013892071064783159,
+        0.0008736872135993168
+      ],
+      "estimator_world_xyz_end_error_m": [
+        -1.7458084317599631,
+        0.028865743747409387,
+        0.0017227724626982521
+      ],
+      "integrity": {
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "effective_input_sha256": {
+        "controllers.yaml": "ad3b6963eb0bb8118aef8c10a92cb31e361babf547d27a32d00613ff657d6147",
+        "task.info": "cd6ad52e20e9628a6ff29fc42c68a611e1409b0f3512c5c26f476a355b2f7817"
+      },
+      "run_json": "log/wbc-weight-pd-20261115-154629/w200_v10/forward/run.json",
+      "run_json_sha256": "0de791a544cc6f63766aa93b05225f3a14dbb23a60bbbe1860441ec3a48b3cdd"
+    }
+  ],
+  "raw_report": "log/wbc-weight-pd-20261115-154629/tuning-results.json",
+  "figure": "log/wbc-weight-pd-20261115-154629/selected-comparison.png"
+}
