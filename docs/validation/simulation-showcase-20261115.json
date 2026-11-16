@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "experiment_date_local": "2026-11-15",
+  "documentation_review_date_local": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "tested_software_revision": "def981bfed36deda8d119219f7ddf8a24d69ea75",
+  "backend": "Gazebo Fortress motor-PD physics",
+  "hardware_io": false,
+  "protocol": "One fresh world, sequential forward0.5m/s then forward1.0m/s,20s each, settling between phases, final30s MPC_STANCE; not independent fresh-world repeats per speed.",
+  "script_passed": true,
+  "strict_nominal_torque_budget_passed": false,
+  "completed_all_phases": true,
+  "effective_configuration": {
+    "controller_wbc_frequency_hz": 1000,
+    "nmpc_frequency_hz": 50,
+    "nmpc_solver_threads": 2,
+    "trot_period_s": 0.4,
+    "trot_double_support_s": 0.0,
+    "planned_swing_height_m": 0.1,
+    "nominal_base_height_m": 0.34,
+    "joint_kp_hip_thigh_calf": [
+      60,
+      60,
+      90
+    ],
+    "joint_kd": 2.0,
+    "swing_task_kp_kd": [
+      500,
+      45
+    ],
+    "base_accel_residual_multiplier": 1.0,
+    "nmpc_Qzz": 2000.0,
+    "imu_rate_hz": 100.0,
+    "additional_command_delay_s": 0.02,
+    "calf_coulomb_friction_nm": 0.45,
+    "calf_viscous_friction_nm_s_rad": 0.0175,
+    "hip_thigh_added_friction": 0.0,
+    "estimator_planned_contact_delay_s": 0.02,
+    "estimator_planned_contact_ramp_s": 0.01,
+    "use_sim_ground_truth": false,
+    "imu_orientation_prediction_max_s": 0.0,
+    "estimator_rolling_foot_radius_m": 0.0,
+    "motor_pd_budget_horizon_s": 0.0,
+    "host_total_torque_command": false,
+    "wbc_nominal_joint_reference": false,
+    "wbc_use_joint_acceleration_decision": false,
+    "isolated_profile_velocity_limits_x_y_yaw": [
+      1.0,
+      0.6,
+      3.0
+    ],
+    "public_velocity_limits_x_y_yaw_unchanged": [
+      0.05,
+      0.05,
+      0.2
+    ]
+  },
+  "cases": [
+    {
+      "command_vx_mps": 0.5,
+      "motion_start_sim_s": 11.704,
+      "elapsed_motion_s": 20.0,
+      "original_script_passed": true,
+      "tracking_failures": [],
+      "velocity_last_2s": {
+        "truth_body_vx_mean_mps": 0.5193113610371166,
+        "rmse_mps": 0.033784814773920514,
+        "truth_recorded_duration_s": 2.0
+      },
+      "height_whole_20s": {
+        "samples": 2000,
+        "recorded_duration_s": 19.988,
+        "time_weighted_mean_m": 0.33495382626497955,
+        "rmse_to_0_34_m": 0.005153010094244771,
+        "sampled_min_m": 0.33166945853985874,
+        "sampled_max_m": 0.33980328522359105
+      },
+      "height_common_6_to_20s": {
+        "samples": 1400,
+        "recorded_duration_s": 13.988000000000003,
+        "time_weighted_mean_m": 0.33479067963538234,
+        "rmse_to_0_34_m": 0.005292560167848604,
+        "sampled_min_m": 0.33166945853985874,
+        "sampled_max_m": 0.3367073251688476
+      },
+      "original_full_rate_truth_height_min_m": 0.3316683336739806,
+      "lateral_displacement_initial_heading_m": 0.015611291119185407,
+      "yaw_displacement_rad": -0.001391337709460312,
+      "forward_displacement_initial_heading_m": 9.861666330255218,
+      "nominal_excursion_readback_joint_samples": 0,
+      "fault_trace_samples": 0,
+      "executed_total_torque_peak": {
+        "joint": "RR_thigh_joint",
+        "sim_time_s": 17.536,
+        "signed_effort_nm": 15.533717667332043,
+        "absolute_effort_nm": 15.533717667332043,
+        "ratio_to_nominal": 0.6554311252038837,
+        "nominal_limit_nm": 23.7,
+        "guard_threshold_nm": 26.07,
+        "physical_cumulative_peak_matches": true
+      },
+      "native_truth_motion_range_6_to_20s": {
+        "roll": {
+          "min": -0.8632695598810189,
+          "max": 0.7835057426280104,
+          "peak_to_peak": 1.6467753025090293,
+          "unit": "degree"
+        },
+        "pitch": {
+          "min": -0.5086232254037879,
+          "max": 1.1228243573226828,
+          "peak_to_peak": 1.6314475827264705,
+          "unit": "degree"
+        },
+        "yaw": {
+          "min": -0.37687816968224247,
+          "max": 0.6393285960561991,
+          "peak_to_peak": 1.0162067657384417,
+          "unit": "degree"
+        },
+        "z": {
+          "min": 0.33166945853985874,
+          "max": 0.3367073251688476,
+          "peak_to_peak": 0.005037866628988863,
+          "unit": "m"
+        }
+      },
+      "dominant_motion_frequency_hz": {
+        "roll": 2.5,
+        "pitch": 5.0,
+        "yaw": 2.5,
+        "z": 5.0
+      },
+      "planned_contact_transition_interval_s": 0.1999999999999993
+    },
+    {
+      "command_vx_mps": 1.0,
+      "motion_start_sim_s": 37.072,
+      "elapsed_motion_s": 20.0,
+      "original_script_passed": true,
+      "tracking_failures": [],
+      "velocity_last_2s": {
+        "truth_body_vx_mean_mps": 0.9609166747344284,
+        "rmse_mps": 0.05433222256984232,
+        "truth_recorded_duration_s": 2.0
+      },
+      "height_whole_20s": {
+        "samples": 2000,
+        "recorded_duration_s": 19.991999999999997,
+        "time_weighted_mean_m": 0.33519400828211554,
+        "rmse_to_0_34_m": 0.005097635879051912,
+        "sampled_min_m": 0.329814658603332,
+        "sampled_max_m": 0.34051229245702674
+      },
+      "height_common_6_to_20s": {
+        "samples": 1400,
+        "recorded_duration_s": 13.991999999999997,
+        "time_weighted_mean_m": 0.33512434831015414,
+        "rmse_to_0_34_m": 0.005192134582623303,
+        "sampled_min_m": 0.329814658603332,
+        "sampled_max_m": 0.34051229245702674
+      },
+      "original_full_rate_truth_height_min_m": 0.32977252829546594,
+      "lateral_displacement_initial_heading_m": 0.1264319230262157,
+      "yaw_displacement_rad": 0.006394401097026919,
+      "forward_displacement_initial_heading_m": 17.24935410198495,
+      "nominal_excursion_readback_joint_samples": 1,
+      "fault_trace_samples": 0,
+      "executed_total_torque_peak": {
+        "joint": "FL_thigh_joint",
+        "sim_time_s": 44.611,
+        "signed_effort_nm": -24.118871664990948,
+        "absolute_effort_nm": 24.118871664990948,
+        "ratio_to_nominal": 1.0176739099152299,
+        "nominal_limit_nm": 23.7,
+        "guard_threshold_nm": 26.07,
+        "physical_cumulative_peak_matches": true
+      },
+      "native_truth_motion_range_6_to_20s": {
+        "roll": {
+          "min": -2.0451026756903192,
+          "max": 2.191912207748642,
+          "peak_to_peak": 4.237014883438961,
+          "unit": "degree"
+        },
+        "pitch": {
+          "min": -0.3418238499090199,
+          "max": 2.268418601062061,
+          "peak_to_peak": 2.610242450971081,
+          "unit": "degree"
+        },
+        "yaw": {
+          "min": -1.6259719780832085,
+          "max": 1.9915379933096164,
+          "peak_to_peak": 3.617509971392825,
+          "unit": "degree"
+        },
+        "z": {
+          "min": 0.329814658603332,
+          "max": 0.34051229245702674,
+          "peak_to_peak": 0.010697633853694766,
+          "unit": "m"
+        }
+      },
+      "dominant_motion_frequency_hz": {
+        "roll": 2.5,
+        "pitch": 5.0,
+        "yaw": 2.5,
+        "z": 5.0
+      },
+      "planned_contact_transition_interval_s": 0.20000000000000284
+    }
+  ],
+  "final_stance": {
+    "elapsed_sim_s": 30.000000000000014,
+    "truth_height_min_m": 0.3400619643490005,
+    "truth_height_max_m": 0.3400903308182598,
+    "final_mode": "MPC_STANCE",
+    "final_horizontal_speed_mps": 0.0
+  },
+  "whole_run_torque_nominal_exceedance_joint_samples": 1.0,
+  "whole_run_torque_guard_exceedance_joint_samples": 0.0,
+  "integrity": {
+    "finalized": true,
+    "actual_parameters_verified": true,
+    "sources_and_libraries_unchanged": true,
+    "effective_inputs_unchanged": true,
+    "owned_processes_reaped": true
+  },
+  "data_methods": {
+    "speed": "Independent world truth twist rotated into the body frame; time-weighted mean over each phase final 2 seconds, as in the original acceptance script.",
+    "height": "Time-weighted independent physics truth from the 100 Hz kinematics CSV. Full 20 s and common phase 6–20 s windows are separate.",
+    "motion_extrema": "Original 100 Hz native truth samples in phase 6–20 s, without smoothing or interpolation; distinct from resampled spectral-analysis extrema.",
+    "motion_frequency": "Detrended and resampled truth PSD on phase 6–20 s; frequency association does not establish causation.",
+    "torque": "Delayed simulated motor-side FF+PD request before passive friction, not measured hardware torque. Each trace peak matches a physics callback cumulative peak. Counts are joint samples, not elapsed milliseconds."
+  },
+  "limitations": [
+    "Height averages are time-weighted independent truth from100Hz CSV; both full20s and common6–20s windows are explicit. Full-rate minimum is separately retained from the original speed test.",
+    "Reported steady speed uses independent truth twist averaged over the last2s, matching the original acceptance script.",
+    "Torque is delayed simulated motor FF+PD request before passive friction, not calibrated hardware torque. Each phase trace peak matches a physical cumulative callback peak; nominal excursion count is joint samples, not elapsed milliseconds.",
+    "Both original phase scripts passed. The combined stricter nominal total-torque budget failed because one1m/s FL-thigh sample requested24.1189Nm, above23.7Nm but below26.07Nm protection threshold. No safety fault or fall occurred.",
+    "One sequential visual showcase cannot replace the preceding independent-world regression or establish repeatability or hardware movement acceptance.",
+    "No hardware motion, actuator identification, onboard deadline acceptance, or new experiments were performed by the 2026-11-16 documentation update.",
+    "One sequential flat-ground forward showcase is not a repeated all-direction regression and does not supersede the preceding independent-world failures.",
+    "Current scheduled support has no overlap. Proposed overlap comparisons and high-rate hardware identification logging have not been performed or implemented.",
+    "The evaluated NMPC state is feedback-dependent; its correlation with truth cannot prove that NMPC actively creates the body oscillation.",
+    "Bulk logs and video remain local ignored artifacts and are not included in Git. The committed summary preserves metrics, methods and artifact fingerprints."
+  ],
+  "local_raw_artifact_directory": "log/simulation-showcase-20261115-171046/current_forward",
+  "raw_artifacts_committed": false,
+  "raw_artifact_fingerprints": {
+    "sweep.json": {
+      "sha256": "2d6392db1916eb63e57b0cb6dfcb748998373396d281cb02a539a3c00f47cd46",
+      "size_bytes": 21173
+    },
+    "kinematics.csv": {
+      "sha256": "f146ab3feafd9d7573c9cbedaa39b32a8b93b52b86bcf00f736fc3b4e4868175",
+      "size_bytes": 6010725
+    },
+    "trace.bin": {
+      "sha256": "82fc3d0ae066494a3d7f9e009bc91aa2f198095f1ecca8dfbd66cfdd79452f69",
+      "size_bytes": 221626152
+    },
+    "trace.meta.json": {
+      "sha256": "5554ef1ef3714d4b1da9a7e9c4d11633058e152fe0af52632896dfc99abfcd34",
+      "size_bytes": 302
+    },
+    "launch.log": {
+      "sha256": "9554e81b4f51549e383f2617ba2cd6315f8107924f670ebc4e5be439f46a9056",
+      "size_bytes": 58477
+    },
+    "controller-params.yaml": {
+      "sha256": "d18236e45765620d9bdf11f705a825598d0e6a86b813c32cd2dcb5baa75c1cc4",
+      "size_bytes": 26921
+    },
+    "manager-params.yaml": {
+      "sha256": "e10702a54c15d6897e54d50293bc9a43cabcfb6e477ab5142a31b8c7f5d94e17",
+      "size_bytes": 23452
+    },
+    "controllers.yaml": {
+      "sha256": "748ca435208ce1c8d4519d762a3b11575aa5c713a80796363185ab198f81a68f",
+      "size_bytes": 3376
+    },
+    "task.info": {
+      "sha256": "89fe43381e261da2fed4b0ffb4fb231ff702184ba056f8546324a54cc0f6c026",
+      "size_bytes": 6973
+    },
+    "metrics-summary.json": {
+      "sha256": "f301a156325df71763e9548fd8db79bb3d32aad33eb6ae84a8b1c6236f62b519",
+      "size_bytes": 7272
+    },
+    "body-motion-analysis.json": {
+      "sha256": "09e3290337260792611799cbe2bd2197342ae68135010bd539346e9a33d6dcc9",
+      "size_bytes": 23571
+    },
+    "simulation.mp4": {
+      "sha256": "384fc861a125505a25af1b22d595012519368e0c5d7bc31e6778f8477d9503ed",
+      "size_bytes": 32937219
+    }
+  },
+  "preceding_regression_report": "docs/validation/wbc-weight-rolling-20261115.json"
+}

@@ -1,82 +1,136 @@
 # custom_dog_control
 
-ROS 2 Humble 四足 NMPC＋WBC 控制包，仿真和真机共用一个控制器。精准落足运行时及对应 ROS 消息/动作模块已移除；本包不加载 RL 策略。
+[中文](#中文) | [English](#english)
 
-完整 15.15 kg 模型位于同一工作区 [custom_dog_description](../custom_dog_description/README.md)，包含全部 URDF 与实体网格。构建和运行入口使用本地安装模型，并核对源/安装 URDF 一致，不再依赖相邻 RL 目录或旧 `external/model_ws`。
+## 中文
 
-| 入口 | 用途 |
+ROS 2 Humble 四足模型式 NMPC＋WBC 控制包。真机与 Gazebo 复用控制核心，分别连接 Unitree SDK 和仿真硬件接口。当前维护基础速度控制，不加载 RL 策略；精准落足及 `qr_*` 运行时已移除。开发与合并目标为 `RC2027`。
+
+15.15 kg 完整模型由同一工作区的 [custom_dog_description](../custom_dog_description/README.md) 提供。入口检查源与安装 URDF 一致，不依赖相邻 RL 工程或旧 `external/model_ws`。工作区依赖安装见[总 README](../../README.md)，真机状态与证据见[硬件说明](../../docs/hardware.md)。
+
+### 当前公共配置
+
+参数以 [controllers.yaml](config/controllers.yaml)、[task.info](config/nmpc/task.info) 和 [Fortress 启动文件](launch/fortress.launch.py) 为准；下表核对于 2026-11-16。频率是配置目标，桌面仿真不证明板载实时期限。
+
+| 项目 | 默认值与含义 |
 | --- | --- |
-| `custom_dog_control/NmpcWbcController` | 控制器插件 |
-| `custom_dog_control/UnitreeSystemInterface` | 真机硬件插件 |
-| `config/controllers.yaml` | 真机/Fortress 公共频率、增益、步态与速度限制 |
-| `config/real_controller.yaml` | 仅真机时钟、硬件和启动差异 |
-| `config/nmpc/task.info` | NMPC 代价、约束和 WBC 参数 |
-| 公共频率目标 | 主循环/WBC 1000 Hz，NMPC 50 Hz，求解线程 2 |
-| 公共步态目标 | Trot 完整周期 0.40 s，规划抬脚高度 0.10 m |
-| 名义站姿目标 | 地面到 `base` 原点 0.34 m，髋关节 0 rad，左右足心间距约 0.2787 m |
-| `scripts/build_real.sh` / `scripts/run_real.sh` | 真机构建与启动；构建不会打开电机 |
-| `scripts/run_dog.sh` | 无 YES 交互的桌面入口，释放本工具监视占用，启用单次预对位与真机 RViz |
-| `scripts/run_fortress.sh` | ARM64 电机侧 PD 物理仿真，使用公共参数、关闭真值反馈 |
+| 主控／状态估计／WBC | 1000 Hz |
+| NMPC | 50 Hz，运行时求解线程数 2，预测时域 1.0 s |
+| Trot | 完整周期 0.40 s，每组对角腿摆动约 0.20 s，无四足支撑重叠 |
+| 摆足 | 规划抬脚高度 0.10 m，不等同于实测足底净空 |
+| 站姿 | 地面到 `base` 原点 0.34 m；名义髋角 0 rad，左右足心间距约 0.2787 m |
+| 起身／起身稳定／MPC_STANCE／TROT 关节 PD | 髋／大腿／小腿 Kp **60／60／90**，Kd 均为 **2.0**；可能受预算缩放 |
+| 公共速度限制 | 前后 0.05 m/s、侧向 0.05 m/s、偏航 0.20 rad/s |
+| 速度变化率限制 | 平移 0.2 m/s²，偏航 1.0 rad/s² |
+| 关节目标速度变化率限制 | 400 rad/s²；用于 WBC 和电机 `dq_des` |
+| 名义高度加速度修正 | 上限 2 m/s²，不平移足端目标 |
+| 横向参考位置误差记忆 | 上限 0.04 m，定义在估计坐标系，不保证真实横漂小于 4 cm |
+| 球足滚动估计 | `estimator_rolling_foot_radius_m=0`，默认关闭 |
+| 姿态前推 | `imu_orientation_prediction_max_s=0`，默认保持最新 AHRS 姿态 |
+| 实验执行模式 | 延迟窗口预算、主机总力矩输出、名义关节参考、关节加速度耦合均默认关闭 |
 
-## 算法链路
+起身目标包含模型静力补偿：`q_target=q_nominal+(g-Jᵀf)/Kp`，接触力用于平衡浮基座力／力矩。它是对 15.15 kg 模型的估计，不能用名义关节角直接替代。PASSIVE、CALIBRATION、FAULT 不使用上表主动阶段高增益保持。
+
+NMPC 的主要 Q 对角项为：归一化线动量 100／20／100、角动量 10／30／30、位置 xyz 1000／1000／**2000**、欧拉姿态 yaw／pitch／roll 100／300／300；每条腿关节位置 20／5／2.5。`task.info` 的 R 模板整体缩放为 `1e-3`，12 个足端力项填 1，12 个关节速度项填 5000；不要将这些模板系数当作关节 PD 或直接的电机力矩惩罚。
+
+| WBC 项目 | 默认值 |
+| --- | --- |
+| 摆足任务 PD | Kp 500，Kd 45 |
+| 机身位置 PD，xyz | Kp 0／0／80，Kd 15／15／15 |
+| 机身姿态 PD，yaw／pitch／roll | Kp 150／100／100，Kd 30／20／20 |
+| 任务权重：摆足／机身／接触力／关节限位松弛 | 100／**1**／0.01／100 |
+| 足地摩擦锥系数 | 0.5，与小腿传动摩擦是不同参数 |
+| 关节名义力矩上限，髋／大腿／小腿 | 23.7／23.7／45 N·m |
+
+WBC 权重先乘任务矩阵与右端，再形成平方代价；例如机身权重 1.5 对应平方系数 2.25。任务空间 PD 生成期望加速度，电机关节 PD 则作用于关节位置／速度误差，两者不是同一层反馈。
+
+### 算法与执行边界
 
 ```mermaid
 flowchart LR
-    input[IMU + 关节反馈] --> estimate[KinematicStateEstimator]
-    estimate --> observation[质心观测与速度参考]
-    operator[手柄 / cmd_vel] --> observation
-    observation --> nmpc[独立线程 OCS2 SQP NMPC]
+    input[IMU + 关节反馈] --> estimate[运动学状态估计]
+    operator[手柄 / cmd_vel] --> reference[速度与位姿参考]
+    estimate --> reference
+    reference --> nmpc[50 Hz OCS2 SQP NMPC]
     nmpc --> policy[MRT 策略评估]
-    policy --> wbc[Weighted WBC]
+    policy --> wbc[1000 Hz Weighted WBC]
     estimate --> wbc
-    wbc --> output[状态机与采样时五分量检查]
-    output --> hardware[Unitree SDK / Fortress 电机侧 PD]
+    wbc --> output[状态机交接与采样时预算]
+    output --> hardware[电机侧 FF + PD]
 ```
 
-NMPC 状态为 24 维（归一化质心动量、基座位姿和关节位置），输入为 24 维（四足力和关节速度）。WBC 使用全身动力学、力矩限位、摩擦锥与接触约束，输出前馈关节力矩。关节目标来自 NMPC，WBC 加速度解不被积分为关节目标。
+NMPC 状态为 24 维：归一化质心动量 6 维、基座位置与姿态 6 维、关节位置 12 维。输入为 24 维：四足力 12 维、关节速度 12 维。NMPC 在计划接触相位下优化质心运动与运动学轨迹，输出带时间的状态／输入策略，不直接输出电机力矩。
 
-接触相位来自计划步态，机器人没有足底接触传感器。真实状态估计使用 IMU 与关节运动学；Gazebo 可以显式选择仿真真值。**此前 0.34 m、中性髋姿态、250 Hz IMU 配置已通过关闭真值反馈的 Fortress 平地低速验证**，覆盖前进、停车恢复、后退、左右侧移、双向转向及末尾 30 秒站立，无 FAULT。最后 29 秒稳定站立高度为 0.339865～0.339911 m，Trot 高度为 0.3325～0.3397 m；稳定站立时各髋关节角中位数的绝对值均小于 1°，Trot 中仍可短暂外展。0.05 m/s 指令下 10 秒位移 0.566 m，仍有约 13.2% 速度偏差，见 [本次高度与姿态验证数据](../../docs/validation/height-034-20261114.json)。本次桌面 x86 半速仿真不证明板载实时期限或真机能力。
+WBC 读入当前状态、NMPC 评估状态／输入和接触模式，用 qpOASES 解加权最小二乘 QP。物理决策量为广义加速度、四足力及 12 个关节前馈力矩，另有关节限位松弛量。约束包含全身动力学、力矩边界、支撑足零加速度、摆动足零接触力、足地摩擦锥及带松弛的预测关节限位；软任务跟踪摆足、机身加速度、接触力和限位松弛。
 
-同日此前的 0.29 m、髋关节 ±0.14 rad 配置在相同 500 Hz/50 Hz、0.40 s 周期、0.10 m 抬脚设置下，通过了关闭真值反馈的平地低速动作及末尾 30 秒站立验证，无 FAULT；108 项测试通过。此前 Trot 高度为 0.2800～0.2875 m，0.05 m/s 指令下 10 秒位移 0.601 m，存在约 20% 速度偏差，见 [此前配置验证数据](../../docs/validation/trot-500-50-20261114.json)。这些桌面 x86 半速结果不覆盖当前高度与姿态，也不证明板载实时期限或真机能力。15.15 kg 模型在原 1000 Hz 配置下的平地低速结果见 [历史记录](../../docs/simulation-validation-20261102.md)；恢复启动辅助之前，250 Hz/20 Hz 的完整低速动作和 60 秒站立结果见 [兼容验收记录](../../docs/compatibility-validation-20261103.md)。真机运动仍未验收。
+默认关节 `q_des` 来自 NMPC；`dq_des` 经变化率限制后同时送给 WBC 和电机 PD，WBC 的关节加速度解不被积分成关节目标。因而当前 **q/dq 尚不保证严格积分一致，跨策略也不保证 C1 连续**。
 
-`nominal_height_m=0.34` 表示地面到 `base` 原点的高度，不是机身底面净空。名义髋关节由左右 ±0.14 rad 改为 0 rad，大腿和小腿角度按 URDF 逆运动学同步重算；名义足心相对 `base` 的 z 为 −0.314 m，左右足心间距由约 0.3504 m 收窄至 0.2787 m。起身目标已按 15.15 kg 模型和本轮稳定阶段 Kp 60/60/90 重算静力补偿，不能直接以名义关节角替代起身命令。
+输出保留五分量 `q_des、dq_des、tau_ff、kp、kd`，电机侧请求为：
 
-历史测试中，并发 colcon 编译时曾触发策略超时，独立重跑通过且超时门限未放宽；该通过结果不保证任意并发负载下的实时性。
+```text
+tau_request = tau_ff + kp*(q_des-q) + kd*(dq_des-dq)
+```
 
-当前输出保持 `q_des、dq_des、tau_ff、kp、kd` 五分量，真机由电机侧计算 `tau_ff + kp*(q_des-q) + kd*(dq_des-dq)`。发送前按当前反馈计算各项绝对值贡献之和 `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)`，必要时共同缩放该关节前馈与两个增益，保留位置/速度目标。它只保证当前采样时的贡献上界，不能声明采样之间连续实际力矩始终小于 URDF effort 限制。
+发送前以当前反馈检查 `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)`；超出预算时同比缩小 FF、Kp、Kd，保留位置／速度目标。默认 WBC 约束前馈力矩，外部 PD 和延迟后的状态变化仍可能让执行时总请求越过名义上限。**采样时预算与未触发保护都不等于连续总力矩始终合规。**髋／大腿保护阈值为 26.07 N·m，小腿为 49.5 N·m，均为名义值的 1.1 倍，不是额定持续力矩。
 
-真机与 Fortress 从 `controllers.yaml` 共用主控 1000 Hz/NMPC 50 Hz、2 求解线程、Trot 完整周期 0.40 s；`task.info` 的规划抬脚高度为 0.10 m。按最新要求，**起身、起身稳定**保留关节侧 Kp 髋/大腿/小腿 **60/60/90**、Kd **2.0**，**MPC_STANCE/TROT** 使用 Kp **60/60/90**、Kd **2.0**；NMPC 归一化前向线动量权重 `Q(0,0)=100`、高度权重 `Q(8,8)=2000`。起身静力补偿目标保留；除上述动量／高度权重外，其余 NMPC Q/R 见 `task.info`，摆足任务 PD 为 500/45、高度 PD 为 80/15、机身任务权重为 1。当前采用的连续性、高度修正与横向参考设置见下方本轮验证；此前39次独立对比和9次合并组合均为历史记录。小腿通过 `wbc_calf_stiffness` 独立配置，省略或设为-1时继承大腿值。共享速度限制仍为前后/侧向各 0.05 m/s、偏航 0.2 rad/s；更高速度仅在独立仿真 profile 中检查；此前速度扫描未全部通过，本轮结果与历史结果分别保留在下方。此前真机增益的验证范围见 [真机说明](../../docs/hardware.md)，既有仿真结果均为历史证据。当前 Fortress 模型在每个 1 ms 物理步执行电机侧 PD，保留外环一周期及物理步相位延迟；它不是实际电机带宽、时延或连续力矩饱和的测量。以前的 250 Hz 主机 PD 纯力矩实验是另一种时序，保留在 [历史链路记录](../../docs/real-control-validation-20261102.md)，不作为当前架构的验收结论。
+`motor_pd_budget_horizon_s=0`、`motor_pd_nominal_execution_time_s=0`、`host_total_torque_command=false`、`wbc_nominal_joint_reference=false` 和 `wbc_use_joint_acceleration_decision=false` 保持默认。延迟窗口依赖尚未辨识的加速度包络，主机总力矩模式也未通过完整运动回归，不作为推荐方案。失败与限制见[执行预算／参考一致性记录](../../docs/validation/execution-budget-consistency-20261115.md)。
 
-**2026-11-15 权重／PD／滚动估计对照：** 16 个独立用例均完成 20 秒运动和 30 秒停车站立，14 个 ±1 m/s 用例均未通过侧偏检查；3 个用例出现名义总力矩越限，无保护阈值越限。权重 1.5 的前进高度改善约 2.1 mm，但增加越限；降低 Kp、提高 Kd 仍存在高度／足端误差取舍，未替换公共配置。可选球足滚动估计显著减小速度估计偏差，但实际速度下降，不能把后退高度改善直接归为控制提升。该选项默认关闭；Release 构建和 26 组 CTest 通过，未进行真机运动。见[对照证据](../../docs/validation/wbc-weight-rolling-20261115.json)。
+### Fortress 仿真与复现
 
-### 100 Hz IMU、执行器延迟与摩擦
-
-`estimator_rolling_foot_radius_m` 默认为 **0**，保留点足状态估计；在自定义 `controllers_file` 的控制器参数中可显式设为 **0.026 m**，测试平地无滑动球足模型。补偿只使用 IMU、关节反馈与半径，按 `v_center=-omega_foot×(0,0,-R)` 同时修正基座速度观测及足球心位置预测；不是实测触地或足底力。它只作用于计划接触重载，显式 `ContactSupport.center_velocity` 仍由调用者提供；原触地 delay/ramp 协方差保持。NMPC/WBC 接触模型未因此改变，真机有效半径和适用性未标定，公共默认保持关闭。
-
-Fortress 默认 `simulation_imu_rate_hz:=100`，与当前真机 IMU 输出率一致。1000 Hz 估计器按 1 ms 步长保持上一条加速度输入，十次合计 10 ms，不会重复积分十倍；仿真与真机默认保持上一条 AHRS 四元数，可显式开启有界陀螺仪姿态前推。真实驱动保留该 AHRS 帧的**主机接收时间戳**，新 gyro 帧不会把旧姿态重新标记为新数据。设备时钟尚未与 ROS 校时，此时间戳不包含设备内部及串口缓存延迟；真机默认不启用姿态前推，等待 AHRS/gyro 时刻对应关系确认。前推不改变原始时间戳或 freshness 检查，加速度仍使用原始姿态旋转。
-
-同一组 PD/权重下，首轮 100 Hz 保持姿态试验出现侧倾，并在首段 Trot 超过 0.36 m 高度上限；250 Hz 对照通过。但最终版本关闭前推后的重复试验也通过前进/停车/恢复，失稳尚未稳定复现。`imu_orientation_prediction_max_s:=0.012` 的试验完成全方向低速动作及末尾 30 秒站立，最终高度 0.339995～0.340064 m；此前假设额外 4 ms 延迟、髋/大腿/小腿库仑摩擦 0.2/0.3/0.6 N·m、粘性摩擦 0.02/0.03/0.05 N·m·s/rad 的压力场景也通过。两组 10 秒前进分别为 0.587/0.549 m，目标为 0.500 m，速度精度仍待改善。此对照未证明前推是必要条件或唯一修复，因此默认保持关闭。123 项 colcon 统计测试及两种布局的 IMU PTY 回归通过。全部对照保留，详见 [验证数据](../../docs/validation/imu100-actuator-20261114.json)；不构成真机运动或板载实时期限验收。
-
-此前零额外延迟、零附加摩擦基线（100 Hz、关闭前推）也通过完整低速动作及末尾 30 秒站立，末段高度 0.339906～0.339973 m；10 秒前进 0.566 m，相对 0.500 m 目标仍有约 13.3% 偏差。此结果不覆盖本轮新增默认压力场景。
-
-用户补充的硬件结构是：髋和大腿没有额外外部减速传动，主要附加摩擦来自小腿的 1:2 齿轮连杆，而且四条小腿实际摩擦不同。这里的“直驱”保留此前确认的电机内部 6.33 减速比，小腿总减速比仍为 12.66。仿真附加摩擦将髋/大腿设为 0，不表示电机内部摩擦严格为零；按本轮要求，四条小腿先统一摩擦，以便比较控制参数，接口仍支持独立设置各腿。历史压力场景的原始参数和结果保留。
-
-当前 Fortress 保留**额外 20 ms 命令延迟**；四条小腿统一采用库仑摩擦 **0.45 N·m**、粘性摩擦系数 **0.0175 N·m·s/rad**，髋、大腿附加摩擦为 0。这两个值是此前四腿假设值的平均数，**不是实测或辨识值**。IMU 100 Hz、姿态前推关闭，最新关节 PD、NMPC 动量／高度权重及新增反馈设置见本轮验证；其余 NMPC Q/R、WBC 权重及任务空间 PD 保留。
-
-此前同摩擦对照中，原分阶段 PD 与统一主动阶段 PD（Kp 55/55/80、Kd 2.5）均通过起身、全方向低速动作、停车恢复及末尾 30 秒站立，无 FAULT。10 秒前进分别为 0.591/0.653 m，目标 0.500 m，偏差约 +18.2%/+30.5%；Trot 高度 RMS 误差约 9.1/10.2 mm。统一高 PD 的大腿跟踪略有改善，小腿 RMS 误差没有改善（约 0.0285/0.0291 rad），未显示全面优势，因此当时保留原分阶段 PD。约 10 Hz 诊断反算未发现缩放，不排除采样间瞬态；每组仅一次运行，不作统计显著性或根因结论，见[历史同摩擦对照](../../docs/validation/equal-calf-pd-comparison-20261114.json)。该记录不覆盖后续统一主动阶段 60/60/90、Kd 2.0 或当前分阶段配置。
-
-此前不同摩擦场景采用 FR/FL/RR/RL 小腿库仑摩擦 0.3/0.4/0.5/0.6 N·m、粘性系数 0.010/0.015/0.020/0.025 N·m·s/rad，额外延迟同为 20 ms。该试验关闭真值反馈，通过起身、全方向低速动作、停车恢复和末尾 30 秒站立，无 FAULT；100 Hz 物理记录中 Trot 高度 0.323215～0.340443 m，末尾 29 秒站立高度 0.339456～0.339904 m。0.05 m/s 指令下 10 秒前进 0.715 m，偏差约 +43.1%。11 项执行器测试、启动语法及默认值渲染检查通过，真实渲染未包含这些仿真执行器参数。约 10 Hz 诊断反算的预算系数均为 1，不能排除诊断之间的瞬时缩放。原结果保留在[历史压力验证](../../docs/validation/delay20-calf-friction-20261114.json)，不覆盖当前同摩擦配置。以下显式参数与当前默认相同：
+已安装工作区及依赖后，在仓库根目录启动：
 
 ```bash
-src/custom_dog_control/scripts/run_fortress.sh gui:=true \
-  simulation_imu_rate_hz:=100 \
-  imu_orientation_prediction_max_s:=0 \
-  simulation_command_delay_s:=0.020 \
-  'simulation_coulomb_friction:=0 0 0.45' \
-  'simulation_viscous_friction:=0 0 0.0175'
+src/custom_dog_control/scripts/run_fortress.sh gui:=true
 ```
 
-恢复此前零额外延迟、零附加摩擦基线，须显式覆盖全部三项；原有外环及物理步相位延迟仍保留：
+该入口只选择仿真插件，不启动串口、真实 IMU 或 Unitree 硬件插件。Fortress 不自动打开键盘节点；在另一个终端、相同 `ROS_DOMAIN_ID` 下运行：
+
+```bash
+source src/custom_dog_control/scripts/env.sh
+ros2 run custom_dog_control keyboard_teleop.py --ros-args \
+  -p max_speed_x:=0.05 -p max_speed_y:=0.05 -p max_speed_yaw:=0.2
+```
+
+默认现代布局：`3` 请求起身，完成后 `4` 使能 Trot；`W/S` 调前后、`A/D` 调侧向、`J/L` 调偏航，空格或 `X` 归零，`Esc` 软件急停。命令是增量保持，归零后保持 MPC_STANCE，不原地踏步。只运行一个命令来源；上述键盘示例对应默认 `legacy_joy_layout:=false`。
+
+需要重新构建时，下面命令只构建仿真版本，完成后单独启动 Fortress：
+
+```bash
+CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
+```
+
+`build_simulation.sh` 未设 `CUSTOM_DOG_BUILD_ONLY=1` 时会在构建后启动 Gazebo Classic；`run_simulation.sh`、`test_simulation.sh` 也走 Classic，不能把其结果标为 Fortress 电机侧 PD 结果。
+
+更高速度使用独立 `controllers_file` profile，修改该文件的限速后传给 Fortress；`task_file` 可独立覆盖优化配置。公共限速仍为 0.05／0.05／0.2。运行速度扫描前，应确保测试与仿真位于同一专用 ROS domain，无键盘或其他测试同时发布命令。例如已运行合适限速的独立仿真后：
+
+```bash
+source src/custom_dog_control/scripts/env.sh
+python3 src/custom_dog_control/scripts/simulation_speed_sweep_test.py \
+  --axis x --direction positive --vx-levels 0.5,1.0 \
+  --phase-duration 20 --soak-duration 30 --max-horizontal-speed 2.0 \
+  --output log/forward-speed-sweep.json
+```
+
+该脚本会检查仿真时钟、仿真硬件诊断和独立真值，再自动请求仿真起身／运动；不能用于真机，也不会代为放开控制器限速。完整复现还应保留 profile、有效启动参数、task、模型／库指纹、记录器频率和脚本门限；上面的简短命令不等同于下面展示的完整验收配置。
+
+### IMU、延迟和摩擦假设
+
+Fortress 默认 `actuator_model:=motor_pd`，每个 1 ms 物理步根据当前关节反馈执行电机侧 PD；延迟的是整包五分量指令。
+
+| 仿真参数 | 默认值 |
+| --- | --- |
+| `simulation_imu_rate_hz` | 100 Hz |
+| `simulation_command_delay_s` | **额外 0.020 s**，原有外环一周期和物理步相位另计 |
+| `simulation_coulomb_friction` | 髋／大腿／小腿 `0 0 0.45` N·m，四腿相同 |
+| `simulation_viscous_friction` | `0 0 0.0175` N·m·s/rad，四腿相同 |
+| `simulation_friction_velocity_scale` | 0.05 rad/s |
+| `use_sim_ground_truth` | false；独立评估仍可读取真值 |
+
+20 ms 和摩擦系数是压力测试假设，**尚未通过真机辨识**。1000 Hz 外环的一周期约 1 ms，不能继续套用历史 500 Hz 的 2 ms。小腿附加 2:1 齿轮连杆，总减速比为 12.66；髋／大腿仍有电机内部 6.33 减速。摩擦输入已在关节输出侧，不重复乘减速比；髋／大腿附加摩擦设 0 不表示内部摩擦严格为零。
+
+附加负载为 `-Fc*tanh(dq/0.05)-B*dq`，不包含静摩擦锁止、齿隙、正反向差异、连杆位置相关阻力或真实电流／热限制。摩擦参数接受 1 个统一值、3 个关节类型值或 12 个关节值；12 值顺序为 FR、FL、RR、RL，每腿依次髋、大腿、小腿。它们仅适用于 `motor_pd`。停机、安全输出、超时、无效反馈和时钟回退会清空延迟队列，旧包不会恢复后重放。
+
+零额外延迟、零附加摩擦对照可显式运行：
 
 ```bash
 src/custom_dog_control/scripts/run_fortress.sh gui:=true \
@@ -85,173 +139,112 @@ src/custom_dog_control/scripts/run_fortress.sh gui:=true \
   simulation_viscous_friction:=0
 ```
 
-- `imu_orientation_prediction_max_s` 是姿态前推年龄上限，控制器允许 0～0.02 s；0 恢复原始保持行为。Fortress 与公共/真机默认均为 0；0.012 是已测试的可选值。超过前推上限不刷新输入时间戳，也不放宽 IMU 超时。
-- `simulation_command_delay_s` 为原有外环一周期之外的额外命令传输延迟，默认 0.020 s，范围 0～0.05 s；500 Hz 原有外环约 2 ms 及物理步相位延迟另计。这不是测得的电机闭环响应时间。
-- 两种摩擦参数默认采用上方 3 个髋/大腿/小腿值，并重复到四条腿。支持 1 个统一值、3 个关节类型值，或 12 个关节值，12 值顺序为 FR、FL、RR、RL，每条腿依次为髋、大腿、小腿。小腿独立配置形式为 `0 0 FR值 0 0 FL值 0 0 RR值 0 0 RL值`；粘性摩擦也支持相同形式。单位分别为关节侧 N·m 和 N·m·s/rad，输入已换算到关节侧时不要再次乘 2 或 12.66。
-- 物理负载为 `-Fc*tanh(dq/vs)-B*dq`，`simulation_friction_velocity_scale` 默认 0.05 rad/s。这近似滑动摩擦，不包含静摩擦锁止、齿隙、传动效率或真实伺服带宽。`effort` 仍表示电机请求力矩，不包含摩擦负载，也不是足底力实测。
-- 这些参数仅用于 `actuator_model:=motor_pd`。停机、安全模式、主循环超时、无效反馈和时钟回退会清空延迟队列，旧命令不会在恢复后重新执行；断电后的被动摩擦仍存在。
+这仍保留外环一周期及物理步相位延迟。默认 Fortress profile 根据额外延迟派生计划接触信任 delay／ramp 为 20／10 ms，零额外延迟时为 0／0；自定义 `controllers_file` 保留其自设值，也可通过 `simulation_estimator_planned_contact_delay_s`／`simulation_estimator_planned_contact_ramp_s` 显式覆盖。这是计划接触的信任时序，**不是实测触地或足底力**。
 
-此前摩擦对照没有据此增加真机摩擦补偿、PD 或优化权重；最新关节 Kp 调整见上。四条小腿应分别检查屈伸方向的跟踪误差、速度及力矩预算缩放；不能由“摩擦不同”直接推出每条腿的补偿数值，也不能把滑动摩擦模型当作静摩擦锁止或连杆位置相关阻力的辨识。WBC 的摩擦锥系数描述足端与地面的摩擦，不是小腿传动摩擦，不能用它代替关节补偿。现有力矩预算会在超限时同比缩小前馈、Kp 和 Kd，因此盲目提高 Kp 也可能压低 WBC 前馈。应先检查实际控制周期、IO 耗时、关节跟踪误差及预算缩放，再区分反馈不足、时延与传动损耗。`io_period_ms` 只代表主机收发耗时，不能替代机械响应延迟。
+1000 Hz 估计器在两帧 100 Hz IMU 之间保持输入并按实际控制步长积分。姿态前推默认关闭；真机 AHRS 主机接收时间与设备内部延迟不是同一个量，AHRS／gyro 对齐未标定。可选球足半径 0.026 m 只修正平地无滑动球足的速度观测和足心位置预测；不改变 NMPC/WBC 接触模型，显式 `ContactSupport.center_velocity` 仍由调用者提供。实际半径与适用条件尚未标定。
 
-当前起身与起身稳定的关节 PD 为髋/大腿/小腿 Kp 60/60/90、Kd 2.0，MPC_STANCE/TROT 为 Kp 45/45/65、Kd 1.0；PASSIVE、CALIBRATION、FAULT 不因此改成高增益保持。WBC 任务空间 PD 则通过足端位置/速度误差、机身位置/速度误差和机身欧拉姿态及其变化率误差生成期望加速度，再由全身动力学求解关节力矩；它与电机关节 PD 是不同层次的反馈。原任务空间 PD 和权重保留；本轮另增加有界名义高度加速度修正，见下方。
+### 最新仿真结果与不足
 
-### 本轮延迟、目标连续性与高度调整
+2026-11-15 可视化展示保持当前控制增益、步态、100 Hz IMU、20 ms 额外延迟和摩擦，仅在隔离 profile 放开速度限制；关闭真值反馈。**一个新世界中顺序执行**前进 0.5 m/s、1.0 m/s 各 20 秒，阶段间停车，最后站立 30 秒，不是两次独立重复试验。精简证据与原始文件指纹见[展示记录](../../docs/validation/simulation-showcase-20261115.json)。
 
-本轮完成 **42 次独立仿真**，构建及 **22 组 CTest** 全部通过。最终采纳 `C04_cross_track`：`wbc_joint_velocity_acceleration_limit=400` rad/s²、`wbc_nominal_height_correction_limit_mps2=2`、`nmpc_cross_track_position_error_limit_m=0.04`，NMPC `Q(0,0)=100`（归一化前向线动量）、`Q(8,8)=2000`。起身／稳定阶段仍为 Kp 60/60/90、Kd 2；MPC_STANCE/TROT 仍为 Kp 45/45/65、Kd 1，其余 Q/R、WBC 权重及任务空间 PD 保留。
+| 指标 | 0.5 m/s 阶段 | 1.0 m/s 阶段 |
+| --- | ---: | ---: |
+| 末 2 秒实际机身速度 | 0.5193 m/s | 0.9609 m/s |
+| 全 20 秒平均机身高度 | 0.33495 m | 0.33519 m |
+| 全阶段按初始航向累计横漂 | 0.0156 m | 0.1264 m |
+| 第 6～20 秒横滚峰峰值 | 1.647° | 4.237° |
+| 第 6～20 秒俯仰峰峰值 | 1.631° | 2.610° |
+| 第 6～20 秒高度峰峰值 | 5.038 mm | 10.698 mm |
+| 执行总请求峰值 | 15.534 N·m，RR 大腿 | **24.119 N·m，FL 大腿** |
 
-速度输入先限变化率，再同时用于 WBC 和电机 `dq_des`；位置目标仍取 NMPC 轨迹，不承诺两者构成严格积分一致的轨迹。高度修正只作用于机身加速度目标，上限 2 m/s²，不平移期望足端。运动时保留垂直于当前线速度方向的参考位置记忆，限值 0.04 m，沿指令方向仍从当前估计位置重锚；停车沿用调用方的显式重锚。该限值仅约束估计坐标中的位置误差债，不保证真实世界横向偏移小于 4 cm，也不保证回到原始直线。
+两阶段脚本检查通过、无 FAULT，最终 30 秒站立高度 0.340062～0.340090 m。但 1 m/s 出现一个关节／物理步请求样本超过 23.7 N·m 名义上限、低于 26.07 N·m 保护阈值，**严格名义总力矩预算未通过**。请求样本数不等同于越限持续毫秒数。运动中仍低约 5 mm，且 1 m/s 姿态与高度晃动明显；平均高度或未触发保护不能单独代表运动品质。
 
-C04 的 **8 次运行、9 个20秒运动阶段**全部稳定完成，无 FAULT 或物理步请求力矩阈值事件；严格跟踪通过 **7/8 次运行、8/9 个运动阶段**。首次右移 −0.50 m/s 因按初始航向累计的横向位移 0.3467 m 超过原 0.25 m 门限而失败，复测通过，首次失败仍保留。末2秒实际速度如下，单位分别为 m/s 和 rad/s：
+这些速度／高度／姿态来自独立物理真值；总力矩为延迟执行的仿真 FF＋PD 请求，尚未扣除被动摩擦，**不是真机标定力矩或电流能力**。足端误差需明确坐标和参考定义，不能将关节 FK 误差当成世界坐标落足精度。横滚与步态相位相关不证明某一个参数是唯一原因。代码已有 `trot_double_support_s` 计划支撑重叠实现，当前默认 0；建议的 0／10／20 ms 平顺性对照尚未执行或验收。
 
-| 工况 | 末2秒实际速度 |
-|---|---:|
-| 前进 +0.50 m/s | +0.4903 |
-| 后退 −0.50 m/s | −0.4740 |
-| 左移 +0.30 m/s | +0.2952 |
-| 右移 −0.30 m/s | −0.2925 |
-| 左移 +0.50 m/s | +0.4876 |
-| 右移 −0.50 m/s，复测 | −0.4802 |
-| 偏航 +1.5 / −1.5 rad/s | +1.4707 / −1.4636 |
+此前权重／PD／滚动估计的 16 个独立用例均完成 20 秒运动＋30 秒站立，14 个 ±1 m/s 用例均未通过侧偏检查，3 个用例名义总力矩越限、无保护阈值越限。未选出整体更优新参数；滚动估计减小估计偏差但实际速度下降，默认保持关闭。Release 构建、26 组 CTest（其中运动学估计器 22 项测试）通过，见[对照证据](../../docs/validation/wbc-weight-rolling-20261115.json)。展示的一次通过不能替代独立回归或建立可重复性。
 
-后退平均真值高度 **0.32939 m**、最低 **0.32636 m**，平均仍比目标低约 **10.6 mm**；前进平均高度 **0.33555 m**。三次末尾30秒站立均通过，高度为 **0.34014～0.34039 m**。默认 PASSIVE 启动检查通过，实际加载参数和 task 与已测 C04 一致。公共速度限制仍为 0.05/0.05/0.2，高速结果来自隔离仿真 profile。完整42次对照、失败及配置指纹见[本轮验证](../../docs/validation/delay-budget-continuity-20261114.json)，不构成真机运动或板载实时期限验收。
+### 历史验证索引
 
-`motor_pd_budget_horizon_s=0` 和 `wbc_use_joint_acceleration_decision=false` 保持默认关闭。最新窗口实现使用带符号 PD 区间，同时约束 FF 与总力矩，并在 WBC 动力学中计入名义 PD；`motor_pd_nominal_execution_time_s` 范围为 [0,H]，默认 0。它依赖假定加速度上界，接触冲击已使 A100 假设失效，不能保证延迟后的内环峰值。旧 H24ms/A100/fraction0.35 降增益实验是历史失败方案；当前不再使用该比例参数。
+下列文件保留当时配置、失败与未完成范围。**历史 500 Hz、45／45／65 Kp 或 Kd 1 等数值不是当前默认值。**构建／离线测试／仿真通过均不等于真机承重运动验收。
 
-新增 `wbc_nominal_joint_reference=false`：开启时直接取同一生效策略的名义 q/dq 并一起绕过 dq-only slew，不保证跨策略 C1 连续。新增 `host_total_torque_command=false`：开启时 WBC 约束总请求，主控在交接／回退后统一合成、限幅并发送零电机增益；必须同时设置 H=0、名义执行时间=0。起身本身仍用电机 PD，首次交接锁存起点总力矩，短暂 QP 失败保持上一帧发送值。诊断发布 `host_total_torque_raw_nm/sent_nm/scale`；不能只看限幅后数值推断预算充足。固定总力矩的初始站立通过、Trot 姿态验收失败，保持实验关闭。26 次最新仿真、最终26组CTest及29项PTY测试见[执行边界与参考一致性记录](../../docs/validation/execution-budget-consistency-20261115.md)。未修改 PD/Q/R 或保护门限，没有真机运动。
+| 记录 | 当时范围 |
+| --- | --- |
+| [高度与中性髋姿态](../../docs/validation/height-034-20261114.json) | 0.34 m、250 Hz IMU、500／50 Hz 低速动作 |
+| [早期 500／50 Hz](../../docs/validation/trot-500-50-20261114.json) | 0.29 m、髋 ±0.14 rad；不能覆盖当前站姿 |
+| [100 Hz IMU／执行器对照](../../docs/validation/imu100-actuator-20261114.json) | 含失败、重跑及可选姿态前推；未证明前推必需 |
+| [不同小腿摩擦](../../docs/validation/delay20-calf-friction-20261114.json)／[同摩擦 PD](../../docs/validation/equal-calf-pd-comparison-20261114.json) | 假设摩擦压力场景与低速对照 |
+| [统一增益扫描](../../docs/validation/unified-6090-speed-sweep-20261114.json) | 含 effort 保护和重复性差异，未全面通过 |
+| [39 次 PD／高度对照](../../docs/validation/pd-height-comparison-20261114.json)／[9 次合并组合](../../docs/validation/combined-qz2000-kd1-20261114.json) | 历史 500 Hz，保留短测通过、长测失败 |
+| [42 次延迟／参考／高度对照](../../docs/validation/delay-budget-continuity-20261114.json) | C04 采用连续性／高度修正／横向参考设置，当时运动 PD 45／45／65、Kd 1 |
+| [执行预算与参考一致性](../../docs/validation/execution-budget-consistency-20261115.md) | 实验窗口及主机总力矩方案未通过完整运动回归 |
+| [原始物理验收](../../docs/simulation-validation-20261102.md)／[兼容验收](../../docs/compatibility-validation-20261103.md) | 当时版本及启动辅助恢复前的行为 |
 
-Fortress 未指定 `controllers_file` 时，以 `simulation_command_delay_s` 推导计划接触信任 delay，正delay时 ramp为0.010s：默认额外20ms对应 **20/10ms**，零额外delay对应 **0/0**。显式 `controllers_file` 保留其E设置；`simulation_estimator_planned_contact_delay_s` 与 `simulation_estimator_planned_contact_ramp_s` 可分别显式覆盖，范围均为 **0～0.1s**。effort模式不推导电机延迟。公共／真机E仍为 **0/0**，不把仿真压力输入当成真实电机时延或实测触地；本轮没有真机运动。
+### 真机边界与状态流程
 
-### 历史合并配置的 9 次仿真复测
+本轮硬件检查限于**零力矩、零增益通信和 IMU 数据**。以下只说明软件接口；没有自动起身、台架激励或真机行走验收。机器人只有 IMU 与关节反馈，无足底接触传感器，计划接触和运动学接触估计不能标成实测足底力。SDK `effort` 含义、力矩标定、扭矩常数 0.63895 N·m/A 的轴侧与电流约定仍需确认，暂不据此改力矩上限。
 
-此前一轮将分别检查的两项合并：MPC_STANCE/TROT 使用关节侧 Kp 45/45/65、Kd 1，NMPC 高度 `Q(8,8)=2000`。起身与起身稳定仍为 Kp 60/60/90、Kd 2；WBC 高度任务 PD 80/15、机身任务权重 1、其余 Q/R 均未修改。公共速度限制仍为前后/侧向 0.05 m/s、偏航 0.2 rad/s。
-
-9 次独立仿真已完成，目标为每个运动阶段 20 秒、末尾站立 30 秒，保留当时延迟、摩擦和 IMU 设置；故障后的未完成阶段不算通过。脚本动作、几何与严格跟踪检查通过 **4/9**，加上“每个物理步无请求力矩阈值事件”的要求后通过 **3/9**，整体未通过。
-
-| 工况 | 结果 | 末 2 秒实际速度与平均高度（完整运动段） |
-|---|---|---|
-| 前进 +0.50 m/s | 完成 20 秒运动及 30 秒站立；RR 大腿出现 26.214 N·m 物理步阈值事件，500 Hz 检查未 FAULT，不计无越阈通过 | +0.5665 m/s；0.332921 m |
-| 后退 −0.50 m/s | 完成 20 秒及 30 秒站立，无越阈 | −0.4900 m/s；0.317724 m |
-| 左移 +0.30 m/s，首次 | 运动约 7.684 秒 RL 髋力矩保护 | 未完成 |
-| 右移 −0.30 m/s，首次 | 约 10.696 秒退出；先 RR 髋力矩保护，随后失高 | 未完成 |
-| 双向偏航 ±1.5 rad/s | 各 20 秒及末尾 30 秒站立，无越阈 | +1.427/−1.418 rad/s；约 0.331 m |
-| 左移 +0.50 m/s | 运动约 2.426 秒 RL 髋力矩保护 | 未完成 |
-| 右移 −0.50 m/s | 运动约 1.820 秒 RR 髋力矩保护 | 未完成 |
-| 左移 +0.30 m/s，复测 | 完成 20 秒及 30 秒站立，无越阈 | +0.3280 m/s；0.328652 m |
-| 右移 −0.30 m/s，复测 | 运动 8.922 秒首次越阈，8.994 秒脚本退出；先 RR 髋保护，随后失高 | 未完成 |
-
-合并组合仍未获得可重复的稳定侧移；左移一次失败、一次通过均保留。后退通过的是边界与跟踪检查，末段机身高度仍比 0.34 m 目标低约 22.3 mm。右移复测的首次 RR 髋事件为 26.286 N·m（FF 20.787、P 1.635、D 3.864），命令包年龄 21 ms；不能仅据脚本最终报告高度不足，将保护后的下降解释为主动控制先撑不住高度。前进的物理步越阈也不能被 500 Hz 未 FAULT 掩盖。
-
-逐阶段结果、失败及配置指纹见 [合并配置仿真报告](../../docs/validation/combined-qz2000-kd1-20261114.json)。参数已按要求保存，未用这次局部通过宣称整体通过。该轮只修改参数及文档，没有算法改动、重新构建或重跑 CTest；下方 19 组 CTest 记录属于上一轮同一控制库的证据。本轮未进行真机运动。
-
-### 此前 39 次 PD、机身高度与优化权重对比
-
-此前 39 次独立仿真保留 500 Hz 主控、50 Hz NMPC、0.40 s 周期、0.10 m 抬脚、0.34 m 名义高度、额外 20 ms 命令延迟、统一小腿摩擦、100 Hz IMU，并关闭真值反馈及姿态前推。每项从新场景起身，起身与稳定阶段保持 Kp 60/60/90、Kd 2；下表只调整运动阶段。固定短测为前后 ±0.50 m/s、左右 ±0.30 m/s，每项运动 6 秒。这里的稳定完成要求几何边界满足、无安全故障且无物理步请求力矩保护阈值事件，与严格速度/reference 跟踪分开统计；每项一次运行不能形成统计结论。
-
-| Profile | 相对父配置的修改 | 固定短测稳定完成 |
-|---|---|---|
-| A | 当时公共运动 Kp 60/60/90、Kd 2；高度 PD 80/15、机身权重 1、Qzz 1500 | 1/4 |
-| B | A 的运动 Kp 改为 45/45/65 | 2/4 |
-| C | B 的 WBC 高度 PD 改为 120/22 | 2/4 |
-| D | B 的 WBC 机身任务权重改为 2 | 2/4 |
-| E | B 的 NMPC Qzz 改为 2000 | 4/4 |
-| F | A 的运动关节 Kp 改为 0、Kd 改为 3 | 3/4 |
-| G | B 的运动 Kd 改为 1 | 4/4，但后退严格跟踪失败 |
-
-C/D/E 是分别相对 B 的独立修改，没有叠加。D 前进保护，右移完成 6 秒运动后在停车切换时保护，因此总体为 2/4。E 的 20 秒运动、末尾 30 秒站立复测中，前后 ±0.50 m/s 完成，左右 ±0.30 m/s 却均约 2 秒触发力矩保护，故短测 4/4 不能视为稳定候选；双向偏航 ±1.5 rad/s 各 20 秒及末尾 30 秒站立完成，无力矩阈值事件或安全故障。E 后退末段平均真值高度约 0.3175 m，仍低于目标约 22.5 mm；短测中单独提高高度 PD 仅增加约 0.6 mm，机身权重改为 2 也未提高后退高度。E/F/G 的追加左右 ±0.50 m/s 没有任何一组全部通过，其中 G 右移完成 6 秒运动后在停车阶段保护。完整阶段、速度跟踪、失败、长测与配置指纹见 [PD 与高度对比报告](../../docs/validation/pd-height-comparison-20261114.json)。该轮结束时公共三阶段仍为 Kp 60/60/90、Kd 2，未用实验值替换；随后9次合并组合及本轮算法调整不在这39次试验内。
-
-新增诊断分别记录名义高度、当前 NMPC 评估状态高度、WBC 接收的目标高度、未加权高度任务加速度、QP 高度加速度及两者残差。QP 加速度是模型求解值，不是实测加速度；当前 NMPC 评估状态受初始观测约束，不能仅据其高度偏低认定规划主动降低高度是唯一原因。基线后退时 WBC 高度任务与 QP 加速度很接近，且目标高度同样偏低，因此增加高度 PD 或权重的单项对照没有消除持续高度误差。机身权重还影响其他方向，D 左移通过不应被高度结果抹去。
-
-力矩阈值日志现包含关节、FF/P/D、当前与目标关节状态、实际增益及命令包年龄；保护原因包含触发关节与 effort。基线前进的 RL 大腿曾出现 26.263 N·m（FF 15.593、P 0.053、D 10.618），包年龄 21 ms。F 右移则出现 RR 髋 26.202 N·m = FF 15.440 + P 0 + D 10.762。发送时预算检查使用当时反馈，延迟包在较新状态上执行 PD 后仍可能越限；单纯减小 Kp 不能保证消除这种峰值。髋/大腿保护门限为 23.7×1.1=26.07 N·m，小腿为 45×1.1=49.5 N·m；请求 effort 和阈值保护并不代表真实电流饱和、持续扭矩能力或实测关节力矩。该历史轮构建与19组CTest通过，没有连接串口或执行真机运动。
-
-原始 `legged_control` 的 [运动命令](https://github.com/qiayuanl/legged_control/blob/master/legged_controllers/src/LeggedController.cpp#L121-L122) 使用关节 Kp 0、Kd 3，但 WBC 本身已有任务空间反馈及逆动力学；协议中的“前馈”包含 WBC 根据状态误差计算的力矩。关节 Kp 0 没有取消这些反馈，Kd 3 作用于目标与实际速度差。上述 F 对照支持继续核查时延与目标速度跳变，不能据上游数值直接认定适合当前硬件。
-
-[厂家 GO-M8010-6 参数](https://www.unitree.com/cn/mobile/go1/motor/)列出扭矩常数 0.63895 N·m/A、6.33 减速比和 23.7 N·m 最大输出力矩，但本轮未确认该常数的轴侧及相电流/iq/峰值/RMS 约定。[官方 SDK 说明](https://github.com/unitreerobotics/unitree_actuator_sdk#tip)使用转子侧坐标，当前接口已将关节 N·m 按 6.33/12.66 换算，不额外乘扭矩常数。该常数可用于确认定义后的电流、热限制和力矩标定，暂不据它改力矩上限或控制增益。
-
-### 此前统一增益的独立仿真速度扫描
-
-`simulation_speed_sweep_test.py` 从仓库根目录直接运行源码。先在另一个终端启动独立 Fortress profile，设置该仿真 profile 的 `velocity_limit_x/y/yaw` 为 `0.5/0.5/1.5`、`legacy_joy_layout:=true`；运行脚本的终端必须使用相同 `ROS_DOMAIN_ID` 和 `IGN_PARTITION`，不要另开测试同时向该实例发送命令。公共配置及真机限速仍为 `0.05/0.05/0.2`。下面命令不修改限速，也不启动仿真或真机：
-
-```bash
-source src/custom_dog_control/scripts/env.sh
-python3 src/custom_dog_control/scripts/simulation_speed_sweep_test.py \
-  --output log/unified-6090-speed-sweep.json --legacy-joy \
-  --vx-levels 0.15,0.3,0.5 --vy-levels 0.15,0.3,0.5 \
-  --yaw-levels 0.5,1.0,1.5 \
-  --joy-limit-x 0.5 --joy-limit-y 0.5 --joy-limit-yaw 1.5 \
-  --max-horizontal-speed 1.0
-```
-
-脚本先检查推进的仿真时钟、Gazebo 诊断及独立真值，再请求起身和单轴正反向运动，分别记录稳定性与速度跟踪；故障会停止扫描，未达到的速度档位不算通过。不要将该入口用于真实硬件。
-
-本轮独立仿真 profile 的限速为前后/侧向 0.5 m/s、偏航 1.5 rad/s，保留额外 20 ms 延迟、统一小腿摩擦 0.45 N·m 与粘性系数 0.0175 N·m·s/rad、100 Hz IMU 和关闭姿态前推。统一主动阶段 60/60/90、Kd 2.0 的扫描结果如下，**未取得总体通过**：
-
-| 方向 | 初轮结果 | 最终程序复测 |
-|---|---|---|
-| 前后 | ±0.15/0.30/0.50 m/s 完成每档 6 秒及末尾 30 秒站立；±0.50 m/s 档末 2 秒实际速度 +0.534/−0.475 m/s；−0.50 m/s reference 均值偏差导致严格跟踪失败，最低高度 0.310164 m | ±0.15/0.30 m/s 再次完成；+0.50 m/s 在 4.828 秒触发 effort 保护；独立 −0.50 m/s 完成 6 秒及 30 秒站立，稳定性和跟踪通过，实际 −0.476 m/s，但最低高度 0.310008 m，距下限几乎没有余量；不能认定 ±0.50 m/s 已全面稳定验收 |
-| 偏航 | ±0.5/1.0/1.5 rad/s 完成每档 6 秒及末尾 30 秒站立；±1.5 rad/s 实际角速度 +1.405/−1.386 rad/s | 同样完成全部偏航档位及末尾 30 秒站立；±1.5 rad/s 实际角速度 +1.377/−1.387 rad/s；−1.5 rad/s reference 均值偏差导致严格跟踪失败 |
-| 低速侧移 | ±0.15 m/s 完成，实际 +0.148/−0.151 m/s | ±0.15 m/s 再次完成 |
-| 左移 +0.30 m/s | effort 保护 | 再次 effort 保护，触发于 2.424 秒 |
-| 右移 −0.30 m/s | 独立试验 effort 保护 | 独立补测完成 6 秒及 30 秒站立，稳定性和跟踪通过，实际 −0.309 m/s，最低高度 0.3228 m；一失败一通过的重复性差异保留 |
-| 左右 ±0.50 m/s | 两方向独立试验均 effort 保护 | 两方向独立补测均再次 effort 保护，未完成高速侧移 |
-
-最终程序复测中，前进 +0.50 m/s、左移 +0.30/+0.50 m/s、右移 −0.50 m/s 保护前高度分别约为 0.3338、0.3282、0.3271、0.3280 m，仍是先发生 effort 超限退力、随后高度下降。初轮高速侧移保护前高度约 0.326～0.330 m，其中左移 +0.50 m/s 捕获 FL 髋 effort −26.803 N·m，绝对值超过 23.7×1.1=26.07 N·m 门限；这一初轮采样不能当作最终程序复测的触发关节证据。最终高速侧移的触发关节峰值未捕获，不能据采样未见峰值否定保护。不能将失败归因为单纯高度不足，也不能将两轮差异唯一归因于 PD、延迟或程序产物。完整两轮阶段、独立补测、失败及未完成范围见[本轮统一增益速度扫描](../../docs/validation/unified-6090-speed-sweep-20261114.json)。首轮完成不覆盖最终程序复测失败，右移 −0.30 m/s 的一次通过也不能抹去此前失败；本轮没有取得全方向稳定通过，没有真机运动，也不构成板载实时期限验收。既有 JSON 保留为历史证据。
-
-启动辅助恢复前的实际运行参数对照确认同一编译控制核心、规范 URDF 与 NMPC task/reference；当时 73 项参数中 64 项相同，差异仅是时钟、IO 插件和仿真专用项，controller_manager 两路均为 250 Hz。该参数计数及指纹属于当时版本，完整差异见 [兼容验收记录](../../docs/compatibility-validation-20261103.md)。
-
-## 真机状态流程
+`build_real.sh` 只构建、不打开电机端口；`run_real.sh` 会进入真实硬件链路。桌面 `run_dog.sh` 释放本工具身份匹配的 mode 0 监视占用并启动真机，默认启用 RViz 和单次预对位；**预对位会发送非零力矩，即使控制器仍显示 PASSIVE**，不能把该入口作为零输出检查命令。预对位关节侧幅值髋／大腿／小腿为 0.95／0.63／1.52 N·m，通信或心跳失效时中止且不自动重试；真实辅助流程仍未验收。详细启动参数以[硬件说明](../../docs/hardware.md)为准。
 
 ```text
-若启用启动辅助：PASSIVE -- 12路反馈/接管/心跳有效 --> 单次预对位/释放完成
-PASSIVE -- START --> CALIBRATION -- 完成 --> PASSIVE
-PASSIVE -- LT+A，标定有效 --> STAND_UP --> MPC_STANCE
-MPC_STANCE -- LT+X + 有效速度 + 新策略 --> MPC_TROT
-MPC_TROT -- 停车并收到新站立策略 --> MPC_STANCE
-故障/LT+Y --> FAULT -- LT+B --> PASSIVE（需重新标定）
+若启用启动辅助：12 路反馈／接管／心跳有效 → 单次预对位 → 释放
+PASSIVE → START 采零 → CALIBRATION → PASSIVE
+PASSIVE → LT+A（标定有效）→ STAND_UP → MPC_STANCE
+MPC_STANCE → LT+X、有效速度与新策略 → MPC_TROT
+MPC_TROT → 停车与新站立策略 → MPC_STANCE
+故障／LT+Y → FAULT → LT+B 确认 → PASSIVE（重新标定）
 ```
 
-真机通过 `legacy_joy_layout=true` 恢复旧 `qr_ws` 输入布局，LT 即旧 L2；单按 A/X 不切换模式。若启用启动辅助，完成后需重新按 START；辅助期间的提前按下或持续按住不会自动完成采零。START 只声明当前机械参考姿态并采集零点，不发起起身。旧标定公式在 URDF 坐标变换后等价，细节见 [兼容验收记录](../../docs/compatibility-validation-20261103.md)。标定后重置估计器和异步求解器中的旧观测/策略；未标定的原始编码器不能初始化站立估计。LT+X 不能从被动状态直接起身。
+真机使用旧手柄布局，LT 对应旧 L2；单按 A／X 不切换模式。START 只声明当前机械参考姿态并采零，不起身；辅助结束后需重新按 START。LT+X 不能从被动状态直接起身，起身时提前按下也不排队。三轴带 0.08 死区，`vx=-LY、vy=-RX、yaw=-LX`；摇杆回中保持站立。真实 RViz 使用反馈与 FK，未标定编码器姿态和足端 TF 不代表机械零位或足底测力。
 
-左摇杆前后控制前后，右摇杆左右控制侧移，左摇杆左右控制转向；三轴保留 0.08 死区，在 REP-103 中为 `vx=-LY、vy=-RX、yaw=-LX`。LT+Y 现为软件急停，替代已移除的旧 STEP_TEST。默认现代仿真/键盘布局保持；在 Fortress 加 `legacy_joy_layout:=true` 可复现同一旧手柄流程。
+### 日志、辨识与测试
 
-LT+X 只使能行走，摇杆回中保持站立，不原地踏步；起身过程中按下不会排队，需在站立模式再按。真实启动默认将约 10 Hz 控制诊断保存到本次 ROS 日志目录的 `control-diagnostics.jsonl`，包含全 12 关节反馈、起身目标、控制器五分量请求与手柄门限状态。请求值不是最终电机报文，effort 反馈也未完成物理标定。每段最多 16 MiB，保留初始段及最近三个分段；可用 `record_diagnostics:=false` 关闭。终端会显示模式与行走使能变化。最新后部起身困难和右后髋通信故障的证据见 [真机排查](../../docs/hardware.md)。
+`~/diagnostics` 按 ROS 时间约 10 Hz 发布，包含关节反馈、控制器五分量请求、手柄门限、策略和 WBC 状态及定时统计。周期／IO P99 由最近 512 个样本计算；`io_period_ms` 是整轮主机收发耗时，既非单电机单向延迟，也非机械响应延迟。真机默认保存 `control-diagnostics.jsonl`，每段最多 16 MiB，保留初始段与最近三个分段；`record_diagnostics:=false` 可关闭。控制器请求不是最终 SDK 报文，SDK effort 尚未完成物理标定。
 
-初次起身稳定后向 WBC 平滑交接；Trot 停车后不重复起身插值。安全故障覆盖正常输出，故障锁存只能通过 LT+B 确认复位。桌面 `run_dog.sh` 不要求输入 YES，启动前自动停止本工具身份匹配的 mode 0 通信监视进程以释放串口，随后直接调用真机入口；`--help`/`--show-args` 不停止监视。
+`simulation_control_trace` 默认关闭，仅仿真可用；打开后每次主循环发布，当前格式 v4 含 297 个数值，真机启用会被拒绝。真实通信／调度／电机响应辨识**目前只有设计建议，尚无逐电机高频时序记录模块或辨识结果**。要估计毫秒级响应，需后续补充统一单调时钟、命令序号、最终发送包及逐电机收发时间；普通 10 Hz 诊断不能代替这些数据。台架激励不在本轮硬件检查范围内。
 
-桌面指定 `require_physical_estop_confirmation:=false`、`startup_alignment_enabled:=true`、`use_rviz:=true`，不自动声明 `physical_estop_verified=true`；直接 `run_real.sh` 默认仍要求原确认条件，并默认关闭辅助和 RViz。
-
-旧 IOSDK 的启动小力矩预对位曾在移植时遗漏，现恢复为独立非阻塞、单次辅助。它在 12 路反馈有效、控制器完整接管且持续写入后自动开始，保持旧版转子方向；关节侧幅值 hip/thigh/calf 为 `0.95/0.63/1.52 N·m`。先 hip/thigh 300 ms，再三关节 300 ms，最后 mode0 释放 300 ms。控制器可仍显示 PASSIVE，但辅助阶段会发送非零力矩；不能再宣称所有 PASSIVE 都恒为 mode0。通信/CRC 失败、软件急停、写入心跳过期、撤销接管或过程中的标定复位会退零中止，不自动重试，需要重启恢复。任一电机反馈不完整或陈旧时不会满足开始条件。
-
-恢复后的 profile 已经 PTY 验证；本次通信探针没有发送该非零辅助，真实辅助执行仍未验收。用户期间自行启动过控制程序，不把这次通信复测作为真实启动流程验收。恢复启动流程和通信不能证明机械零位、正方向、物理急停、承重起身或行走已验收。
-
-真机 RViz 固定坐标系为 `base`，RobotModel 来自关节反馈、足端 TF 来自 FK。标定前原始编码器角未对齐 URDF 零位，不能把显示姿态视作已完成机械标定；足端 TF 不代表实测足底力。
-
-## 实现入口
-
-| 文件 | 职责 |
-| --- | --- |
-| `src/controller/NmpcWbcController.cpp` | 主周期、估计、策略评估、安全检查 |
-| `src/controller/ControllerLifecycle.cpp` | 参数、模型、线程和 ROS 生命周期 |
-| `src/controller/ControllerStateMachine.cpp` | 标定、起身、站立、Trot 与交接 |
-| `src/controller/ControllerHardware.cpp` | ros2_control 状态读取和命令输出 |
-| `src/controller/ControllerInputs.cpp` | 手柄和速度输入 |
-| `src/nmpc/NmpcBackend.cpp` | NMPC 线程、参考、WBC 与策略重置 |
-| `src/nmpc/ModelCache.cpp` | 按模型/配置/架构内容区分 CppAD 缓存 |
-| `src/hardware/IOSDK.cpp` | 四路 RS485 电机通信 |
-| `src/hardware/UnitreeSystemInterface.cpp` | 硬件接口、标定请求和输出检查 |
-| `include/.../control/JointCommandUtils.hpp` | 五分量采样边界检查与交接计算 |
-| `include/.../control/JoystickMapping.hpp` | 旧手柄组合键、三轴与现代布局 |
-| `src/hardware/FortressMotorSystem.cpp` | 五分量管线延迟及每物理步 PD |
-
-上游 `LeggedInterface` 和 `WeightedWbc` 固定版本参与构建，来源哈希测试保留。公共 `RobotModel`、静力支持检查和 15.15 kg 质量契约保留。
-
-既有数据的设备微秒时间戳确认 IMU/AHRS 各约 100 Hz，驱动没有固定 100 Hz 限频；ROS header 当前使用主机发布时间戳。用户之后自行配置设备输出率，本轮不修改 IMU 设置。
-
-11 月 3 日 mode0 全零复测中，四腿 12 个电机各 500/500，合计 6000/6000，CRC/ID/模式/电机错误均为 0，FR 反馈已恢复。四路同时以每 ID 100 Hz 轮询约 5 秒，合计 6677/6678；结束快照记录 FR ID 2 一次未收齐回包/超时，原因未定位，不能称为全程零丢包或 250 Hz 周期验收。首次 IMU 捕获有一条较早 AHRS 时间戳；仅清主机 RX 队列后复测，IMU/AHRS 各 500 帧、设备时间戳均为 100 Hz，CRC 为 0，原异常未复现但来源未确证。所有探针已停并释放串口。证据在 [通信复测目录](../../log/communication-recheck-20261103-2347/summary.json)。
-
-早期 FL/RR/RL 各 100/100、FR 各 0/100，以及旧 SDK typed/raw 2/20 ms 未取得 FR 有效回复的记录保留，原原因未定位。原驱动已实际发布 Xbox 360 手柄输入。Run Dog/手柄流程恢复和最新通信成功不等于真实启动辅助、标定或承重运动已验收。详细证据和边界以 [工作区 README](../../README.md)、[硬件说明](../../docs/hardware.md) 和 [兼容验收记录](../../docs/compatibility-validation-20261103.md) 为准。测试运行：
+已有构建的离线回归入口：
 
 ```bash
 source src/custom_dog_control/scripts/env.sh
 colcon test --packages-select custom_dog_control --event-handlers console_direct+
 colcon test-result --verbose
 ```
+
+离线测试不启动真机运动，测试数量与结果应对应具体提交和证据文件；更新 README 本身不构成新一轮仿真／真机验收。
+
+### 主要实现入口
+
+| 文件 | 职责 |
+| --- | --- |
+| [ControllerLifecycle.cpp](src/controller/ControllerLifecycle.cpp) | 参数、模型、线程与 ROS 生命周期 |
+| [NmpcWbcController.cpp](src/controller/NmpcWbcController.cpp) | 主周期、估计、策略评估、安全检查 |
+| [ControllerStateMachine.cpp](src/controller/ControllerStateMachine.cpp) | 标定、起身、站立、Trot 与交接 |
+| [ControllerDiagnostics.cpp](src/controller/ControllerDiagnostics.cpp) | 10 Hz 诊断与可选仿真 trace |
+| [NmpcBackend.cpp](src/nmpc/NmpcBackend.cpp) | NMPC 线程、参考、WBC 与策略重置 |
+| [WeightedWbc.cpp](third_party/legged_wbc/src/WeightedWbc.cpp)／[WbcBase.cpp](third_party/legged_wbc/src/WbcBase.cpp) | QP 任务、约束与求解 |
+| [JointCommandUtils.hpp](include/custom_dog_control/control/JointCommandUtils.hpp) | 五分量采样预算及交接计算 |
+| [UnitreeSystemInterface.cpp](src/hardware/UnitreeSystemInterface.cpp)／[IOSDK.cpp](src/hardware/IOSDK.cpp) | 真机接口、标定与四路 RS485 通信 |
+| [FortressMotorSystem.cpp](src/hardware/FortressMotorSystem.cpp) | 五分量延迟队列及物理步电机 PD |
+| [ModelCache.cpp](src/nmpc/ModelCache.cpp) | 按模型、配置与架构区分 CppAD 缓存 |
+
+上游 `LeggedInterface` 与 `WeightedWbc` 使用固定来源；第三方作者、许可证和来源哈希测试保留。生成的 `external` 工作区、构建产物、大规模日志及视频不提交。
+
+## English
+
+[切换中文](#中文)
+
+This ROS 2 Humble package provides model-based quadruped velocity control with OCS2 SQP NMPC and weighted whole-body QP control. Hardware and simulation share the controller core but use different actuator interfaces. RL policies and the removed precision-footstep runtime are outside this repository. Development and merges target `RC2027`.
+
+Current defaults are **1000 Hz** controller/WBC, **50 Hz** NMPC with two runtime solver threads, a **0.40 s** full Trot cycle, **0.10 m** planned swing height, and a **0.34 m** nominal base-origin height. Stand-up, settling, MPC_STANCE and TROT use joint-side Kp **60/60/90** and Kd **2**, subject to sampled budget scaling. The public velocity limits remain **0.05/0.05 m/s and 0.20 rad/s**. High-speed tests use isolated profiles.
+
+NMPC produces time-indexed states and inputs: normalized centroidal momentum, base pose, joint positions, contact forces and joint velocities. WBC combines these references with measured state to optimize generalized accelerations, contact forces and feedforward joint torques under dynamics/contact/torque constraints. Motor-side PD adds position and velocity feedback. The default sampled budget does not guarantee delayed execution stays below nominal total torque; joint position/velocity references are not yet strictly integrable.
+
+Fortress defaults to a **100 Hz IMU**, **20 ms additional command delay**, and equal calf friction **Fc=0.45 N·m, B=0.0175 N·m·s/rad**. These are assumed stress-test parameters, not identified hardware values. Attitude prediction and spherical-foot rolling estimation are disabled by default. There are no sole contact sensors; planned contact and estimated contact are not measured ground reaction forces.
+
+From the repository root, use `scripts/run_fortress.sh` under this package with `gui:=true`; the Chinese simulation section provides the full keyboard and build commands. This simulation entry does not open hardware ports. The Classic Gazebo scripts follow a different actuator path and must not be labeled Fortress motor-PD tests.
+
+The [2026-11-15 visual showcase](../../docs/validation/simulation-showcase-20261115.json) ran sequential 20 s forward phases at 0.5 and 1.0 m/s followed by 30 s standing in one fresh world. Both script checks passed; final-2-second actual speeds were **0.5193 and 0.9609 m/s**. Mean motion height was approximately **0.335 m**. At 1.0 m/s, one delayed FF+PD request reached **24.119 N·m**, above the thigh's **23.7 N·m nominal limit** but below the **26.07 N·m guard**. The strict nominal total-torque budget therefore failed. Body oscillation, drift and motion-height error remain; this single demonstration does not establish repeatability or hardware movement acceptance.
+
+Earlier [16-case tuning comparisons](../../docs/validation/wbc-weight-rolling-20261115.json) did not produce a balanced replacement for the shared defaults. Historical 500 Hz and lower-PD records retain their original configurations and failures. No hardware locomotion or onboard real-time deadline acceptance is claimed.
+
+Current hardware work is restricted to zero-torque, zero-gain communication and IMU checks. `run_dog.sh` can automatically execute nonzero startup alignment and is not a zero-output check. Diagnostics publish at about 10 Hz; timing P99 uses 512 samples. Simulation trace is prohibited on hardware. Actuator-response identification still requires new timing instrumentation and independently validated experiments; SDK effort and the torque constant's conventions remain uncalibrated.

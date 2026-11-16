@@ -2,174 +2,114 @@
 
 [简体中文](README.md) | **English**
 
-RC2027 now contains the basic locomotion stack for the 12-DOF quadruped: ROS 2 Humble, OCS2 NMPC, Weighted WBC, state estimation, and Unitree motor/IMU drivers. Precision foothold control and its `qr_*` packages have been removed. The target is the local Orange Pi 5 Plus / RK3588 running Ubuntu 22.04 ARM64.
+A ROS 2 Humble workspace for model-based quadruped locomotion: state estimation, OCS2 NMPC, Weighted WBC, Gazebo Fortress simulation, and Unitree motor / FDILink IMU interfaces. The target platform is an Orange Pi 5 Plus / RK3588 running Ubuntu 22.04 ARM64; desktop development requires the corresponding dependencies.
 
-## Validation status
+Development and integration target **`RC2027` / `origin/RC2027`**. Precision foothold control and its `qr_*` packages have been removed. RL training, policies, and deployment belong to the separate `himloco_custom_dog` repository. Documentation reviewed **2026-11-16**; the latest motion data below was collected **2026-11-15**.
 
-**Builds, offline solves, and serial communication checks do not establish hardware locomotion readiness. Physical calibration, loaded standing, and Trot have not been accepted.** See the current [hardware instructions](docs/hardware.md).
+## Current configuration
 
-**November 15 execution-boundary review:** signed FF+PD windows, direct same-policy nominal q/dq sampling, and an experimental fixed-total-effort path were implemented. Final checks passed 26 CTest groups and 29 PTY tests. Of 26 fresh-world simulations, 24 candidate cases failed; the retained C04 passed both ±0.5 m/s cases, each with 20 seconds of motion and 30 seconds of final stance. Fixed effort bounded the software request but did not stabilize Trot. New paths remain disabled; PD/Q/R and protection thresholds are unchanged. No hardware motion occurred. See the [execution and reference validation record](docs/validation/execution-budget-consistency-20261115.md).
+The sources of truth are [controllers.yaml](src/custom_dog_control/config/controllers.yaml), [task.info](src/custom_dog_control/config/nmpc/task.info), and their launch files.
 
-**Current configuration, November 15, 2026:** 1000 Hz control/WBC, 50 Hz NMPC, two solver threads, a 0.40 s full Trot cycle, and 0.10 m planned swing height. Nominal body height is **0.34 m**, measured from the ground to the `base` origin, not to the body underside. Nominal hip angles change from left/right ±0.14 rad to 0 rad, with thigh and calf angles recalculated using URDF inverse kinematics. Nominal foot-center z relative to `base` is −0.314 m, and the distance between left and right foot centers decreases from approximately 0.3504 m to 0.2787 m. As most recently requested, **stand-up and settling** retain joint-side hip/thigh/calf Kp **60/60/90** and Kd **2.0**, while **MPC_STANCE/TROT** use Kp **60/60/90** and Kd **2.0**. NMPC normalized forward linear-momentum weight `Q(0,0)` is **100** and height weight `Q(8,8)` is **2000**. Stand-up targets retain the static compensation calculated for the 15.15 kg model and settling Kp 60/60/90. Other NMPC Q/R entries are listed in `task.info`; swing-task PD is 500/45, height PD is 80/15, and the base-task weight is 1. The shared profile enables a **400 rad/s²** joint-velocity input slew limit, a **2 m/s²** nominal-height acceleration-correction cap and a **0.04 m** cross-track reference-error bound. The window torque budget and joint-acceleration coupling decision remain disabled experimental options. The shared profile retains forward/lateral limits of 0.05 m/s and a yaw limit of 0.2 rad/s; higher speeds are evaluated only in an isolated simulation profile.
+| Item | Default / meaning |
+| --- | --- |
+| Main control / WBC, NMPC | 1000 Hz / 50 Hz; two NMPC solver threads |
+| Trot | Full cycle 0.40 s; each diagonal swing 0.20 s; four-foot support overlap defaults to 0 |
+| Planned swing clearance | 0.10 m; actual clearance requires measurement, and short swings scale the planned amplitude |
+| Nominal height | 0.34 m from ground to the `base` origin, not underside clearance |
+| Stand-up, settling, MPC_STANCE/TROT joint PD | Hip/thigh/calf Kp = 60/60/90 N·m/rad; Kd = 2 N·m·s/rad |
+| WBC task-space PD | Swing 500/45; base height 80/15; yaw/pitch/roll Kp = 150/100/100, Kd = 30/20/20 |
+| WBC task residual multipliers | Swing 100, base acceleration 1, contact force 0.01; their numerical ratio alone does not establish task priority |
+| Main NMPC weights | Normalized forward linear momentum `Q(0,0)=100`, height `Q(8,8)=2000`; see the task file for full Q/R |
+| Shared velocity limits | Forward/lateral 0.05 m/s each, yaw 0.20 rad/s; faster tests use isolated simulation profiles |
+| Model / transmission | 15.15 kg; internal motor ratio 6.33, total calf ratio 12.66; nominal joint torque limits 23.7/23.7/45 N·m |
+| Simulation stress defaults | 100 Hz IMU; 20 ms additional command delay; equal added calf Coulomb friction 0.45 N·m and viscous coefficient 0.0175 N·m·s/rad; zero added hip/thigh friction |
 
-1000 Hz is a configured target; desktop simulation and unit tests do not establish hardware real-time acceptance. Optional flat-ground spherical-sole estimation uses `estimator_rolling_foot_radius_m`, defaulting to 0; see the [controller documentation](src/custom_dog_control/README.md#100-hz-imu执行器延迟与摩擦) for its scope.
+1000 Hz is a configured target, not proof of a 1 ms hardware deadline. The additional 20 ms excludes one outer-loop cycle and physics-step phase. Neither delay nor friction has been identified on the robot. Attitude prediction defaults to disabled in simulation and hardware; optional rolling-foot estimation defaults to radius 0.
 
-**November 15 weight/PD/rolling-estimation comparison:** all 16 fresh-world cases completed 20 seconds of motion and 30 seconds of final stance. All 14 cases at +/-1 m/s still failed off-axis tracking; three cases had nominal total-torque excursions. No new weights or gains were promoted. Optional rolling compensation reduced velocity-estimation bias, but actual speed decreased and overall motion remained unaccepted, so it defaults to off. All 26 CTest groups passed; no hardware motion was performed. See the [comparison evidence](docs/validation/wbc-weight-rolling-20261115.json).
+Other retained defaults are a joint velocity-reference slew limit of 400 rad/s², nominal-height acceleration correction capped at 2 m/s², and a cross-track reference position error cap of 0.04 m. Windowed torque budgeting, fixed-total-torque execution, nominal joint references, and joint-acceleration coupling remain disabled experimental options.
 
-**The earlier delay/continuity comparison completed 42 simulations, with all 22 CTest groups passing at that time:** the adopted `C04_cross_track` profile completed eight independent runs containing nine 20-second motion stages, covering forward/backward ±0.50 m/s, lateral ±0.30/0.50 m/s and both yaw directions at ±1.5 rad/s. All eight runs were stable, without FAULT or a 1 kHz requested-torque threshold event. Strict tracking passed 7/8 runs and 8/9 motion stages. The first rightward −0.50 m/s trial failed because accumulated cross displacement relative to the initial heading reached 0.3467 m, above the unchanged 0.25 m limit; its repeat passed, and the original failure remains recorded. Mean backward truth height improved to **0.32939 m**, still approximately **10.6 mm** below the 0.34 m target, with a minimum of 0.32636 m; mean forward height was 0.33555 m. All three final 30-second stance checks passed at 0.34014–0.34039 m. The default PASSIVE startup smoke check passed with the adopted parameters. See the [delay and continuity validation](docs/validation/delay-budget-continuity-20261114.json) for independent comparisons, failures, repeats and fingerprints. Protection thresholds and shared speed limits were retained; no hardware motion occurred.
+## Algorithm and model
 
-During linear motion, only bounded perpendicular position-reference memory is retained; the along-command reference still reanchors to the current estimate. The 0.04 m bound limits error debt in estimator coordinates, not true-world cross displacement. The default Fortress profile derives planned-contact confidence delay/ramp from the configured added actuator delay: 20 ms gives **20/10 ms**, while zero added delay gives 0/0. An explicit `controllers_file` retains its own settings. Shared/hardware confidence timing remains **0/0** because real contact and actuator latency are uncalibrated. The independent window-budget profile frequently reduced effective PD gains without improving overall tracking, so it remains disabled; no continuous simulated torque clamp was added.
+The chain is IMU/joint feedback → kinematic state estimation → NMPC state/input policy → Weighted WBC → `q_des, dq_des, tau_ff, Kp, Kd` → motor-side FF + PD.
 
-**Historical combined-profile results: nine simulations without an overall pass:** motion Kp 45/45/65, Kd 1 and NMPC Qzz 2000 remain saved as requested. Forward +0.50 m/s, backward −0.50 m/s, both yaw directions at ±1.5 rad/s, and the repeated leftward +0.30 m/s case completed their 20-second motion stages and final 30-second stance, giving 4/9 script passes. However, forward motion produced a 1 kHz physics-step RR thigh requested-torque threshold event of 26.214 Nm that did not trigger FAULT at the 500 Hz check. Stability and tracking with no threshold excursions therefore passed only 3/9. Leftward +0.30 m/s faulted initially and passed its repeat; both rightward −0.30 m/s trials lost height after effort protection. Both lateral ±0.50 m/s cases faulted, so lateral stability is not repeatable. Mean backward height in the final motion window was 0.317724 m, approximately 22.3 mm below the 0.34 m target. See the [combined-profile simulation report](docs/validation/combined-qz2000-kd1-20261114.json). That historical round retained shared speed limits and changed parameters/documentation only, without rebuilding, rerunning CTest or operating hardware.
+NMPC plans centroidal momentum, base/joint states, contact forces, and joint velocities. WBC uses current feedback and the contact schedule to optimize tasks subject to rigid-body dynamics, stance-foot, friction-cone, joint, and torque constraints. The default host boundary evaluates `abs(tau_ff)+Kp*abs(q_des-q)+Kd*abs(dq_des-dq)` at the current sample and scales FF and both gains together. This does not guarantee the total request stays within limits during delayed execution or between host samples.
 
-**The earlier 39 independent-parameter trials did not pass in all directions:** isolated simulations retain the same 20 ms added delay, equal calf friction and 100 Hz IMU, with ground-truth feedback and attitude prediction disabled. Motion Kp 45/45/65, Kd 2 and NMPC Qzz 2000 first completed four six-second cases: forward/backward ±0.50 m/s and lateral ±0.30 m/s. In repeats with 20-second motion stages and a final 30-second stance, forward and backward completed, but both lateral ±0.30 m/s cases triggered effort protection at roughly two seconds. The short passes therefore do not establish a stable candidate. Both yaw directions at ±1.5 rad/s completed 20 seconds each and a final 30-second stance without effort-threshold events or safety faults. Mean backward height over the final motion window remained approximately 0.3175 m, 22.5 mm below the 0.34 m target; increasing WBC height PD or the base-task weight separately did not resolve the height error. Motion joint Kp 0, Kd 3 still triggered protection at rightward −0.30 m/s, and the added lateral ±0.50 m/s cases did not all pass. See the [PD and height comparison report](docs/validation/pd-height-comparison-20261114.json) for independent parameter changes, groups and longer repeats. At the end of that round, the shared active stages still used Kp 60/60/90 and Kd 2. Those 39 trials did not cover the later combined Kd 1/Qzz 2000 experiment or this round’s algorithm changes.
+The robot has IMU and joint feedback, without foot contact sensors. Scheduled/estimated contacts, NMPC forces, and simulation effort are not measured sole forces. The physical meaning and calibration of hardware SDK torque feedback remain unverified.
 
-Diagnostics added in the previous round expose nominal and currently evaluated NMPC heights, the WBC height-acceleration task and QP residual, plus FF/P/D components and actual packet age at effort-threshold crossings. The build and all 19 CTest groups passed; no hardware locomotion was attempted. Simulated effort is requested torque, and the 26.07 Nm hip/thigh protection threshold does not establish a physical current-saturation model. Height loss after protection removes torque is distinguished from the sustained height error before a fault.
+The local [custom_dog_description](src/custom_dog_description/README_EN.md) contains three URDFs, 17 STL assets, and provenance. No neighboring RL repository or old model underlay is required. Total mass includes a 1.30084 kg battery correction; missing battery dimensions leave its intrinsic inertia as a point-mass approximation. See the [controller guide](src/custom_dog_control/README.md) and [architecture](docs/architecture.md).
 
-**The earlier unified-gain speed sweep did not pass in full, and 0.50 m/s motion is not accepted as stable in both directions:** the isolated Fortress profile retains 20 ms additional delay, equal calf friction, a 100 Hz IMU and attitude prediction disabled. The initial forward/backward sweep completed six seconds at ±0.15/0.30/0.50 m/s and a final 30-second stance. At the highest commands, actual speeds averaged +0.534/−0.475 m/s over the last two seconds, but −0.50 m/s failed strict tracking and reached a minimum height of only 0.310164 m. With the final program, ±0.15/0.30 m/s completed again, but **+0.50 m/s triggered effort protection after 4.828 seconds**. An independent −0.50 m/s backward test completed six seconds plus a 30-second stance, passing stability and tracking at an actual −0.476 m/s; its minimum height of 0.310008 m leaves almost no margin above the 0.31 m floor. The initial completion does not override the failed repeat. Differences between runs cannot be assigned uniquely to PD, delay or program artifacts.
+## Build and simulate
 
-Both yaw sweeps completed six seconds at ±0.5/1.0/1.5 rad/s and a final 30-second stance. Final-program actual rates at ±1.5 rad/s were +1.377/−1.387 rad/s, but −1.5 rad/s still failed strict tracking because its mean reference differed from the request. Lateral ±0.15 m/s completed in both rounds. Final-program leftward +0.30 m/s triggered effort protection after 2.424 seconds; rightward −0.30 m/s changed from initial effort protection to a completed independent six-second test plus 30-second stance, passing stability and tracking at −0.309 m/s. Lateral ±0.50 m/s triggered effort protection in both rounds. Final-program pre-protection heights for forward +0.50, leftward +0.30/+0.50 and rightward −0.50 m/s were approximately 0.334, 0.328, 0.327 and 0.328 m: effort protection withdrew torque before height fell. The initial leftward +0.50 m/s test captured FL hip effort of −26.803 Nm, above the 26.07 Nm threshold in magnitude; this does not identify the triggering joint in the final-program repeats. The failures cannot be explained simply as insufficient height, and the failed/passed rightward −0.30 m/s repeats must both be retained. Both rounds and follow-ups remain in the [unified-gain speed-sweep report](docs/validation/unified-6090-speed-sweep-20261114.json). These desktop simulation results certify neither hardware locomotion nor onboard deadlines. Existing results below are retained as historical evidence for their original profiles.
-
-**100 Hz IMU and nonideal actuator checks:** the simulated IMU now defaults to 100 Hz. The first held-attitude trial developed substantial roll and stopped at the unchanged 0.36 m height limit at first Trot entry; a 250 Hz comparison passed. However, a final-version repeat with prediction disabled also passed forward motion, stop and resume. The initial instability has not been consistently reproduced; neither 100 Hz nor held attitude is established as its unique cause.
-
-The earlier zero-extra-delay, zero-added-friction baseline (100 Hz, prediction disabled) separately passed the complete low-speed motion suite and a final 30-second stance, with final height 0.339906–0.339973 m. Ten seconds forward produced 0.566 m against a 0.500 m command, retaining approximately 13.3% error. This result does not cover the new default stress scenario below.
-
-Optional `imu_orientation_prediction_max_s:=0.012` propagates attitude by the smaller of sample age and this cap, not a fixed 12 ms offset. It passed all tested low-speed directions, stop/resume and a final 30-second stance at 100 Hz, with final height 0.339995–0.340064 m. The same actions passed with an additional assumed 4 ms command delay, hip/thigh/calf Coulomb friction of 0.2/0.3/0.6 Nm and viscous friction of 0.02/0.03/0.05 Nm s/rad. Ten seconds at 0.05 m/s produced 0.587 m and 0.549 m respectively, retaining velocity error. PD and optimization weights were unchanged. Prediction has not been proven necessary or effective on hardware; **both simulation and hardware default to zero**, and physical AHRS/gyro timing remains unverified.
-
-FDILink now preserves the attitude frame's host receipt stamp instead of refreshing old attitude with newer gyro frames; this is not a synchronized device acquisition stamp. The build, 123 tests reported by colcon and PTY regressions for both device layouts passed. These checks exercised no real serial ports or hardware motion. The nonzero delay and friction above describe historical stress inputs, not identified hardware parameters; smooth friction excludes stiction, backlash and actual servo bandwidth. See the [earlier comparison data](docs/validation/imu100-actuator-20261114.json) and [parameter usage](src/custom_dog_control/README.md#100-hz-imu执行器延迟与摩擦).
-
-**Current simulation stress defaults:** additional command delay remains **20 ms**. Added hip/thigh friction is zero and all four calves share Coulomb friction of **0.45 Nm** and a viscous coefficient of **0.0175 Nm s/rad**. These are the means of the previous four-leg assumptions, not identified hardware parameters. One 1000 Hz outer-loop cycle (approximately 1 ms) and physics-step phase remain in addition to the 20 ms. IMU remains at 100 Hz and attitude prediction remains disabled. The latest joint PD is listed above. No delay or friction compensation has been added to the real hardware interface.
-
-**Earlier equal-friction PD comparison:** the existing staged PD and uniform active-stage PD (Kp 55/55/80, Kd 2.5) both passed stand-up, all tested low-speed directions, stop/resume and a final 30-second stance without FAULT. Ten seconds at 0.05 m/s produced 0.591/0.653 m, approximately +18.2%/+30.5% error. Uniform higher PD did not show a general improvement, so the original staged PD was retained at that time. See the [historical equal-friction comparison](docs/validation/equal-calf-pd-comparison-20261114.json). Each profile ran once; these results establish neither a unique cause nor statistical significance. This record covers neither the later uniform active-stage 60/60/90, Kd 2.0 profile nor the current staged profile.
-
-**Earlier unequal-calf-friction scenario:** with FR/FL/RR/RL Coulomb friction of 0.3/0.4/0.5/0.6 Nm, viscous coefficients of 0.010/0.015/0.020/0.025 Nm s/rad, and 20 ms additional delay, the run passed stand-up, all tested low-speed directions, stop/resume and a final 30-second stance with ground-truth feedback disabled and no FAULT. The last 29 recorded seconds had height 0.339456–0.339904 m. Ten seconds at 0.05 m/s produced 0.715 m, approximately +43.1% error. Its [historical stress validation](docs/validation/delay20-calf-friction-20261114.json) is preserved; it validates neither the current equal-friction configuration nor accurate velocity tracking.
-
-**Hardware friction clarification:** the user reports no additional external transmission at the hip or thigh; the main added friction comes from each calf's 2:1 gear/linkage stage and differs among the four legs. The internal motor ratio remains 6.33, with a total calf ratio of 12.66. Equal calf friction is a simulation assumption chosen for comparing control parameters, not a claim that the hardware legs have equal friction. Independent per-leg configuration remains available, and historical stress-test parameters and results are preserved.
-
-**The earlier 0.34 m configuration with a 250 Hz IMU passed Fortress flat-ground low-speed validation with ground-truth feedback disabled**, covering forward motion, stop/resume, backward and lateral motion, both yaw directions, and a final 30-second stance without FAULT. Body height during the final 29 seconds of settled stance was 0.339865–0.339911 m, and Trot height was 0.3325–0.3397 m. Each hip's median angle during settled stance had an absolute value below 1°; transient abduction remains possible during Trot. A 0.05 m/s command produced 0.566 m in 10 seconds, retaining about 13.2% speed error. This desktop x86 run at approximately half real time does not certify onboard deadlines or hardware locomotion. See the [height and posture validation data](docs/validation/height-034-20261114.json).
-
-The earlier **0.29 m height, ±0.14 rad hip** configuration tested on the same date passed all 108 tests and Fortress flat-ground low-speed motion plus a 30-second stance with ground-truth feedback disabled. Actual Trot body height was 0.2800–0.2875 m; a 0.05 m/s command produced 0.601 m in 10 seconds, retaining about 20% speed error. These desktop x86 results at approximately half real time do not cover the current 0.34 m configuration or certify onboard deadlines or hardware locomotion. See the [earlier configuration data](docs/validation/trot-500-50-20261114.json); the 250 Hz/20 Hz and 1000 Hz results below also describe historical configurations.
-
-**Historical calf-gain update:** after confirming the extra fixed 2:1 gear stage, calf stand-up Kp was increased to 60→80, with independent WBC calf Kp 40; hip/thigh gains and damping retained their previous values. Stand-up position tolerance was tightened from 0.55 to 0.20 rad. That historical profile passed all 19 control checks and physics stand-up, planar Trot, stop/resume, and 30-second stance with ground-truth assistance disabled. It does not cover the current 1000 Hz, motion Kp 60/60/90 and Kd 2 profile. Real gear friction remains unidentified; physical improvement and standalone runtime timing remain unverified. Raising gains does not resolve the stale-policy fault.
-
-**01:25 update:** the latest hardware run faulted about 0.201 seconds after entering MPC_STANCE because its NMPC policy exceeded the 100 ms age limit; communication was valid immediately before the fault. It overlapped the local physics simulation, so CPU contention remains a confounding factor. Historical main-ancestor gains 6.2/0.2 were motor-side values, whereas that run's 45/55 gains were joint-side values before gear-ratio conversion. See the hardware investigation above.
-
-**Latest hardware log, November 10, 2026:** the user reports needing to lift the rear during stand-up, followed by unsupported stance. The 01:03:54 launch ran in MPC_STANCE for about 48 seconds before invalid right-rear hip feedback (RR ID 0) triggered a communication fault; IMU and NMPC were healthy at that instant. The earlier rear-lift difficulty remains unexplained. LT+X with centered sticks retains stance, and this run never entered Trot. A subsequent 60-second all-zero communication check returned 72000/72000 valid replies, which does not exclude intermittent faults during loaded control. Automatic diagnostic recording and gait-arming notices have been added. See the [investigation](docs/hardware.md).
-
-The earlier estimator expression-lifetime defect and IMU check-time race were fixed; the complete 15.15 kg model and persistent CppAD cache are local. At that stage, 18 control-package checks and one model check passed. Fortress with ground-truth assistance disabled and a 100 Hz IMU passed legacy-gamepad stand-up, forward/backward/lateral Trot, both yaw directions, stop/resume, and a final 30-second stance. This does not resolve or validate physical loaded stand-up.
-
-The installed diagnostic update passed a new stand-up/forward/stop/resume physics run with the same model and a 100 Hz IMU, recording all 12 joints and controller requests with unchanged runtime fingerprints. Initially 18/19 control tests passed; the PTY suite passed separately after one receive timeout. Recorder ROS integration and the model check passed. Initial failures and the interrupted run remain recorded in the investigation above.
-
-The **15.15 kg model passed low-speed, flat-ground Gazebo Fortress physics tests with 1000 Hz control** on this board: stand-up, WBC stance, forward/backward/lateral Trot, positive yaw, stop, and resume. The IMU/joint estimator passed with ground-truth feedback disabled, retaining the original stand-up gains and gait. That round used 20 Hz NMPC and two solver threads; 50 Hz triggered a stale-policy fault. Eight software calibration regression groups and 45 control-package checks passed at that stage. See the [simulation and calibration report](docs/simulation-validation-20261102.md).
-
-The later **250 Hz host-side PD with torque-only output** comparisons are historical experiments; see the [historical report](docs/real-control-validation-20261102.md). After restoring five-field motor-side PD, hardware and Fortress shared 250 Hz control, 20 Hz NMPC, two solver threads, gains, gait, and low-speed limits at that stage. **Before restoring startup alignment, the full low-speed physics regression passed with ground-truth assistance disabled**: legacy gamepad START/combinations, stand-up, forward motion, stop/resume, backward/lateral motion, both yaw directions, and a final 60-second stance without FAULT. Forward displacement was 0.551 m in 10 seconds and 0.326 m during the 6-second resume. Subsequent changes in that historical stage added hardware startup assistance, the real START wait, and visualization without changing the NMPC/WBC algorithm configuration. Build fingerprints changed; those earlier results validate neither the added assistance nor the current 500 Hz/50 Hz configuration. See the [compatibility validation report](docs/compatibility-validation-20261103.md). Hardware locomotion remains unaccepted.
-
-A policy timeout occurred during concurrent colcon compilation. The isolated repeat passed without relaxing the timeout threshold; this does not establish real-time performance under arbitrary concurrent workloads.
-
-**FR feedback recovered in the November 3 zero-output communication check.** Sequential probing returned 500/500 valid replies from each of the 12 motors, 6000/6000 in total, with zero CRC, ID, mode, or motor errors. Four simultaneous ports then polled each ID at 100 Hz for approximately five seconds, returning 6677/6678 valid replies; the final snapshot records one incomplete reply/timeout for FR ID 2, with its cause undetermined. This does not establish zero packet loss throughout the test or acceptance of a 250 Hz control cycle. The first IMU capture included one earlier AHRS timestamp. After clearing only the host RX queue, a fresh capture contained 500 IMU and 500 AHRS frames at 100 Hz by device timestamps, with zero CRC errors and no repeated timestamp anomaly; the original anomaly's source remains unconfirmed. All probes have stopped and released the serial ports. See the [sequential check](log/communication-recheck-20261103-2347/summary.json) and [parallel results](log/communication-recheck-20261103-2347/parallel/result.json). **These probes sent only mode0 commands with all fields zero; they do not validate physical startup assistance, mechanical calibration, loaded standing, or walking.**
-
-Earlier checks recorded 100/100 replies from each FL/RR/RL motor and 0/100 from each FR motor; old SDK typed and raw 2/20 ms comparisons also returned no valid FR replies. Those historical results remain recorded, and the successful repeat does not identify the earlier failure's cause. The original driver has published input from the Xbox 360 gamepad. See the [compatibility report](docs/compatibility-validation-20261103.md).
-
-The current migration keeps the existing motor protocol, IMU transforms, and START encoder-offset sampling, adapts them to the URDF coordinates required by NMPC/WBC, and restores the previous gamepad layout. Runtime comparison confirms the same compiled controller core, canonical model/task, and algorithm parameters on both paths; differences are limited to clocks, hardware interfaces, and simulation-specific settings. Earlier host-PD, rate, and delay changes were control-timing choices; the battery mass increase did not require all of them. Full loaded-cycle timing remains unverified. The communication probes did not request stand-up or walking; the user separately launched the control program, which is not part of this motion acceptance. Earlier results remain in the [historical baseline](docs/validation-baselines.md) and [battery model report](docs/battery-model-validation-20261102.md).
-
-The model mass is **15.15 kg**: 13.84916 kg CAD mass plus a 1.30084 kg battery at the base origin. Base mass, center of mass, and parallel-axis inertia have been updated. Battery dimensions are unavailable, so its intrinsic inertia remains a point-mass approximation. The complete model now lives in [src/custom_dog_description](src/custom_dog_description/README_EN.md): three URDFs, 17 full STL files, joint conventions, and battery configuration. Its source is pinned to your `Woh43/custom_dog_stack` commit `6c776de8`, with the previously verified local battery correction. It requires neither a neighboring RL repository nor the old model underlay.
-
-## Build and launch
-
-Run from `/home/orangepi/qr_ws`:
+Run from the repository root. Prepare OCS2, the SDK, and system dependencies using [setup.md](docs/setup.md); pinned sources are listed in [dependencies.lock.yaml](src/custom_dog_control/config/dependencies.lock.yaml).
 
 ```bash
-# Build only; does not start nodes or open motor ports.
+# Build only: no nodes or motor ports are opened. Requires a configured Unitree SDK.
 src/custom_dog_control/scripts/build_real.sh
 
-# Inspect arguments without starting control nodes.
+# Inspect hardware launch arguments without starting control.
 src/custom_dog_control/scripts/run_real.sh --show-args
+
+# Native Gazebo Fortress with GUI; omit gui:=true for the default headless mode.
+src/custom_dog_control/scripts/run_fortress.sh gui:=true
 ```
 
-Build scripts build `custom_dog_description` in this workspace before the controller. Runtime scripts verify that the resolved model belongs to this workspace and matches its source. Alternative OCS2/SDK locations can use `CUSTOM_DOG_CONTROL_DEPS_WS` and `UNITREE_ACTUATOR_SDK_ROOT`; model paths no longer use `CUSTOM_DOG_DESCRIPTION_DIR` or `CUSTOM_DOG_MODEL_WS`. Dependency instructions are in [setup.md](docs/setup.md).
+Default Fortress uses motor-side PD, disables ground-truth feedback, and applies the stress settings above. Truth is reserved for independent evaluation. Initial CppAD generation can take several minutes; wait for `CppAD models ready` and controller activation. The `.cache/cppad` cache is separated by model, configuration, and ABI fingerprints.
 
-Standard runtime scripts keep NMPC's generated CppAD libraries in `.cache/cppad` across reboots, isolated by model/configuration content and compiler ABI fingerprints. First generation can take several minutes; wait for `CppAD models ready` and controller activation. Several November 9–10 launches ended before cold compilation in `/tmp` finished and never reached normal stand-up control; see the [startup investigation](docs/hardware.md).
-
-The desktop **Run Dog** shortcut invokes `src/custom_dog_control/scripts/run_dog.sh` without a `YES` prompt and explicitly selects `startup_alignment_enabled:=true` and `use_rviz:=true`. Before launching, it stops this tool's own mode 0 communication monitors to release the motor ports. `--help`/`--show-args` only inspect information and leave monitors running. The controller stays in PASSIVE while the hardware waits for valid feedback from all 12 motors, controller ownership, and ongoing command writes, then automatically performs one approximately 0.9-second alignment. Press START again after completion to capture offsets; LT+A requests stand-up and LT+X enables Trot.
-
-Alignment preserves the previous rotor directions and joint-side torque magnitudes of `0.95/0.63/1.52 N·m` for hip/thigh/calf: hip/thigh for 300 ms, all three joints for 300 ms, then mode0 release for 300 ms. It is nonblocking and runs once. Communication/CRC failure, software stop, stale command writes, released ownership, or a calibration reset during alignment aborts it to zero output, without automatic retry; recovery requires restarting. It sends nonzero torque before START, so PASSIVE is not always mode0 while assistance is active. Incomplete or stale feedback from any motor prevents it from starting. **The restored profile passed PTY validation; these communication probes did not send the nonzero assistance, and its physical execution remains unaccepted.**
-
-Hardware RViz uses fixed frame `base`, RobotModel joint feedback, and foot TF from forward kinematics. Before calibration, encoder angles are not aligned with the URDF zeros, so the displayed pose does not establish mechanical calibration. Foot TF does not measure foot forces.
-
-The desktop entry passes `require_physical_estop_confirmation:=false` to remove the extra confirmation condition; it does not claim `physical_estop_verified=true`. Calling `run_real.sh` directly retains the confirmation requirement and defaults to startup assistance and RViz disabled. FR feedback has recovered, with one incomplete reply/timeout recorded in the final parallel snapshot; restored communication does not validate loaded standing or walking.
-
-| Hardware gamepad button | Behavior |
-| --- | --- |
-| START | If assistance is enabled, wait for completion, then press START anew to capture offsets while passive; no automatic stand-up |
-| LT+A | Explicit stand-up request after valid calibration |
-| LT+X | Enable Trot from standing; valid velocity input and a new gait policy are still required |
-| LT+B | Return to passive; acknowledge a fault, then recalibrate |
-| LT+Y | Software emergency stop, latching FAULT; replaces the removed legacy STEP_TEST |
-| Left stick vertically | Forward/backward velocity |
-| Right stick horizontally | Lateral velocity |
-| Left stick horizontally | Yaw velocity |
-
-LT is the previous L2 trigger. A/X alone do not change modes. LT+X arms walking; centered sticks retain stance without stepping in place. All three axes retain a 0.08 deadband and map to REP-103 as `vx=-LY, vy=-RX, yaw=-LX`. Shared speed limits are 0.05 m/s forward/lateral and 0.2 rad/s yaw. Calibration equivalence after the coordinate conversion is documented in the [compatibility report](docs/compatibility-validation-20261103.md).
-
-Hardware launches now save approximately 10 Hz diagnostics to `control-diagnostics.jsonl` beside `launch.log`, including all 12 joints, stand-up targets, controller requests, gamepad gates, and faults. Controller requests are not final motor packets. Each segment is limited to 16 MiB; the initial segment and latest three subsequent segments are retained. Set `record_diagnostics:=false` to disable recording.
-
-Device timestamps in the existing raw capture confirm approximately 100 Hz each for IMU and AHRS output; the driver has no fixed 100 Hz cap. The user will adjust the device output rate later. No IMU configuration command is sent this round.
-
-`src/qr_guide/src/interface/IOSDK.cpp` is obsolete. The active motor implementation is [IOSDK.cpp](src/custom_dog_control/src/hardware/IOSDK.cpp).
-
-## Workspace
-
-| Directory | Purpose |
-| --- | --- |
-| `src/custom_dog_control` | Controller, NMPC/WBC, state machine, hardware plugin, tests |
-| `src/fdilink_ahrs` | IMU driver publishing `/imu` |
-| `src/serial_ros2` | ROS package `serial` for the IMU; motors use the Unitree SDK |
-| `src/unitree_guide` | Historical reference excluded by `COLCON_IGNORE` |
-| `src/custom_dog_description` | Self-contained 15.15 kg URDFs, full STL assets, and provenance |
-| `external/ocs2_ws` | Pinned OCS2 sources and ARM64 dependencies |
-
-Control flow: IMU/joints → kinematic state estimator → NMPC policy → Weighted WBC → five fields: desired position/velocity, feedforward torque, Kp/Kd → motor-side PD. At each host sample, `abs(tau_ff)+kp*abs(q_des-q)+kd*abs(dq_des-dq)` determines a common scale for feedforward and both gains. This bounds their contributions at that sample, without guaranteeing continuous torque bounds as feedback changes.
-
-See the [controller guide](src/custom_dog_control/README.md) and [architecture](docs/architecture.md). The robot has IMU and joint feedback, without foot contact sensors; planned or estimated contacts are not measured foot forces.
-
-## Checks
+While simulation is running, use a second terminal with matching `ROS_DOMAIN_ID` and `IGN_PARTITION` for the low-speed check. Only one command-producing test may control the instance:
 
 ```bash
 source src/custom_dog_control/scripts/env.sh
-colcon test --packages-select custom_dog_control --event-handlers console_direct+
+python3 src/custom_dog_control/scripts/simulation_fortress_test.py \
+  --output log/fortress-check.json
+```
+
+This script requests simulated stand-up, forward motion, stop, and resume; keep its ROS domain isolated from hardware. Faster tests require explicit limits in an isolated simulation profile; scripts do not relax shared limits. Overrides, speed sweeps, and historical Gazebo Classic entries are documented in the [controller README](src/custom_dog_control/README.md).
+
+## Latest evidence and limitations
+
+The **2026-11-15 visual showcase** used one fresh world, sequentially running forward at 0.5 and 1.0 m/s for 20 seconds each, followed by a 30-second stance. These are not independent fresh-world repetitions per speed. Source, library, and input fingerprints remained unchanged during recording; hardware IO was disabled.
+
+| Metric | Target 0.5 m/s | Target 1.0 m/s |
+| --- | --- | --- |
+| Actual body forward speed, final 2-second mean | 0.519 m/s | 0.961 m/s |
+| Actual height, phase seconds 6–20 mean | 0.33479 m | 0.33512 m |
+| Roll / pitch peak-to-peak, phase seconds 6–20 | 1.65° / 1.63° | 4.24° / 2.61° |
+| Height peak-to-peak, phase seconds 6–20 | 5.04 mm | 10.70 mm |
+| Lateral displacement over 20 seconds, initial-heading frame | 0.0156 m | 0.1264 m |
+| Peak delayed FF + PD torque request | 15.534 N·m, RR thigh | 24.119 N·m, FL thigh |
+
+Both scripted checks passed without FAULT, and final stance height was 0.340062–0.340090 m. However, **one 1.0 m/s joint sample exceeded the 23.7 N·m nominal limit, failing the stricter total-torque budget** while remaining below the 26.07 N·m protection threshold. Torque here is a simulation request, not measured motor output. Roll oscillates mainly at 2.5 Hz; height/pitch mainly at 5 Hz. Body smoothness remains inadequate, and matching gait frequencies do not independently prove causation. Methods, metrics, and raw-file fingerprints are in the [showcase summary](docs/validation/simulation-showcase-20261115.json).
+
+In the preceding 16 independent-world weight/PD/rolling-estimator cases, 14 ±1 m/s cases failed lateral-drift checks and three candidates exceeded nominal torque limits. No new weights or PD were adopted; rolling compensation also failed to improve the overall result and remains disabled. See the [comparison evidence](docs/validation/wbc-weight-rolling-20261115.json). One successful showcase does not supersede those failures or establish all-direction, terrain, repeatability, onboard deadline, or hardware locomotion acceptance.
+
+Results at 500/50 Hz, 250/20 Hz, and older gains/heights are historical profiles. They do not validate current defaults. See the [execution-boundary audit](docs/validation/execution-budget-consistency-20261115.md), [historical baselines](docs/validation-baselines.md), and [validation reports](docs/validation/). This documentation update does not rerun motion experiments.
+
+## Hardware entry and logs
+
+The current hardware-check scope is zero-torque, zero-gain communication and IMU inspection. Builds, offline solves, PTY tests, and communication success do not establish loaded-motion acceptance. Historical user stand-up/stance logs do not formally validate the current profile; see the [hardware guide](docs/hardware.md).
+
+The desktop **Run Dog** entry invokes the controller package's `scripts/run_dog.sh`, enabling RViz and approximately 0.9 seconds of startup alignment by default. Alignment can produce nonzero torque before START, so this entry is not a zero-output communication probe. Direct `run_real.sh` defaults to alignment and RViz disabled; confirmation-parameter differences are documented in the hardware guide.
+
+| Existing gamepad operation | Behavior |
+| --- | --- |
+| START | Capture encoder offsets while passive; if alignment is enabled, wait for completion and press START anew; no automatic stand-up |
+| LT+A / LT+X | Request stand-up/stance after calibration; enable walking from stance, still requiring valid velocity input |
+| LT+B / LT+Y | Passive/fault acknowledgement; software emergency stop latching FAULT |
+| Left stick vertical / right stick horizontal / left stick horizontal | Forward / lateral / yaw velocity; centered sticks retain stance |
+
+Hardware launches record approximately 10 Hz diagnostics to `control-diagnostics.jsonl` beside `launch.log` in the current ROS log directory. Each segment is capped at 16 MiB, retaining the initial segment and latest three subsequent segments. Set `record_diagnostics:=false` to disable. Logged controller requests may differ from final motor packets.
+
+Timing percentiles cover the latest 512 control samples. `io_period_ms` measures a complete host SDK exchange, not a single motor's one-way delay. Existing 10 Hz diagnostics cannot accurately identify 5–20 ms dynamics, and the simulation-only high-rate trace is rejected on hardware. Per-motor monotonic timestamps, final-packet logging, asynchronous high-rate recording, and bench response/friction identification are **proposed work**, without an implemented new recorder, identified datasets, or resulting hardware compensation. The shaft-side and current convention of the 0.63895 N·m/A constant also remain unconfirmed.
+
+## Packages, dependencies, and checks
+
+See the [source-package index](src/README_EN.md) and [external workspace guide](external/README.md). `src/unitree_guide` is historical reference excluded by `COLCON_IGNORE`; the active motor interface is [IOSDK.cpp](src/custom_dog_control/src/hardware/IOSDK.cpp). Pinned upstream sources retain their authorship and licenses. Generated dependency workspaces, build products, and bulk logs are excluded from commits.
+
+```bash
+source src/custom_dog_control/scripts/env.sh
+colcon test --packages-select custom_dog_control custom_dog_description \
+  --event-handlers console_direct+
 colcon test-result --verbose
 ```
 
-Native Fortress on this board (headless by default; add `gui:=true` in a desktop terminal):
-
-```bash
-src/custom_dog_control/scripts/run_fortress.sh
-```
-
-The entry disables ground-truth assistance and uses the common 1000 Hz control/50 Hz NMPC configuration, with a 0.40 s Trot cycle, 0.10 m planned swing height, 0.34 m nominal body height, and neutral hip posture. On RK3588 it selects the large cores by default. Initial AD generation may take several minutes. The default motor-PD simulation evaluates PD every 1 ms physics step and includes one outer-loop cycle, physics-step phase and an additional 20 ms command delay. All calves share added Coulomb friction of 0.45 Nm and a viscous coefficient of 0.0175 Nm s/rad; added hip/thigh friction is zero. These are not measured real motor or transmission parameters. The earlier unequal-friction scenario passed low-speed directional/stability checks with approximately +43.1% forward speed error; its [historical stress validation](docs/validation/delay20-calf-friction-20261114.json) does not cover the current equal-friction configuration. See [parameter usage](src/custom_dog_control/README.md#100-hz-imu执行器延迟与摩擦) for values and explicit overrides restoring the zero-extra-delay/friction baseline. The simulated IMU runs at 100 Hz; bounded attitude propagation is optional and defaults to disabled in both simulation and hardware. The [earlier comparison data](docs/validation/imu100-actuator-20261114.json) covers the zero-extra-delay/friction baseline and historical stress scenarios. Add `legacy_joy_layout:=true` for the legacy gamepad input layout. The earlier 250 Hz IMU height/posture run passed low-speed motion and a 30-second stance; see its [historical height validation](docs/validation/height-034-20261114.json). The [earlier data from the same date](docs/validation/trot-500-50-20261114.json) covers 0.29 m height and ±0.14 rad hips. Low-speed motion and 60-second stance results at 250 Hz/20 Hz are in the [historical compatibility report](docs/compatibility-validation-20261103.md), and the earlier 1000 Hz passes remain in the [historical simulation report](docs/simulation-validation-20261102.md).
-
-The previous Gazebo Classic entry remains available for development machines:
-
-```bash
-CUSTOM_DOG_BUILD_ONLY=1 src/custom_dog_control/scripts/build_simulation.sh
-src/custom_dog_control/scripts/run_simulation.sh
-src/custom_dog_control/scripts/test_simulation.sh
-```
-
-This round uses Fortress for the current configuration; the Classic entry above was not tested.
-
-Run the speed-sweep script directly from source at the repository root. First start an isolated Fortress profile in another terminal with `velocity_limit_x/y/yaw` set to `0.5/0.5/1.5` and `legacy_joy_layout:=true`, then use the same `ROS_DOMAIN_ID` and `IGN_PARTITION` below. Shared and hardware limits remain `0.05/0.05/0.2`. This command changes no limits and starts neither a simulator nor hardware. Do not run another test sending commands to the same instance concurrently:
-
-```bash
-source src/custom_dog_control/scripts/env.sh
-python3 src/custom_dog_control/scripts/simulation_speed_sweep_test.py \
-  --output log/unified-6090-speed-sweep.json --legacy-joy \
-  --vx-levels 0.15,0.3,0.5 --vy-levels 0.15,0.3,0.5 \
-  --yaw-levels 0.5,1.0,1.5 \
-  --joy-limit-x 0.5 --joy-limit-y 0.5 --joy-limit-yaw 1.5 \
-  --max-horizontal-speed 1.0
-```
-
-The script checks the advancing simulation clock, Gazebo diagnostics and independent truth, recording stability and velocity tracking separately. Faults stop the sweep; unvisited levels are not passes. It requests stand-up and movement through simulation topics and is intended only for the isolated simulation instance described above.
-
-Removed precision sources remain recoverable from Git history. Prior documents, the worktree patch, and retired artifacts are archived at `/home/orangepi/qr_ws_backups/remove_precision_20261102/`. The working branch remains `RC2027`, tracking `origin/RC2027`; these changes have not been automatically committed or pushed.
+The latest recorded algorithm regression passed 26 CTest groups as documented in the reports above; that does not mean this documentation update reran them. Open work includes delayed total-torque budgeting, body smoothness, foot/velocity tracking, transmission and torque calibration, onboard deadlines, and hardware locomotion acceptance.
