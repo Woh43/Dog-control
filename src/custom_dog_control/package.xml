@@ -33,6 +33,9 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>ros2bag</exec_depend>
+  <exec_depend>rosbag2_py</exec_depend>
+  <exec_depend>rosbag2_storage_default_plugins</exec_depend>
   <exec_depend>python3-evdev</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-yaml</exec_depend>

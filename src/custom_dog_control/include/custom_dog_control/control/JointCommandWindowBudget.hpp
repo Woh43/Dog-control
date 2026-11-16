@@ -70,7 +70,8 @@ inline bool ComputeMotorPdWindowBudget(
         command.kd[i] * std::abs(command.velocity[i] - measured.velocity[i]);
     next.pd_window_bound_nm[i] =
         next.position_now_abs_nm[i] + next.velocity_now_abs_nm[i];
-    // Match the old helper's summation order when H=0, including rounding.
+    // Decomposed diagnostic sum. Compiler FP contraction in the legacy
+    // command helper can round differently by a few ULP when H=0.
     next.total_bound_nm[i] = next.feedforward_abs_nm[i] +
         next.position_now_abs_nm[i] + next.velocity_now_abs_nm[i];
     if (model.horizon_seconds > 0.0) {
@@ -116,6 +117,20 @@ inline bool DelayAwareBoundedMotorPdCommand(
   // Validate all twelve limits before publishing any output or diagnostics.
   for (const double limit : effort_limits) {
     if (!std::isfinite(limit) || limit <= 0.0) return false;
+  }
+  if (model.horizon_seconds == 0.0) {
+    // Preserve the legacy command arithmetic itself, including FP contraction,
+    // instead of reconstructing it from separately rounded diagnostic terms.
+    if (!BoundedMotorPdCommand(command, measured, effort_limits, output,
+                               max_kp, max_kd)) return false;
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      // Diagnostics describe the decomposed budget; they are not a bitwise
+      // trace of the legacy helper's internally fused arithmetic.
+      budget.scale[i] = budget.total_bound_nm[i] > effort_limits[i]
+          ? effort_limits[i] / budget.total_bound_nm[i] : 1.0;
+    }
+    if (result) *result = budget;
+    return true;
   }
   HybridJointCommand next = command;
   for (std::size_t i = 0; i < kJointCount; ++i) {

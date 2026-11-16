@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-16",
+  "scope": "Existing operator standing logs plus offline code/launch checks; no hardware command or automatic movement in this repair turn.",
+  "recorded_faults": [
+    {
+      "directory": "/home/orangepi/.ros/log/2026-11-16-23-39-43-120707-orangepi5plus-40171",
+      "source_files": {
+        "/home/orangepi/.ros/log/2026-11-16-23-39-43-120707-orangepi5plus-40171/control-diagnostics.jsonl": {
+          "size_bytes": 1371148,
+          "sha256": "f4e5cea4a5c32af83f4b4c436593d039c498ed4bb1fd203c779eecabad1b285a"
+        },
+        "/home/orangepi/.ros/log/2026-11-16-23-39-43-120707-orangepi5plus-40171/launch.log": {
+          "size_bytes": 12934,
+          "sha256": "c416e3b6b11d6cc1e53846d22bf0317ab8d36612b80165728742b2172c867cce"
+        }
+      },
+      "stance_to_fault_s": 1.584910272,
+      "mode_counts": {
+        "PASSIVE": 26,
+        "STAND_UP": 63,
+        "MPC_STANCE": 16,
+        "FAULT": 51
+      }
+    },
+    {
+      "directory": "/home/orangepi/.ros/log/2026-11-16-23-40-24-002684-orangepi5plus-40519",
+      "source_files": {
+        "control-diagnostics.jsonl": {
+          "size_bytes": 1345298,
+          "sha256": "b4684bb21f975c25f7ad1c2a1bfb74592535bc109241221ed4ac59ea5fa275f2"
+        },
+        "launch.log": {
+          "size_bytes": 12759,
+          "sha256": "917988e56df13dd538994f55329e3d7129f5d58fd6abc0b9f93664f084d0a74e"
+        }
+      },
+      "stance_to_fault_s": 0.139961586,
+      "mode_counts": {
+        "PASSIVE": 39,
+        "STAND_UP": 44,
+        "MPC_STANCE": 2,
+        "FAULT": 70
+      }
+    }
+  ],
+  "finding": "Both captures faulted on NMPC policy stale or invalid during initial PD-to-WBC stance handoff; neither entered TROT. Pre-fault diagnostic samples had valid WBC and communication with zero IO timeouts. Later FL calf stop-reply errors do not establish the cause of the earlier faults.",
+  "changes": {
+    "fault_snapshot": "Latch original SafetyInput policy age, its threshold, sequence/validity, estimate/solver/IO states and control period before FAULT clears state. Last solve value is explicitly asynchronous.",
+    "explicit_launch_candidate": {
+      "argument": "control_frequency_hz:=250",
+      "control_hz": 250,
+      "mpc_requested_hz": 50,
+      "policy_age_limit_s": 0.04,
+      "max_consecutive_wbc_failures": 1,
+      "rviz_argument": "use_rviz:=false",
+      "default_control_hz": 1000,
+      "default_wbc_failure_count": 5,
+      "runtime_parameter_snapshot": "real-controllers.yaml beside launch.log"
+    },
+    "system_settings_modified": false,
+    "hardware_motion_performed": false,
+    "zero_horizon_compatibility": {
+      "reason": "Full regression exposed a pre-existing HEAD difference of 1-2 ULP (maximum FF difference 1.7763568394002505e-15 Nm) between legacy FP contraction and decomposed budget arithmetic. This does not explain the stance timing fault.",
+      "fix": "After unchanged model/input/limit validation, H=0 delegates command output to the legacy bounded helper. Nonzero windows unchanged; tests retain exact output comparisons. Decomposed diagnostic rounding is documented.",
+      "audit": "log/stance_timing_fix_20261116/fp_budget_audit/audit.json"
+    }
+  },
+  "limits": [
+    "10 Hz diagnostics do not preserve the old fault-trigger cycle age; first FAULT inf is reset state.",
+    "The 48.2104 ms latest solve is not the exact trigger age.",
+    "250/50 has prior synthetic-standing zero-output timing evidence, not real sustained-stance acceptance.",
+    "Lower main control frequency increases next-read command delivery waiting and requires physical regression.",
+    "A frequency override conservatively reduces nominal WBC failure budget; it does not guarantee actual scheduling latency.",
+    "Existing CPU FIFO permission failure and ondemand governor remain unresolved; no privileged settings were changed."
+  ],
+  "verification": {
+    "status": "offline_checks_passed_hardware_standing_pending",
+    "raw_directory": "log/stance_timing_fix_20261116",
+    "initial_full_ctest": {
+      "passed": 28,
+      "total": 29,
+      "failure": "test_joint_command_window_budget: existing HEAD zero-horizon bitwise compatibility mismatch under GCC/AArch64 O3",
+      "log": "log/stance_timing_fix_20261116/tests.log"
+    },
+    "final_build_exit_code": 0,
+    "final_ctest": {
+      "passed": 29,
+      "total": 29,
+      "failed": 0,
+      "log": "log/stance_timing_fix_20261116/tests_final.log"
+    },
+    "launch_timing_cases": 6,
+    "launch_argument_inspection_exit_code": 0,
+    "real_motion_started": false,
+    "default_configs_unchanged": true,
+    "updated_installed_artifacts": [
+      "install/custom_dog_control/lib/libcustom_dog_control_nmpc_wbc_controller.so"
+    ]
+  },
+  "verified_sources_and_artifacts_sha256": {
+    "src/custom_dog_control/src/controller/NmpcWbcController.cpp": "e0e7c2174f47d5a0929f581c134ef3c5c991dca48e79c3f0fa62bbd316d8337d",
+    "src/custom_dog_control/launch/real.launch.py": "86c3af7afd95c70a9d0244fbd5cba425e6bb57446ff8ea1a70fe98db263ba667",
+    "src/custom_dog_control/test/test_real_launch_timing.py": "0551981761a5b738822a989a9d12a4ab615dbf3473fcbf9844d931d9ca355981",
+    "src/custom_dog_control/include/custom_dog_control/control/JointCommandWindowBudget.hpp": "446a1da76e60f2e801d1a77cbd60e39143c818d164a1239f3767d875bb52902c",
+    "install/custom_dog_control/lib/libcustom_dog_control_nmpc_wbc_controller.so": "0b017ae860af86c4ef84e4619312a1ecde4f624e4788fcf018ed33b688cb8358",
+    "install/custom_dog_control/lib/libcustom_dog_control_unitree_system.so": "bcc38f965e93f9a4195b98004b200273911fcd644a1d98b475bb1e01bc7c5546",
+    "src/custom_dog_control/config/controllers.yaml": "2f3ac1c8abf99d792251e815b0402ca08f818e8b5d5c713c874ed1ff39f7a533",
+    "src/custom_dog_control/config/real_controller.yaml": "511f7a71407eaa60cba12c96f30929d3b5c0121b6f2083420829c380aaa5184e"
+  }
+}

@@ -199,4 +199,5 @@ if __name__ == '__main__':
         if converter is not None:
             converter.close_device()
             converter.destroy_node()
-        rclpy.shutdown()
+        # The ROS signal handler may already have shut down this context.
+        rclpy.try_shutdown()

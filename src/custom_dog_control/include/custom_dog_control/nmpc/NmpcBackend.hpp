@@ -12,6 +12,7 @@
 #include "custom_dog_control/control/ControlTypes.hpp"
 #include "custom_dog_control/control/JointCommandWindowBudget.hpp"
 #include "custom_dog_control/control/SignedMotorPdBudget.hpp"
+#include "custom_dog_control/diagnostics/CycleTraceTypes.hpp"
 #include "custom_dog_control/nmpc/KinematicStateEstimator.hpp"
 #include "custom_dog_control/model/ModelValidator.hpp"
 
@@ -44,6 +45,8 @@ struct NmpcBackendConfig {
   // Keep feedback contact forces, but pair nominal q with nominal dq rather
   // than treating the joint-velocity feedback action as a trajectory tangent.
   bool nominal_joint_reference = false;
+  // Observation only; no change to policy selection, reference or solver.
+  bool cycle_trace_enabled = false;
   MotorPdWindowModel motor_pd_window_model;
   // Opt-in host composition: QP torque is total actuator torque. The backend
   // exports an internal FF residual so the final handoff can compose PD once.
@@ -77,6 +80,8 @@ struct WbcOutput {
   double nominal_height_correction_mps2 = std::numeric_limits<double>::quiet_NaN();
   std::array<double, kJointCount> pd_window_reservation_nm{};
   std::array<double, kJointCount> joint_pd_gain_scale{};
+  // Trace-only accepted QP decision and modeled PD, hardware joint order.
+  std::array<double, kJointCount> trace_qp_torque{}, trace_pd_nominal{}, trace_pd_lower{}, trace_pd_upper{};
   std::size_t velocity_reference_limited_joints = 0;
   bool valid = false;
 };
@@ -122,6 +127,7 @@ class NmpcBackend {
   // 接收并评估策略；成功时完整填写 output，失败时调用方不得使用本次 output。
   // sequence 仅在接收新策略时递增；四足站立使用前馈输入，Trot 保留策略反馈。
   bool EvaluatePolicy(double now_seconds, PolicySample& output);
+  void FillCycleTraceReferences(diagnostics::ControllerCycleRecord& output) const;
   // 同步求解 WBC 并检查残差/力矩限位。period_seconds 用于动力学任务和预测限位。
   // 调用前须已成功 Configure，并提供维数正确的策略及 UpdateObservation 返回的状态。
   WbcOutput ComputeWbc(

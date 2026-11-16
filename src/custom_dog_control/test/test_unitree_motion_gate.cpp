@@ -14,6 +14,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
+#include <fstream>
 #include <linux/serial.h>
 #include <limits>
 #include <iostream>
@@ -160,6 +162,9 @@ class MotorPtys {
   bool valid() const { return !invalid_.load(); }
   void CorruptReplyFor(int motor) { corrupt_reply_motor_.store(motor); }
   void DropReplyFor(int motor) { drop_reply_motor_.store(motor); }
+  void WrongIdReplyFor(int motor) { wrong_id_reply_motor_.store(motor); }
+  void WrongModeReplyFor(int motor) { wrong_mode_reply_motor_.store(motor); }
+  void MotorErrorReplyFor(int motor) { motor_error_reply_motor_.store(motor); }
   std::array<std::string, 4> ports;
 
  private:
@@ -192,6 +197,12 @@ class MotorPtys {
       // Nonzero speed makes accidental passive damping visible on the wire.
       reply[5] = 64;
       reply[11] = 30;
+      const int motor_index = static_cast<int>(leg * 3 + id);
+      if (wrong_id_reply_motor_.load() == motor_index) {
+        reply[2] = (reply[2] & 0xf0) | ((id + 1) % 3);
+      }
+      if (wrong_mode_reply_motor_.load() == motor_index) reply[2] ^= 0x10;
+      if (motor_error_reply_motor_.load() == motor_index) reply[12] = 2;
       const auto crc = Crc(reply.data(), 14);
       reply[14] = crc & 0xff;
       reply[15] = crc >> 8;
@@ -246,6 +257,8 @@ class MotorPtys {
   std::vector<Seen> history_;
   std::atomic<bool> stopping_{false}, invalid_{false};
   std::atomic<int> corrupt_reply_motor_{-1}, drop_reply_motor_{-1};
+  std::atomic<int> wrong_id_reply_motor_{-1}, wrong_mode_reply_motor_{-1};
+  std::atomic<int> motor_error_reply_motor_{-1};
 };
 
 hardware_interface::HardwareInfo PtyHardwareInfo(
@@ -270,6 +283,372 @@ hardware_interface::HardwareInfo PtyHardwareInfo(
   }
   info.original_xml += "</robot>";
   return info;
+}
+
+class HardwareTraceDirectory {
+ public:
+  HardwareTraceDirectory() {
+    if (const char* previous = std::getenv("CUSTOM_DOG_CYCLE_TRACE_DIR")) {
+      had_previous_ = true;
+      previous_ = previous;
+    }
+    char pattern[] = "/tmp/dog_hardware_trace_XXXXXX";
+    const char* directory = ::mkdtemp(pattern);
+    if (!directory) throw std::runtime_error("trace test mkdtemp failed");
+    path = directory;
+    if (::setenv("CUSTOM_DOG_CYCLE_TRACE_DIR", path.c_str(), 1) != 0) {
+      throw std::runtime_error("trace test setenv failed");
+    }
+  }
+  ~HardwareTraceDirectory() {
+    if (had_previous_) ::setenv("CUSTOM_DOG_CYCLE_TRACE_DIR", previous_.c_str(), 1);
+    else ::unsetenv("CUSTOM_DOG_CYCLE_TRACE_DIR");
+    std::error_code error;
+    std::filesystem::remove_all(path, error);
+  }
+  std::filesystem::path path;
+ private:
+  bool had_previous_ = false;
+  std::string previous_;
+};
+
+std::vector<diagnostics::HardwareCycleRecord> ReadHardwareTrace(
+    const std::filesystem::path& directory) {
+  std::vector<std::filesystem::path> paths;
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    const auto name = entry.path().filename().string();
+    if (name.rfind("hardware", 0) == 0 && entry.path().extension() == ".bin") {
+      paths.push_back(entry.path());
+    }
+  }
+  std::sort(paths.begin(), paths.end());
+  EXPECT_FALSE(paths.empty());
+  std::vector<diagnostics::HardwareCycleRecord> records;
+  for (const auto& path : paths) {
+    std::ifstream input(path, std::ios::binary | std::ios::ate);
+    const auto bytes = input.tellg();
+    if (bytes < static_cast<std::streamoff>(128) ||
+        (bytes - static_cast<std::streamoff>(128)) %
+            static_cast<std::streamoff>(sizeof(diagnostics::HardwareCycleRecord)) != 0) {
+      ADD_FAILURE() << "incomplete hardware trace: " << path;
+      continue;
+    }
+    input.seekg(0);
+    diagnostics::CycleTraceHeader header;
+    input.read(reinterpret_cast<char*>(&header), sizeof(header));
+    EXPECT_EQ(std::memcmp(header.magic, "DGCYCL01", 8), 0);
+    EXPECT_EQ(header.type_id, 2u);
+    EXPECT_EQ(header.record_size, sizeof(diagnostics::HardwareCycleRecord));
+    const auto count = static_cast<std::size_t>(
+        (bytes - static_cast<std::streamoff>(128)) /
+        static_cast<std::streamoff>(sizeof(diagnostics::HardwareCycleRecord)));
+    for (std::size_t i = 0; i < count; ++i) {
+      diagnostics::HardwareCycleRecord record;
+      input.read(reinterpret_cast<char*>(&record), sizeof(record));
+      records.push_back(record);
+    }
+    diagnostics::CycleTraceFooter footer;
+    input.read(reinterpret_cast<char*>(&footer), sizeof(footer));
+    EXPECT_TRUE(input.good());
+    EXPECT_EQ(std::memcmp(footer.magic, "DGCEND01", 8), 0);
+    EXPECT_EQ(footer.io_errors, 0u);
+    EXPECT_EQ(footer.dropped_full, 0u);
+    EXPECT_EQ(footer.discarded, 0u);
+  }
+  return records;
+}
+
+TEST(UnitreeCycleTrace, SdkTraceMatchesActualPtyPacketsWithoutChangingCommands) {
+  for (const bool parallel : {false, true}) {
+    SCOPED_TRACE(parallel ? "parallel" : "serial");
+    MotorPtys motors;
+    DriveParameters parameters;
+    parameters.serial_ports = motors.ports;
+    parameters.use_parallel_leg_io = parallel;
+    IOSDK sdk(parameters);
+    sdk.Activate();
+    LowLevelState state;
+    const LowLevelCommand disabled;
+    for (int retry = 0; retry < 10 && !sdk.IsCalibrated(); ++retry) {
+      sdk.SendReceive(disabled, state, true);
+    }
+    ASSERT_TRUE(sdk.IsCalibrated());
+    LowLevelCommand command;
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      auto& motor = command.motors[i];
+      motor.mode = 1;
+      motor.position = parameters.calibration_pose[i % 3] + .05F;
+      motor.velocity = .1F;
+      motor.effort = .75F + .01F * i;
+      motor.kp = i % 3 == 2 ? 90.F : 60.F;
+      motor.kd = 2.F;
+    }
+    sdk.SendReceive(command, state, false);
+    ASSERT_TRUE(sdk.CommunicationOk());
+    const auto untraced_packets = motors.packets();
+    sdk.EnableCycleTrace(true);
+    sdk.SendReceive(command, state, false);
+    ASSERT_TRUE(sdk.CommunicationOk());
+    const auto& snapshot = sdk.CycleTraceSnapshot();
+    ASSERT_EQ(snapshot.round_count, 1u);
+    EXPECT_EQ(snapshot.omitted_rounds, 0u);
+    const auto& round = snapshot.rounds[0];
+    EXPECT_EQ(round.kind, 1u);
+    const auto traced_packets = motors.packets();
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      const auto& record = round.motors[i];
+      EXPECT_EQ(record.tx, traced_packets[i]);
+      EXPECT_EQ(record.tx, untraced_packets[i]);
+      EXPECT_EQ(record.flags, 1023u);
+      EXPECT_EQ(record.received_id, static_cast<std::int64_t>(i % 3));
+      EXPECT_EQ(record.received_mode, 1);
+      EXPECT_EQ(record.motor_error, 0);
+      EXPECT_LE(round.start_ns, record.sdk_start_ns);
+      EXPECT_LE(record.sdk_start_ns, record.sdk_return_ns);
+      EXPECT_LE(record.sdk_return_ns, record.parsed_ns);
+      EXPECT_LE(record.parsed_ns, round.end_ns);
+      EXPECT_EQ(record.rx[0], 0xfd);
+      EXPECT_EQ(record.rx[1], 0xee);
+      EXPECT_EQ(Crc(record.rx.data(), 14), record.rx[14] | (record.rx[15] << 8));
+    }
+    sdk.Deactivate();
+    EXPECT_TRUE(motors.valid());
+  }
+}
+
+TEST(UnitreeCycleTrace, CapturesDistinctTransportDecodeIdentityModeAndMotorFailures) {
+  MotorPtys motors;
+  DriveParameters parameters;
+  parameters.serial_ports = motors.ports;
+  parameters.use_parallel_leg_io = true;
+  IOSDK sdk(parameters);
+  sdk.EnableCycleTrace(true);
+  sdk.Activate();
+  LowLevelState state;
+  const LowLevelCommand disabled;
+  for (int retry = 0; retry < 10; ++retry) {
+    sdk.SendReceive(disabled, state, false);
+    if (sdk.CommunicationOk()) break;
+  }
+  ASSERT_TRUE(sdk.CommunicationOk());
+  for (int kind = 0; kind < 5; ++kind) {
+    SCOPED_TRACE(kind);
+    if (kind == 0) motors.DropReplyFor(5);
+    if (kind == 1) motors.CorruptReplyFor(5);
+    if (kind == 2) motors.WrongIdReplyFor(5);
+    if (kind == 3) motors.WrongModeReplyFor(5);
+    if (kind == 4) motors.MotorErrorReplyFor(5);
+    sdk.SendReceive(disabled, state, false);
+    ASSERT_EQ(sdk.CycleTraceSnapshot().round_count, 1u);
+    const auto packet = sdk.CycleTraceSnapshot().rounds[0].motors[5];
+    EXPECT_TRUE(packet.flags & 1u);
+    EXPECT_FALSE(packet.flags & 512u);
+    EXPECT_FALSE(sdk.CommunicationOk());
+    EXPECT_EQ(state.motors[5].fault, 0xff);
+    if (kind == 0) {
+      EXPECT_FALSE(packet.flags & (2u | 4u));
+      EXPECT_EQ(packet.received_id, -1);
+    } else if (kind == 1) {
+      EXPECT_EQ(packet.flags & (2u | 4u), 2u | 4u);
+      EXPECT_FALSE(packet.flags & 8u);
+      EXPECT_EQ(packet.motor_error, -1);
+    } else {
+      EXPECT_EQ(packet.flags & (2u | 4u | 8u | 16u), 2u | 4u | 8u | 16u);
+      if (kind == 2) {
+        EXPECT_FALSE(packet.flags & 32u);
+        EXPECT_TRUE(packet.flags & 64u);
+      } else if (kind == 3) {
+        EXPECT_TRUE(packet.flags & 32u);
+        EXPECT_FALSE(packet.flags & 64u);
+      } else {
+        EXPECT_TRUE(packet.flags & 256u);
+        EXPECT_EQ(packet.motor_error, 2);
+      }
+    }
+    motors.DropReplyFor(-1);
+    motors.CorruptReplyFor(-1);
+    motors.WrongIdReplyFor(-1);
+    motors.WrongModeReplyFor(-1);
+    motors.MotorErrorReplyFor(-1);
+  }
+  sdk.Deactivate();
+  EXPECT_TRUE(motors.valid());
+}
+
+TEST(UnitreeCycleTrace, AlignmentAbortPreservesFirstRoundAndSeparateStopRound) {
+  MotorPtys motors;
+  DriveParameters parameters;
+  parameters.serial_ports = motors.ports;
+  parameters.use_parallel_leg_io = true;
+  parameters.startup_alignment_enabled = true;
+  IOSDK sdk(parameters);
+  sdk.EnableCycleTrace(true);
+  sdk.Activate();
+  LowLevelState state;
+  const LowLevelCommand disabled;
+  // Establish fresh feedback while alignment remains unarmed.
+  for (int retry = 0; retry < 10; ++retry) {
+    sdk.SendReceive(disabled, state, false, false);
+    if (sdk.CommunicationOk()) break;
+  }
+  ASSERT_TRUE(sdk.CommunicationOk());
+  motors.MotorErrorReplyFor(5);
+  sdk.SendReceive(disabled, state, false, true);
+  const auto& snapshot = sdk.CycleTraceSnapshot();
+  ASSERT_EQ(snapshot.round_count, 2u);
+  EXPECT_EQ(snapshot.omitted_rounds, 0u);
+  EXPECT_EQ(snapshot.rounds[0].kind, 2u);
+  EXPECT_EQ(snapshot.rounds[1].kind, 3u);
+  EXPECT_LE(snapshot.rounds[0].end_ns, snapshot.rounds[1].start_ns);
+  const auto& first_failure = snapshot.rounds[0].motors[5];
+  EXPECT_TRUE(first_failure.flags & 256u);
+  EXPECT_FALSE(first_failure.flags & 512u);
+  EXPECT_EQ(first_failure.motor_error, 2);
+  EXPECT_EQ((snapshot.rounds[0].motors[3].tx[2] >> 4) & 7, 1);
+  const auto final_packets = motors.packets();
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    const auto& stop = snapshot.rounds[1].motors[i];
+    EXPECT_EQ(stop.tx, final_packets[i]);
+    EXPECT_EQ((stop.tx[2] >> 4) & 7, 0);
+    EXPECT_TRUE(std::all_of(stop.tx.begin() + 3, stop.tx.begin() + 15,
+                           [](auto byte) { return byte == 0; }));
+  }
+  EXPECT_EQ(sdk.StartupAlignmentStage(), StartupAlignment::Stage::ABORTED);
+  motors.MotorErrorReplyFor(-1);
+  sdk.Deactivate();
+  EXPECT_TRUE(motors.valid());
+}
+
+TEST(UnitreeCycleTrace, HardwareAssociatesWritesAndRecordsWatchdogAndFailedWrite) {
+  HardwareTraceDirectory directory;
+  std::array<MotorPtys::Packet, kJointCount> expected_packets{};
+  constexpr std::int64_t kWriteTime = 4000000123LL;
+  constexpr std::int64_t kNormalReadTime = 4004000123LL;
+  constexpr std::int64_t kExpiredReadTime = 5004000123LL;
+  constexpr std::int64_t kFailedWriteTime = 6000000123LL;
+  constexpr std::int64_t kInactiveReadTime = 6004000123LL;
+  {
+    MotorPtys motors;
+    UnitreeSystemInterface hardware;
+    auto info = PtyHardwareInfo(motors.ports);
+    info.hardware_parameters["physical_estop_verified"] = "true";
+    rclcpp_lifecycle::State lifecycle;
+    ASSERT_EQ(hardware.on_init(info), hardware_interface::CallbackReturn::SUCCESS);
+    auto commands = hardware.export_command_interfaces();
+    auto states = hardware.export_state_interfaces();
+    std::vector<std::string> names;
+    for (const auto& command : commands) names.push_back(command.get_name());
+    const auto set = [&](const std::string& name, double value) {
+      for (auto& command : commands) if (command.get_name() == name) {
+        command.set_value(value);
+        return;
+      }
+      ADD_FAILURE() << "missing command " << name;
+    };
+    const auto state = [&](const std::string& name) {
+      for (const auto& item : states) if (item.get_name() == name) return item.get_value();
+      ADD_FAILURE() << "missing state " << name;
+      return -1.;
+    };
+    const rclcpp::Duration period(0, 4000000);
+    ASSERT_EQ(hardware.on_configure(lifecycle), hardware_interface::CallbackReturn::SUCCESS);
+    ASSERT_EQ(hardware.on_activate(lifecycle), hardware_interface::CallbackReturn::SUCCESS);
+    ASSERT_EQ(hardware.read(rclcpp::Time(0), period), hardware_interface::return_type::OK);
+    ASSERT_EQ(hardware.perform_command_mode_switch(names, {}), hardware_interface::return_type::OK);
+    set("custom_dog/calibrate", 1.);
+    for (int retry = 0; retry < 10 && state("custom_dog/calibrated") < .5; ++retry) {
+      ASSERT_EQ(hardware.write(rclcpp::Time(1000000000LL + retry * 10000000LL), period), hardware_interface::return_type::OK);
+      ASSERT_EQ(hardware.read(rclcpp::Time(1004000000LL + retry * 10000000LL), period), hardware_interface::return_type::OK);
+    }
+    ASSERT_EQ(state("custom_dog/calibrated"), 1.);
+    set("custom_dog/calibrate", 0.);
+    set("custom_dog/motion_enabled", 1.);
+    for (const auto& name : kJointNames) {
+      set(std::string(name) + "/position", state(std::string(name) + "/position") + .03);
+      set(std::string(name) + "/velocity", .1);
+      set(std::string(name) + "/effort", .75);
+      set(std::string(name) + "/kp", 10.);
+      set(std::string(name) + "/kd", .7);
+    }
+    ASSERT_EQ(hardware.write(rclcpp::Time(kWriteTime), period), hardware_interface::return_type::OK);
+    ASSERT_EQ(hardware.read(rclcpp::Time(kNormalReadTime), period), hardware_interface::return_type::OK);
+    ASSERT_EQ(state("custom_dog/communication_ok"), 1.);
+    expected_packets = motors.packets();
+    std::this_thread::sleep_for(120ms);
+    ASSERT_EQ(hardware.read(rclcpp::Time(kExpiredReadTime), period), hardware_interface::return_type::OK);
+    set("custom_dog/motion_enabled", std::numeric_limits<double>::quiet_NaN());
+    ASSERT_EQ(hardware.write(rclcpp::Time(kFailedWriteTime), period), hardware_interface::return_type::ERROR);
+    ASSERT_EQ(hardware.read(rclcpp::Time(kInactiveReadTime), period), hardware_interface::return_type::OK);
+    ASSERT_EQ(hardware.on_deactivate(lifecycle), hardware_interface::CallbackReturn::SUCCESS);
+    EXPECT_TRUE(motors.valid());
+  }  // Hardware recorder joins its writer and appends its footer here.
+  const auto records = ReadHardwareTrace(directory.path);
+  // Optional evidence export for the independent Python decoder integration.
+  // Copy only this fixture's closed regular trace files; production never sees
+  // this variable and the portable test leaves no artifacts by default.
+  if (const char* configured = std::getenv("CUSTOM_DOG_TEST_TRACE_EXPORT_DIR")) {
+    if (*configured) {
+      const std::filesystem::path destination(configured);
+      ASSERT_TRUE(destination.is_absolute());
+      std::error_code error;
+      std::filesystem::create_directories(destination, error);
+      ASSERT_FALSE(error) << error.message();
+      for (const auto& entry : std::filesystem::directory_iterator(directory.path)) {
+        const auto filename = entry.path().filename();
+        if (!entry.is_regular_file() || filename.string().rfind("hardware", 0) != 0 ||
+            entry.path().extension() != ".bin") continue;
+        std::filesystem::copy_file(entry.path(), destination / filename,
+                                   std::filesystem::copy_options::none, error);
+        ASSERT_FALSE(error) << error.message();
+      }
+    }
+  }
+  const auto find = [&](std::uint64_t stamp) -> const diagnostics::HardwareCycleRecord* {
+    for (const auto& record : records) if (record.manager_time_ns == stamp) return &record;
+    ADD_FAILURE() << "missing read stamp " << stamp;
+    return nullptr;
+  };
+  const auto* initial = find(0);
+  ASSERT_NE(initial, nullptr);
+  EXPECT_EQ(initial->source_write_sequence, 0u);
+  EXPECT_FALSE(initial->flags & kHardwareTraceSourceWriteAttempted);
+  const auto* normal = find(kNormalReadTime);
+  ASSERT_NE(normal, nullptr);
+  EXPECT_EQ(normal->source_write_time_ns, kWriteTime);
+  EXPECT_GT(normal->source_write_sequence, 0u);
+  EXPECT_TRUE(normal->flags & kHardwareTraceSourceWriteSucceeded);
+  EXPECT_TRUE(normal->flags & kHardwareTraceCommandFresh);
+  ASSERT_EQ(normal->sdk.round_count, 1u);
+  EXPECT_LE(normal->source_write_steady_ns, normal->read_start_ns);
+  EXPECT_LE(normal->read_start_ns, normal->sdk.rounds[0].start_ns);
+  EXPECT_LE(normal->sdk.rounds[0].end_ns, normal->read_end_ns);
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    EXPECT_EQ(normal->sdk.rounds[0].motors[i].tx, expected_packets[i]);
+    EXPECT_EQ(normal->sdk.rounds[0].motors[i].flags, 1023u);
+    EXPECT_EQ(normal->staged_mode[i], 1.);
+    EXPECT_EQ(normal->sdk_mode[i], 1.);
+    EXPECT_EQ(normal->staged_command.kp[i], 10.);
+    EXPECT_EQ(normal->staged_command.position[i], normal->sdk_command.position[i]);
+  }
+  const auto* expired = find(kExpiredReadTime);
+  ASSERT_NE(expired, nullptr);
+  EXPECT_EQ(expired->source_write_sequence, normal->source_write_sequence);
+  EXPECT_EQ(expired->source_write_time_ns, kWriteTime);
+  EXPECT_TRUE(expired->flags & kHardwareTraceWatchdogCleared);
+  EXPECT_FALSE(expired->flags & kHardwareTraceCommandFresh);
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    EXPECT_EQ(expired->staged_mode[i], 1.);
+    EXPECT_EQ(expired->sdk_mode[i], 0.);
+    EXPECT_EQ(expired->sdk_command.kp[i], 0.);
+  }
+  const auto* failed = find(kInactiveReadTime);
+  ASSERT_NE(failed, nullptr);
+  EXPECT_EQ(failed->source_write_time_ns, kFailedWriteTime);
+  EXPECT_GT(failed->source_write_sequence, normal->source_write_sequence);
+  EXPECT_TRUE(failed->flags & kHardwareTraceWriteDiscreteInvalid);
+  EXPECT_FALSE(failed->flags & kHardwareTraceSourceWriteSucceeded);
+  EXPECT_FALSE(failed->flags & kHardwareTraceCommandWrittenAtReadEntry);
+  EXPECT_EQ(failed->sdk.round_count, 0u);
 }
 
 void CheckActivationConfirmation(bool require_confirmation, bool verified,

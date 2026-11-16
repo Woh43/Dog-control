@@ -1,0 +1,654 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-16",
+  "git_head": "a6bb736f29f17e6868c6cf24852fc32aea9dbdd1",
+  "branch": "RC2027",
+  "baseline_evidence": "docs/validation/timing-identification-20261116.json",
+  "scope": {
+    "duration_per_case_s": 30,
+    "phase": "production parallel four-leg IO plus isolated real estimator/NMPC/WBC code",
+    "joint_input": "synthetic nominal stance, zero joint velocity",
+    "imu_input": "synthetic identity attitude and gravity",
+    "hardware_output": "mode 0, q/dq/tau/Kp/Kd all zero, startup alignment and calibration disabled",
+    "numerical_commands": "discarded, no actuator command returned by workload API",
+    "ros_controller_started": false,
+    "real_robot_motion_tested": false,
+    "scheduler": "SCHED_OTHER; NMPC FIFO request denied EPERM",
+    "cpu_affinity": "4-7",
+    "mpc_solver_threads": 2,
+    "OPENBLAS_NUM_THREADS": 1,
+    "OMP_NUM_THREADS": 2,
+    "cpu_governor": "ondemand (unchanged)",
+    "test_order": [
+      "250_50",
+      "250_25",
+      "250_20",
+      "250_50_repeat"
+    ]
+  },
+  "decision": {
+    "candidate_controller_manager_wbc_hz": 250,
+    "candidate_mpc_requested_hz": 50,
+    "candidate_status": "timing candidate only, not deployed or motion validated",
+    "formal_configuration_modified": false,
+    "formal_controller_manager_wbc_hz": 1000,
+    "formal_mpc_hz": 50,
+    "reason": "Both 250/50 windows had fewer completion misses and younger adopted policies than the single 250/25 and 250/20 windows. Configured 50 Hz remains an upper pacing request; actual adopted new policies were 35.63 and 37.23 Hz.",
+    "before_motion_use": [
+      "Review fixed policy-age timeout in seconds independently of requested NMPC frequency.",
+      "Review time meaning of cycle-count protections; five WBC failures at nominal 250 Hz span approximately 20 ms instead of 5 ms at 1000 Hz.",
+      "Review added next-read transmit waiting, production ROS scheduling and dynamic simulation evidence for the exact candidate profile."
+    ]
+  },
+  "cases": {
+    "250_50": {
+      "raw_directory": "log/frequency_evaluation_20261116/250_50",
+      "target_wbc_hz": 250,
+      "target_mpc_hz": 50,
+      "probe_executed_hz": 248.13275236357805,
+      "adopted_new_policy_hz": 35.63324990282979,
+      "executed_cycles": 7444,
+      "executed_completion_deadline_misses": 35,
+      "executed_completion_miss_fraction": 0.004701773240193444,
+      "skipped_slots": 56,
+      "missed_or_skipped_fraction": 0.012133333333333333,
+      "loop_work_ms": {
+        "samples": 7444,
+        "mean": 2.230906880440623,
+        "p50": 1.999932,
+        "p95": 3.22054,
+        "p99": 3.652201,
+        "p999": 11.242725,
+        "min": 1.426522,
+        "max": 23.69031
+      },
+      "io_ms": {
+        "samples": 7444,
+        "mean": 0.9093383988447071,
+        "p50": 0.891613,
+        "p95": 1.128735,
+        "p99": 1.257941,
+        "p999": 10.26478,
+        "min": 0.520327,
+        "max": 22.719948
+      },
+      "wbc_wall_ms": {
+        "samples": 7444,
+        "mean": 1.1814588922622247,
+        "p50": 0.946154,
+        "p95": 2.038431,
+        "p99": 2.267678,
+        "p999": 2.36801,
+        "min": 0.794198,
+        "max": 2.39251
+      },
+      "mpc_solve_ms_at_adopted_policies": {
+        "samples": 1069,
+        "mean": 28.018876975678204,
+        "p50": 27.759881,
+        "p95": 30.170182,
+        "p99": 32.180905,
+        "p999": 35.496236,
+        "min": 16.10941,
+        "max": 35.657234
+      },
+      "adopted_policy_interval_ms": {
+        "samples": 1068,
+        "mean": 28.082533485018725,
+        "p50": 28.017128,
+        "p95": 31.995991,
+        "p99": 35.492736,
+        "p999": 37.962829,
+        "min": 3.792782,
+        "max": 41.113661
+      },
+      "adopted_policy_age_ms": {
+        "samples": 7444,
+        "mean": 12.063878924903504,
+        "p50": 12.0086320002883,
+        "p95": 24.1301370001565,
+        "p99": 27.7872960000423,
+        "p999": 28.5590370003774,
+        "min": 0.00524999995832331,
+        "max": 32.3679859998265
+      },
+      "policy_age_limit_ms": 40,
+      "cycles_policy_age_above_original_40ms": 0,
+      "cycles_policy_age_above_case_limit": 0,
+      "per_motor_p99_shadow_write_to_next_sdk_call_ms_range": [
+        2.560799,
+        3.102417
+      ],
+      "motor_attempts": 89328,
+      "motor_success": 89328,
+      "unsafe_final_packets": 0,
+      "all_estimates_policies_wbc_valid_and_solver_healthy": true,
+      "completed_requested_duration": true,
+      "shutdown_packets": 12,
+      "cpu_temperature_monitor": null
+    },
+    "250_25": {
+      "raw_directory": "log/frequency_evaluation_20261116/250_25",
+      "target_wbc_hz": 250,
+      "target_mpc_hz": 25,
+      "probe_executed_hz": 245.33285501604365,
+      "adopted_new_policy_hz": 24.63328530663808,
+      "executed_cycles": 7360,
+      "executed_completion_deadline_misses": 83,
+      "executed_completion_miss_fraction": 0.011277173913043479,
+      "skipped_slots": 140,
+      "missed_or_skipped_fraction": 0.029733333333333334,
+      "loop_work_ms": {
+        "samples": 7360,
+        "mean": 2.255195652173913,
+        "p50": 2.096763,
+        "p95": 3.156374,
+        "p99": 3.820782,
+        "p999": 10.397029,
+        "min": 1.376065,
+        "max": 20.127816
+      },
+      "io_ms": {
+        "samples": 7360,
+        "mean": 0.9477092389945652,
+        "p50": 0.929237,
+        "p95": 1.297899,
+        "p99": 1.593354,
+        "p999": 6.27775,
+        "min": 0.52966,
+        "max": 13.329156
+      },
+      "wbc_wall_ms": {
+        "samples": 7360,
+        "mean": 1.1747218895380434,
+        "p50": 1.006528,
+        "p95": 1.842434,
+        "p99": 2.265345,
+        "p999": 5.825089,
+        "min": 0.728282,
+        "max": 19.047413
+      },
+      "mpc_solve_ms_at_adopted_policies": {
+        "samples": 739,
+        "mean": 33.79249741948579,
+        "p50": 32.827813,
+        "p95": 44.232953,
+        "p99": 47.564992,
+        "p999": 49.357218,
+        "min": 17.194396,
+        "max": 49.357218
+      },
+      "adopted_policy_interval_ms": {
+        "samples": 738,
+        "mean": 40.63441387533875,
+        "p50": 40.063175,
+        "p95": 56.368792,
+        "p99": 60.093908,
+        "p999": 64.053856,
+        "min": 7.995935,
+        "max": 64.053856
+      },
+      "adopted_policy_age_ms": {
+        "samples": 7360,
+        "mean": 19.954889138860583,
+        "p50": 19.6717799999533,
+        "p95": 47.57999200001,
+        "p99": 52.1094730002005,
+        "p999": 56.0625459997937,
+        "min": 0.00379099992642296,
+        "max": 59.8962029998802
+      },
+      "policy_age_limit_ms": 80,
+      "cycles_policy_age_above_original_40ms": 913,
+      "cycles_policy_age_above_case_limit": 0,
+      "per_motor_p99_shadow_write_to_next_sdk_call_ms_range": [
+        2.840212,
+        4.057821
+      ],
+      "motor_attempts": 88320,
+      "motor_success": 88320,
+      "unsafe_final_packets": 0,
+      "all_estimates_policies_wbc_valid_and_solver_healthy": true,
+      "completed_requested_duration": true,
+      "shutdown_packets": 12,
+      "cpu_temperature_monitor": null
+    },
+    "250_20": {
+      "raw_directory": "log/frequency_evaluation_20261116/250_20",
+      "target_wbc_hz": 250,
+      "target_mpc_hz": 20,
+      "probe_executed_hz": 246.19950528671407,
+      "adopted_new_policy_hz": 19.999959812080753,
+      "executed_cycles": 7386,
+      "executed_completion_deadline_misses": 59,
+      "executed_completion_miss_fraction": 0.007988085567289466,
+      "skipped_slots": 114,
+      "missed_or_skipped_fraction": 0.023066666666666666,
+      "loop_work_ms": {
+        "samples": 7386,
+        "mean": 2.2887313252098562,
+        "p50": 2.178429,
+        "p95": 3.154333,
+        "p99": 3.701201,
+        "p999": 10.331487,
+        "min": 1.374023,
+        "max": 22.474951
+      },
+      "io_ms": {
+        "samples": 7386,
+        "mean": 0.9345344589764419,
+        "p50": 0.888405,
+        "p95": 1.30665,
+        "p99": 1.552813,
+        "p999": 8.82055,
+        "min": 0.526743,
+        "max": 21.002345
+      },
+      "wbc_wall_ms": {
+        "samples": 7386,
+        "mean": 1.2192441322772813,
+        "p50": 1.117651,
+        "p95": 1.846809,
+        "p99": 2.232095,
+        "p999": 2.89417,
+        "min": 0.734116,
+        "max": 4.613231
+      },
+      "mpc_solve_ms_at_adopted_policies": {
+        "samples": 600,
+        "mean": 38.10018059833334,
+        "p50": 38.240533,
+        "p95": 45.311855,
+        "p99": 47.536659,
+        "p999": 52.390719,
+        "min": 18.367464,
+        "max": 52.390719
+      },
+      "adopted_policy_interval_ms": {
+        "samples": 599,
+        "mean": 49.976068332220365,
+        "p50": 51.838019,
+        "p95": 63.598279,
+        "p99": 68.003929,
+        "p999": 72.263497,
+        "min": 19.692488,
+        "max": 72.263497
+      },
+      "adopted_policy_age_ms": {
+        "samples": 7386,
+        "mean": 23.771624649473896,
+        "p50": 24.0626389995668,
+        "p95": 48.490605000552,
+        "p99": 56.147461999899,
+        "p999": 60.3086139999505,
+        "min": 0.00437499966210453,
+        "max": 68.1265520006491
+      },
+      "policy_age_limit_ms": 100,
+      "cycles_policy_age_above_original_40ms": 1436,
+      "cycles_policy_age_above_case_limit": 0,
+      "per_motor_p99_shadow_write_to_next_sdk_call_ms_range": [
+        2.574799,
+        3.191958
+      ],
+      "motor_attempts": 88632,
+      "motor_success": 88632,
+      "unsafe_final_packets": 0,
+      "all_estimates_policies_wbc_valid_and_solver_healthy": true,
+      "completed_requested_duration": true,
+      "shutdown_packets": 12,
+      "cpu_temperature_monitor": {
+        "raw_path": "log/frequency_evaluation_20261116/250_20_thermal_freq.csv",
+        "interval_requested_ms": 100,
+        "samples_in_measurement_window": 296,
+        "frequency_unit": "kHz",
+        "temperature_unit": "millidegrees Celsius",
+        "policy4_khz": {
+          "samples": 296,
+          "mean": 1814513.5135135136,
+          "p50": 2016000,
+          "p95": 2400000,
+          "p99": 2400000,
+          "p999": 2400000,
+          "min": 408000,
+          "max": 2400000
+        },
+        "policy6_khz": {
+          "samples": 296,
+          "mean": 1838675.6756756757,
+          "p50": 2016000,
+          "p95": 2400000,
+          "p99": 2400000,
+          "p999": 2400000,
+          "min": 408000,
+          "max": 2400000
+        },
+        "soc_millic": {
+          "samples": 296,
+          "mean": 49374.13513513513,
+          "p50": 49000,
+          "p95": 49923,
+          "p99": 50846,
+          "p999": 50846,
+          "min": 47153,
+          "max": 50846
+        },
+        "bigcore0_millic": {
+          "samples": 296,
+          "mean": 50362.66891891892,
+          "p50": 50846,
+          "p95": 51769,
+          "p99": 51769,
+          "p999": 51769,
+          "min": 48076,
+          "max": 51769
+        },
+        "bigcore1_millic": {
+          "samples": 296,
+          "mean": 50421.91891891892,
+          "p50": 50846,
+          "p95": 51769,
+          "p99": 51769,
+          "p999": 51769,
+          "min": 49000,
+          "max": 51769
+        }
+      }
+    },
+    "250_50_repeat": {
+      "raw_directory": "log/frequency_evaluation_20261116/250_50_repeat",
+      "target_wbc_hz": 250,
+      "target_mpc_hz": 50,
+      "probe_executed_hz": 248.5995142696957,
+      "adopted_new_policy_hz": 37.23326058450659,
+      "executed_cycles": 7458,
+      "executed_completion_deadline_misses": 23,
+      "executed_completion_miss_fraction": 0.003083936712255296,
+      "skipped_slots": 42,
+      "missed_or_skipped_fraction": 0.008666666666666666,
+      "loop_work_ms": {
+        "samples": 7458,
+        "mean": 2.2251886811477606,
+        "p50": 2.040181,
+        "p95": 3.207707,
+        "p99": 3.590952,
+        "p999": 10.130615,
+        "min": 1.409314,
+        "max": 13.834441
+      },
+      "io_ms": {
+        "samples": 7458,
+        "mean": 0.8898308675248056,
+        "p50": 0.872655,
+        "p95": 1.117943,
+        "p99": 1.232567,
+        "p999": 8.907673,
+        "min": 0.515077,
+        "max": 12.693748
+      },
+      "wbc_wall_ms": {
+        "samples": 7458,
+        "mean": 1.1945843290426388,
+        "p50": 0.99632,
+        "p95": 1.998766,
+        "p99": 2.253678,
+        "p999": 2.425176,
+        "min": 0.786614,
+        "max": 3.700909
+      },
+      "mpc_solve_ms_at_adopted_policies": {
+        "samples": 1117,
+        "mean": 26.78504657564906,
+        "p50": 26.682186,
+        "p95": 29.234528,
+        "p99": 30.856172,
+        "p999": 32.700065,
+        "min": 13.7169,
+        "max": 34.208836
+      },
+      "adopted_policy_interval_ms": {
+        "samples": 1116,
+        "mean": 26.856196008960573,
+        "p50": 27.852046,
+        "p95": 28.70866,
+        "p99": 32.191405,
+        "p999": 36.229934,
+        "min": 3.070918,
+        "max": 39.802345
+      },
+      "adopted_policy_age_ms": {
+        "samples": 7458,
+        "mean": 11.506532971303887,
+        "p50": 11.9406739995611,
+        "p95": 24.0265969996472,
+        "p99": 24.4043000002421,
+        "p999": 28.1930000001012,
+        "min": 0.00466700021206634,
+        "max": 32.3689030001333
+      },
+      "policy_age_limit_ms": 40,
+      "cycles_policy_age_above_original_40ms": 0,
+      "cycles_policy_age_above_case_limit": 0,
+      "per_motor_p99_shadow_write_to_next_sdk_call_ms_range": [
+        2.564883,
+        3.105917
+      ],
+      "motor_attempts": 89496,
+      "motor_success": 89496,
+      "unsafe_final_packets": 0,
+      "all_estimates_policies_wbc_valid_and_solver_healthy": true,
+      "completed_requested_duration": true,
+      "shutdown_packets": 12,
+      "cpu_temperature_monitor": {
+        "raw_path": "log/frequency_evaluation_20261116/250_50_repeat_thermal_freq.csv",
+        "interval_requested_ms": 100,
+        "samples_in_measurement_window": 297,
+        "frequency_unit": "kHz",
+        "temperature_unit": "millidegrees Celsius",
+        "policy4_khz": {
+          "samples": 297,
+          "mean": 2082585.8585858585,
+          "p50": 2400000,
+          "p95": 2400000,
+          "p99": 2400000,
+          "p999": 2400000,
+          "min": 816000,
+          "max": 2400000
+        },
+        "policy6_khz": {
+          "samples": 297,
+          "mean": 1973333.3333333333,
+          "p50": 2256000,
+          "p95": 2400000,
+          "p99": 2400000,
+          "p999": 2400000,
+          "min": 816000,
+          "max": 2400000
+        },
+        "soc_millic": {
+          "samples": 297,
+          "mean": 53851.18855218855,
+          "p50": 53615,
+          "p95": 55461,
+          "p99": 55461,
+          "p999": 55461,
+          "min": 51769,
+          "max": 55461
+        },
+        "bigcore0_millic": {
+          "samples": 297,
+          "mean": 55753.12794612795,
+          "p50": 55461,
+          "p95": 57307,
+          "p99": 57307,
+          "p999": 58230,
+          "min": 53615,
+          "max": 58230
+        },
+        "bigcore1_millic": {
+          "samples": 297,
+          "mean": 55846.360269360266,
+          "p50": 55461,
+          "p95": 57307,
+          "p99": 57307,
+          "p999": 58230,
+          "min": 53615,
+          "max": 58230
+        }
+      }
+    }
+  },
+  "raw_artifacts": {
+    "log/frequency_evaluation_20261116/provenance.json": {
+      "bytes": 1627,
+      "sha256": "79acfb42420cf30a8df7c7f32b7a00544cc5d5820876f98ca125494a1557bb23"
+    },
+    "log/frequency_evaluation_20261116/result.json": {
+      "bytes": 81552,
+      "sha256": "1477ba873d79c758de4eb2556af4be1fd080bc3a5d598c626072bbd564188963"
+    },
+    "log/frequency_evaluation_20261116/zero_guard_tests.log": {
+      "bytes": 81,
+      "sha256": "987ac203f414d4d02efa4e90d5f4ac81d8b7a3abba53b7e2c178d92cf3d6704b"
+    },
+    "log/frequency_evaluation_20261116/bin/build.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "log/frequency_evaluation_20261116/250_50/metadata.json": {
+      "bytes": 816,
+      "sha256": "54eb31abcaa7f82363dfcde36a3e1a1ca7fa130b0d381352e2f4dfae0526b54f"
+    },
+    "log/frequency_evaluation_20261116/250_50/summary.json": {
+      "bytes": 17189,
+      "sha256": "183ef269694cf836c05e9414ad3d134e231e869d039f0f3a7c8b2d28904d1044"
+    },
+    "log/frequency_evaluation_20261116/250_50/cycles.csv": {
+      "bytes": 2097787,
+      "sha256": "b279c7c68ccbc819724b6a5d8a731e12e1852e8cabec546a91600c04b408df4f"
+    },
+    "log/frequency_evaluation_20261116/250_50/motors.csv": {
+      "bytes": 9903701,
+      "sha256": "4507e5d43b442fed709757355c2fb1a3c6ac5588da0377ec0a74d58c2f87d085"
+    },
+    "log/frequency_evaluation_20261116/250_50/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "9cb2a78282988254f1decf042be7143b4b311b5812e91c3a59e6048273aa6487"
+    },
+    "log/frequency_evaluation_20261116/250_50_console.log": {
+      "bytes": 1833,
+      "sha256": "dc57e27973451ff59d246ca54dd79843a037a962cfa275ba5f17a826f336a1ee"
+    },
+    "log/frequency_evaluation_20261116/250_25/metadata.json": {
+      "bytes": 816,
+      "sha256": "610ec442b8d64f21d68d58c7265854cbff5a225d9da1797ad5360e8f572f8e47"
+    },
+    "log/frequency_evaluation_20261116/250_25/summary.json": {
+      "bytes": 17184,
+      "sha256": "b149998ffe5a5cda28ccd80a7b30d452f995ecbadc24e359b715c6251c64a7a5"
+    },
+    "log/frequency_evaluation_20261116/250_25/cycles.csv": {
+      "bytes": 2072657,
+      "sha256": "4a1194e98ae9f1c18438df6e232a9d897f7002620f7f5f0c3745fc0c25aa7e2e"
+    },
+    "log/frequency_evaluation_20261116/250_25/motors.csv": {
+      "bytes": 9791645,
+      "sha256": "04e32db9692b0aa3d7ae9c2ab70863d811226c30e2bffc3da6d83a2391f8eedf"
+    },
+    "log/frequency_evaluation_20261116/250_25/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "2d5fb8df8a9a43f46431029e1c96f0dc55a2fabcad6ed919cd2a74235560bc8a"
+    },
+    "log/frequency_evaluation_20261116/250_25_console.log": {
+      "bytes": 1833,
+      "sha256": "acdbf085c129bdfffd576215f91ac029e27cb882421660a52ed9786b452db190"
+    },
+    "log/frequency_evaluation_20261116/250_20/metadata.json": {
+      "bytes": 817,
+      "sha256": "078abb12a18ef465bdf63210aab851211354dd9b460207712a945a8f6982ea90"
+    },
+    "log/frequency_evaluation_20261116/250_20/summary.json": {
+      "bytes": 17185,
+      "sha256": "8d51347c0357033efec345a8f2d616f3ba350d30d9de5a7eda5b59ee769978e8"
+    },
+    "log/frequency_evaluation_20261116/250_20/cycles.csv": {
+      "bytes": 2079155,
+      "sha256": "cbe9781d834c8de40da64d1b7e76d9afeb68a49d8745d77b331f0f1fb4e0168d"
+    },
+    "log/frequency_evaluation_20261116/250_20/motors.csv": {
+      "bytes": 9826329,
+      "sha256": "59913de5f425c4006c40ec406170c208ee16de980bdd654edf81d1d3e0a9346c"
+    },
+    "log/frequency_evaluation_20261116/250_20/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "e45edae7b42bbac5e8807f6ff707a660cbc63c5926b45e3cd7d5b59c1179b85b"
+    },
+    "log/frequency_evaluation_20261116/250_20_console.log": {
+      "bytes": 1833,
+      "sha256": "fa735e590a4877a8bfaa46d6991484269679274a429a2258dbd2fa3f3d847e13"
+    },
+    "log/frequency_evaluation_20261116/250_20_thermal_freq.csv": {
+      "bytes": 14835,
+      "sha256": "1bcf205d95d58f03f2e16785c35384b7edad4c6b0f820c5273164750333bbda9"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat/metadata.json": {
+      "bytes": 816,
+      "sha256": "8d9c813c48bfba87b537034c3a94967ac9b9aa0c9675de5082d3935cc1ff80e6"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat/summary.json": {
+      "bytes": 17181,
+      "sha256": "5aac816dd5045bd0a07d07309a7cfb96992b34da7cfc0ecf94db033569c3a04c"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat/cycles.csv": {
+      "bytes": 2102307,
+      "sha256": "3e3d267f5c6e79a1db1b90a617c943d5ed9c008d624733119122b317470bb927"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat/motors.csv": {
+      "bytes": 9922377,
+      "sha256": "5838a83c25cae4ba5d5b76d4bfbd8bd9a7d73da8068f3c5e29370e172d522542"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "8943eac5bb8d1d0281b6044c13d6ee3092322c0e75979487fb4c7a0d91f6a3cf"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat_console.log": {
+      "bytes": 1840,
+      "sha256": "2e953cfa716f97f9ee64b8aa4acfd299b63be26c24e5432faf23316812f346c5"
+    },
+    "log/frequency_evaluation_20261116/250_50_repeat_thermal_freq.csv": {
+      "bytes": 14913,
+      "sha256": "8edeb14de59c3fd886e5c28ce9ae20b511de2223a7f8195cda852a72b57bd07b"
+    }
+  },
+  "source_and_binary_sha256": {
+    "tools/control_timing_workload.hpp": "210203cdae3d186f0539a75a23c735e1e0b7d67e50d2085005409a925150e36d",
+    "tools/probe_control_timing.cpp": "a5b944d666c3c37a37a92b7c94eeaf5eb004ac3da801dbdc5f532252d497c917",
+    "tools/analyze_timing_probe.py": "29a7f0b2e7f162b442ca15fecccf6586b61f70b77191092e101d4a5dd0dac22e",
+    "tools/build_timing_probe.py": "d2ced3cab5db8c6e98411afde1e743cc39fd6879e4d896d3d5614648073d67a6",
+    "src/custom_dog_control/src/hardware/IOSDK.cpp": "5be273eb4c587638600f6e87e6a031e3ec18ed528d995b220af9f4c996bec7de",
+    "src/custom_dog_control/include/custom_dog_control/hardware/IOSDK.hpp": "86c25076b30843ef7645a2056f6043a84a93ba8041ddb2021c66ecf008e2a280",
+    "src/custom_dog_control/config/controllers.yaml": "2f3ac1c8abf99d792251e815b0402ca08f818e8b5d5c713c874ed1ff39f7a533",
+    "src/custom_dog_control/config/real_controller.yaml": "511f7a71407eaa60cba12c96f30929d3b5c0121b6f2083420829c380aaa5184e",
+    "src/custom_dog_control/config/nmpc/task.info": "adc14437708789d9ecfd4b3bfe462543e739d11af670feb8501755c665c3d51d",
+    "src/custom_dog_control/config/nmpc/reference.info": "bd2ccb5ec75fa59c84d2058db3dee173b7ef9dfe97be4229806d4364836d0ab7",
+    "log/frequency_evaluation_20261116/bin/probe_control_timing": "97ed746437cd793a91302280ea44897f66aef3ecb507ba0ed427b75eb25b9e76"
+  },
+  "checks": {
+    "zero_command_and_packet_guard_self_test": "passed; no devices opened",
+    "invalid_mpc_hz_rejection": "0, NaN and 201 rejected before output directory creation/device initialization",
+    "all_four_cases_zero_packet_crc_id_validation": "passed, including shutdown packets",
+    "source_hashes_unchanged_across_cases": true,
+    "formal_configuration_and_lifecycle_equal_head": true,
+    "all_five_serial_devices_free_after_tests": true
+  },
+  "limits": [
+    "Finite 30-second fixed-stance experiments do not establish dynamic stability, Trot load or disturbance recovery.",
+    "Probe absolute releases skip expired slots; executed Hz is not measured production ROS controller_manager rate.",
+    "CPU clocks were not fixed; monitoring covered only 250/20 and repeated 250/50. The sequence does not isolate the cause of solve-time changes.",
+    "Policy age starts at adoption and excludes full observation-to-solve-to-application latency.",
+    "Lowering NMPC to 25/20 implicitly widens the production two-period timeout from 40 ms to 80/100 ms; all fresh is not equivalent to improved timing.",
+    "Lowering outer-loop frequency increases nominal feedback spacing and may increase next-read transmit waiting.",
+    "Nonzero deadline miss fractions and observed long tails remain; quantiles are not WCET or hard real-time guarantees.",
+    "No system governor, real-time permissions, PD gains, model weights, installed plugin or production frequency configuration was changed."
+  ]
+}

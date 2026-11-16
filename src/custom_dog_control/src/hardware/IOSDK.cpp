@@ -2,6 +2,7 @@
 
 #include "custom_dog_control/hardware/IOSDK.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <chrono>
 #include <cstring>
@@ -14,11 +15,24 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#ifdef CUSTOM_DOG_TIMING_PROBE
+#include <time.h>
+#endif
 
 namespace {
 
 constexpr const char* LEG_NAMES[4] = {"FR", "FL", "RR", "RL"};
 constexpr const char* JOINT_NAMES[3] = {"hip", "thigh", "calf"};
+
+#ifdef CUSTOM_DOG_TIMING_PROBE
+std::int64_t ProbeMonotonicNs() {
+    timespec stamp{};
+    if (::clock_gettime(CLOCK_MONOTONIC, &stamp) != 0) {
+        throw std::runtime_error("timing probe monotonic clock failed");
+    }
+    return static_cast<std::int64_t>(stamp.tv_sec) * 1000000000LL + stamp.tv_nsec;
+}
+#endif
 
 }  // namespace
 
@@ -143,6 +157,11 @@ IOSDK::IOSDK(const DriveParameters& drive_parameters)
       use_parallel_leg_io_(drive_parameters.use_parallel_leg_io),
       calibration_pose_(drive_parameters.calibration_pose),
       startup_alignment_(drive_parameters.startup_alignment_enabled) {
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    if (drive_parameters.startup_alignment_enabled) {
+        throw std::invalid_argument("zero-output timing probe forbids startup alignment");
+    }
+#endif
     calibration_offsets_.fill(0.0f);
     for (std::size_t i = 0; i < motor_directions_.size(); ++i) {
         motor_directions_[i] = static_cast<float>(drive_parameters.motor_directions[i]);
@@ -497,14 +516,72 @@ bool IOSDK::ExchangeMotor(int leg, int joint, bool internal_alignment_frame) {
     }
     feedback.correct = false;
     std::memset(feedback.get_motor_recv_data(), 0, 16);
+    auto* packet_trace = active_trace_round_
+        ? &active_trace_round_->motors[leg * 3 + joint] : nullptr;
+    if (packet_trace) {
+        // This is the final packed packet, including any startup stop override.
+        // SDK fields use rotor coordinates; calibration_offset is joint-side.
+        packet_trace->flags = 1;
+        packet_trace->position = command.q;
+        packet_trace->velocity = command.dq;
+        packet_trace->effort = command.tau;
+        packet_trace->kp = command.kp;
+        packet_trace->kd = command.kd;
+        packet_trace->gear = GearRatioForJoint(joint);
+        packet_trace->direction = motor_directions_[leg * 3 + joint];
+        packet_trace->calibration_offset = calibrated_
+            ? calibration_offsets_[leg * 3 + joint] : 0.0;
+        std::copy_n(command.get_motor_send_data(), packet_trace->tx.size(),
+                    packet_trace->tx.begin());
+        packet_trace->sdk_start_ns = diagnostics::TraceSteadyNs();
+    }
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    // A second independent guard checks the final encoded command, including
+    // stop frames in Activate/Deactivate, immediately before any SDK exchange.
+    if (!TimingProbeZeroPacket(command)) {
+        throw std::logic_error("timing probe rejected nonzero final motor packet");
+    }
+    auto& trace = timing_probe_records_[leg * 3 + joint];
+    trace.cycle = timing_probe_cycle_;
+    std::copy_n(command.get_motor_send_data(), trace.tx.size(), trace.tx.begin());
+    trace.sdk_start_ns = ProbeMonotonicNs();
+#endif
     const bool received = serials_[leg]->sendRecv(
         command.get_motor_send_data(), feedback.get_motor_recv_data(),
         command.hex_len);
-    const bool frame_valid = received &&
-        feedback.extract_data(&feedback) && feedback.correct &&
+    if (packet_trace) {
+        packet_trace->sdk_return_ns = diagnostics::TraceSteadyNs();
+        std::copy_n(feedback.get_motor_recv_data(), packet_trace->rx.size(),
+                    packet_trace->rx.begin());
+    }
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    trace.sdk_return_ns = ProbeMonotonicNs();
+#endif
+    // Keep the original short-circuit decode and acceptance criteria. A false
+    // transport result cannot distinguish timeout, short read or failed write.
+    if (packet_trace && received) packet_trace->flags |= 2 | 4;
+    const bool decoded = received && feedback.extract_data(&feedback);
+    const bool frame_valid = decoded && feedback.correct &&
         feedback.motor_id == joint && feedback.mode == command.mode &&
         std::isfinite(feedback.q) && std::isfinite(feedback.dq) &&
         std::isfinite(feedback.tau);
+    if (packet_trace) {
+        if (decoded) packet_trace->flags |= 8;
+        if (decoded && feedback.correct) {
+            packet_trace->flags |= 16;
+            packet_trace->received_id = feedback.motor_id;
+            packet_trace->received_mode = feedback.mode;
+            packet_trace->motor_error = feedback.merror;
+            if (feedback.motor_id == joint) packet_trace->flags |= 32;
+            if (feedback.mode == command.mode) packet_trace->flags |= 64;
+            if (std::isfinite(feedback.q) && std::isfinite(feedback.dq) &&
+                std::isfinite(feedback.tau)) packet_trace->flags |= 128;
+        }
+        if (frame_valid) packet_trace->flags |= 256;
+        if (frame_valid && feedback.merror == 0) packet_trace->flags |= 512;
+        // Capture before a reset can replace the first failure's context.
+        packet_trace->parsed_ns = diagnostics::TraceSteadyNs();
+    }
     if (received && !frame_valid) {
         // The raw SDK accepts any 16 bytes and leaves trailing RX bytes queued.
         // One stray byte can otherwise shift every following response forever.
@@ -515,6 +592,13 @@ bool IOSDK::ExchangeMotor(int leg, int joint, bool internal_alignment_frame) {
             parity_t::parity_none, stopbits_t::stopbits_one,
             flowcontrol_t::flowcontrol_none);
     }
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    trace.received = received;
+    trace.frame_valid = frame_valid;
+    trace.success = frame_valid && feedback.merror == 0;
+    trace.motor_error = frame_valid ? feedback.merror : -1;
+    trace.parsed_ns = ProbeMonotonicNs();
+#endif
     return frame_valid && feedback.merror == 0;
 }
 
@@ -562,6 +646,24 @@ void IOSDK::SendReceiveLeg(
 void IOSDK::ExchangeCycle(
     const LowLevelCommand& command, LowLevelState& state,
     bool internal_alignment_frame) {
+    diagnostics::SdkRoundRecord* round_trace = nullptr;
+    if (cycle_trace_capturing_) {
+        if (cycle_trace_record_.round_count < cycle_trace_record_.rounds.size()) {
+            round_trace = &cycle_trace_record_.rounds[cycle_trace_record_.round_count++];
+            round_trace->kind = internal_alignment_frame ? 2 :
+                (cycle_trace_record_.round_count == 1 ? 1 : 3);
+            round_trace->start_ns = diagnostics::TraceSteadyNs();
+        } else {
+            ++cycle_trace_record_.omitted_rounds;
+        }
+    }
+    // The pointer is published before dispatch and is cleared only after all
+    // workers complete. Each worker owns exactly its leg's three array slots.
+    active_trace_round_ = round_trace;
+    const auto finish_trace = [&] {
+        if (round_trace) round_trace->end_ns = diagnostics::TraceSteadyNs();
+        active_trace_round_ = nullptr;
+    };
     if (!use_parallel_leg_io_) {
         for (int leg : active_legs_) {
             try {
@@ -570,10 +672,14 @@ void IOSDK::ExchangeCycle(
                 for (int joint = 0; joint < 3; ++joint) MarkMotorOffline(leg, joint, state);
             }
         }
+        finish_trace();
         return;
     }
     const std::size_t active_workers = active_legs_.size();
-    if (active_workers == 0) return;
+    if (active_workers == 0) {
+        finish_trace();
+        return;
+    }
     {
         std::lock_guard<std::mutex> lock(worker_mutex_);
         active_command_ = &command;
@@ -587,12 +693,25 @@ void IOSDK::ExchangeCycle(
     completed_cv_.wait(lock, [this, active_workers] {
         return workers_stopping_ || completed_workers_ >= active_workers;
     });
+    finish_trace();
 }
 
 void IOSDK::SendReceive(
     const LowLevelCommand& command, LowLevelState& state,
     bool calibration_requested, bool startup_alignment_allowed) {
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    if (calibration_requested || startup_alignment_allowed) {
+        throw std::invalid_argument("zero-output timing probe forbids calibration/alignment");
+    }
+    if (!TimingProbeZeroCommand(command)) {
+        throw std::invalid_argument("zero-output timing probe rejected caller command");
+    }
+    ++timing_probe_cycle_;
+    timing_probe_records_ = {};
+#endif
+    if (cycle_trace_enabled_) cycle_trace_record_ = {};
     if (!active_ || serials_.size() != kLegCount) return;
+    cycle_trace_capturing_ = cycle_trace_enabled_;
     const auto now_seconds = [] {
         return std::chrono::duration<double>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -652,6 +771,7 @@ void IOSDK::SendReceive(
         calibration_requested && calibration_allowed_at_entry &&
         startup_alignment_.canCalibrate(), state);
     LogStartupAlignmentTransition(previous_stage);
+    cycle_trace_capturing_ = false;
 }
 
 }  // namespace custom_dog_control

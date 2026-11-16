@@ -1,0 +1,520 @@
+{
+  "date": "2026-11-16",
+  "git_base": "a6bb736f29f17e6868c6cf24852fc32aea9dbdd1",
+  "purpose": "零输出通信和隔离控制/IMU时序测量，不是电机动力学或承重运动验收",
+  "conditions": {
+    "cpu_affinity": "4,5,6,7",
+    "scheduler_policy": "SCHED_OTHER",
+    "NMPC_FIFO_priority_request": "50; denied with EPERM",
+    "OPENBLAS_NUM_THREADS": 1,
+    "OMP_NUM_THREADS": 2,
+    "controller_target_hz": 1000,
+    "NMPC_target_hz": 50,
+    "NMPC_threads": 2,
+    "parallel_IO": "production IOSDK, 4 persistent leg workers, 3 sequential motor exchanges per leg",
+    "serial_baud": 4000000,
+    "SDK_receive_timeout_us": 2000,
+    "hardware_packet_mode": 0,
+    "hardware_q_dq_tau_kp_kd": 0,
+    "startup_alignment": false,
+    "calibration": false,
+    "hardware_motion_requested": false,
+    "controller_ROS_node_started": false,
+    "shadow_joints": "synthetic nominal standing pose; not uncalibrated real joint feedback",
+    "cppad_first_prepare_s": 524.116,
+    "cppad_cached_prepare_s_imu": 0.04341,
+    "frequency_and_IRQ_policy": "No fixed CPU frequency or system-wide CPU/IRQ isolation; one finite 30-second sample per formal condition."
+  },
+  "stage_1_parallel_IO": {
+    "observed_duration_s": 30.000371508,
+    "executed_cycles": 22196,
+    "executed_hz": 739.857504567273,
+    "skipped_slots": 7805,
+    "executed_completion_deadline_misses": 7497,
+    "executed_completion_miss_fraction": 0.33776356100198235,
+    "missed_or_skipped_fraction": 0.5100496650111663,
+    "io_ms": {
+      "samples": 22196,
+      "mean": 0.9113940683005947,
+      "p50": 0.811694,
+      "p95": 1.477559,
+      "p99": 1.770971,
+      "p999": 4.608256,
+      "min": 0.511575,
+      "max": 13.035822
+    },
+    "loop_work_ms": {
+      "samples": 22196,
+      "mean": 0.9121217415300054,
+      "p50": 0.812278,
+      "p95": 1.478434,
+      "p99": 1.772429,
+      "p999": 4.610006,
+      "min": 0.511867,
+      "max": 13.037281
+    },
+    "period_ms": {
+      "samples": 22195,
+      "mean": 1.3516113853570624,
+      "p50": 1.0004,
+      "p95": 2.006633,
+      "p99": 2.055923,
+      "p999": 5.088998,
+      "min": 0.80907,
+      "max": 14.004723
+    },
+    "release_lateness_ms": {
+      "samples": 22196,
+      "mean": 0.07009407861776897,
+      "p50": 0.065476,
+      "p95": 0.078394,
+      "p99": 0.118163,
+      "p999": 1.036216,
+      "min": 0.053878,
+      "max": 7.402652
+    },
+    "valid_motor_replies": 266352,
+    "motor_attempts": 266352,
+    "unsafe_or_invalid_encoded_packets": 0,
+    "shutdown_zero_packets": 12
+  },
+  "stage_2_isolated_control": {
+    "observed_duration_s": 30.000856365,
+    "executed_cycles": 11619,
+    "executed_hz": 387.2889446434307,
+    "skipped_slots": 18382,
+    "executed_completion_deadline_misses": 11619,
+    "executed_completion_miss_fraction": 1.0,
+    "missed_or_skipped_fraction": 1.0,
+    "io_ms": {
+      "samples": 11619,
+      "mean": 0.8800755785351579,
+      "p50": 0.89133,
+      "p95": 1.123787,
+      "p99": 1.196412,
+      "p999": 2.121283,
+      "min": 0.515957,
+      "max": 15.552187
+    },
+    "loop_work_ms": {
+      "samples": 11619,
+      "mean": 2.1314569980204836,
+      "p50": 2.016575,
+      "p95": 2.827989,
+      "p99": 3.046446,
+      "p999": 3.64261,
+      "min": 1.391244,
+      "max": 16.594891
+    },
+    "period_ms": {
+      "samples": 11618,
+      "mean": 2.5821141293682217,
+      "p50": 2.995405,
+      "p95": 3.011446,
+      "p99": 4.000192,
+      "p999": 4.088275,
+      "min": 1.931409,
+      "max": 16.998265
+    },
+    "release_lateness_ms": {
+      "samples": 11619,
+      "mean": 0.06403013650055943,
+      "p50": 0.060881,
+      "p95": 0.069939,
+      "p99": 0.131574,
+      "p999": 0.15339,
+      "min": 0.018177,
+      "max": 2.125165
+    },
+    "control": {
+      "estimator_ms": {
+        "samples": 11619,
+        "mean": 0.10354404165590843,
+        "p50": 0.094791,
+        "p95": 0.145832,
+        "p99": 0.163916,
+        "p999": 0.198333,
+        "min": 0.062708,
+        "max": 1.534452
+      },
+      "observation_ms": {
+        "samples": 11619,
+        "mean": 0.019714588346673553,
+        "p50": 0.01925,
+        "p95": 0.028,
+        "p99": 0.034417,
+        "p999": 0.064749,
+        "min": 0.010208,
+        "max": 0.144957
+      },
+      "policy_evaluate_ms": {
+        "samples": 11619,
+        "mean": 0.008774623891901196,
+        "p50": 0.008458,
+        "p95": 0.011667,
+        "p99": 0.014292,
+        "p999": 0.034708,
+        "min": 0.00525,
+        "max": 0.081667
+      },
+      "wbc_wall_ms": {
+        "samples": 11619,
+        "mean": 1.1180036995438505,
+        "p50": 0.974163,
+        "p95": 1.588993,
+        "p99": 1.791993,
+        "p999": 2.163867,
+        "min": 0.766497,
+        "max": 3.019904
+      },
+      "compute_ms": {
+        "samples": 11619,
+        "mean": 1.2505214317066873,
+        "p50": 1.096371,
+        "p95": 1.764868,
+        "p99": 1.987117,
+        "p999": 2.421115,
+        "min": 0.853996,
+        "max": 3.163696
+      },
+      "estimate_valid_cycles": 11619,
+      "policy_valid_cycles": 11619,
+      "policy_fresh_cycles": 11619,
+      "wbc_executed_cycles": 11619,
+      "wbc_valid_cycles": 11619,
+      "solver_healthy_cycles": 11619,
+      "policy_age_ms": {
+        "samples": 11619,
+        "mean": 12.318675589730965,
+        "p50": 12.0743679999578,
+        "p95": 24.381194000398,
+        "p99": 26.9401830000788,
+        "p999": 30.750585000078,
+        "min": 0.00466699975731899,
+        "max": 34.0545710000697
+      },
+      "mpc_solve_ms_new_policies": {
+        "samples": 1107,
+        "mean": 27.03549364046974,
+        "p50": 26.82185,
+        "p95": 29.623964,
+        "p99": 32.476952,
+        "p999": 35.570065,
+        "min": 13.79432,
+        "max": 35.570065
+      },
+      "policy_age_over_40ms_cycles": 0,
+      "isolated_real_imu_consumer": {
+        "cycles": 0,
+        "imu_read_to_estimator_ms": {
+          "samples": 0
+        },
+        "ahrs_read_to_estimator_ms": {
+          "samples": 0
+        }
+      }
+    },
+    "valid_motor_replies": 139428,
+    "motor_attempts": 139428,
+    "unsafe_or_invalid_encoded_packets": 0,
+    "shutdown_zero_packets": 12,
+    "new_policy_receptions": 1107,
+    "new_policy_reception_hz": 36.89894670111694,
+    "shadow_write_to_next_sdk_start_p99_ms_by_motor": {
+      "0": 1.135162,
+      "1": 1.432953,
+      "2": 1.736285,
+      "3": 1.13837,
+      "4": 1.434411,
+      "5": 1.740951,
+      "6": 1.139537,
+      "7": 1.435577,
+      "8": 1.73891,
+      "9": 1.141578,
+      "10": 1.434411,
+      "11": 1.738034
+    }
+  },
+  "stage_3_IMU": {
+    "serial_write_calls": 0,
+    "capture_duration_s": 30.376625023,
+    "frame_counts": {
+      "0x41": 3036,
+      "0x40": 3035,
+      "0xf0": 30
+    },
+    "errors": {
+      "discarded_bytes": 14
+    },
+    "streams": {
+      "imu": {
+        "frames": 3035,
+        "device_interval_us": {
+          "samples": 3034,
+          "mean": 10000.0,
+          "p50": 10000,
+          "p95": 10000,
+          "p99": 10005,
+          "p999": 10082,
+          "min": 9916,
+          "max": 10084
+        },
+        "nonincreasing_device_timestamps": 0,
+        "host_retrieval_interval_ms": {
+          "samples": 3034,
+          "mean": 9.99994046110745,
+          "p50": 9.999652,
+          "p95": 10.110776,
+          "p99": 10.161334,
+          "p999": 10.73504,
+          "min": 7.065889,
+          "max": 13.142155
+        },
+        "read_to_parse_ms": {
+          "samples": 3035,
+          "mean": 0.10353728995057661,
+          "p50": 0.111123,
+          "p95": 0.145249,
+          "p99": 0.20183,
+          "p999": 0.295748,
+          "min": 0.013417,
+          "max": 0.706122
+        },
+        "relative_host_device_phase_us": {
+          "samples": 3035,
+          "mean": -26.436020757820348,
+          "p50": -19.57799999974668,
+          "p95": 142.15999999991618,
+          "p99": 193.74799999967217,
+          "p999": 879.3960000000079,
+          "min": -396.0810000002384,
+          "max": 3073.895999999717
+        },
+        "cross_read_frames": 0
+      },
+      "ahrs": {
+        "frames": 3036,
+        "device_interval_us": {
+          "samples": 3035,
+          "mean": 10000.000329489292,
+          "p50": 10000,
+          "p95": 10000,
+          "p99": 10005,
+          "p999": 10084,
+          "min": 9915,
+          "max": 10084
+        },
+        "nonincreasing_device_timestamps": 0,
+        "host_retrieval_interval_ms": {
+          "samples": 3035,
+          "mean": 9.999889052059308,
+          "p50": 9.999944,
+          "p95": 10.08861,
+          "p99": 10.171442,
+          "p999": 11.045664,
+          "min": 8.084596,
+          "max": 11.88846
+        },
+        "read_to_parse_ms": {
+          "samples": 3036,
+          "mean": 0.11743424999999999,
+          "p50": 0.128332,
+          "p95": 0.155748,
+          "p99": 0.194249,
+          "p999": 0.385869,
+          "min": 0.016917,
+          "max": 1.45191
+        },
+        "relative_host_device_phase_us": {
+          "samples": 3036,
+          "mean": -117.00102898552282,
+          "p50": -119.71299999952316,
+          "p95": 43.79600000008941,
+          "p99": 96.33599999989383,
+          "p999": 998.0530000003055,
+          "min": -491.27800000086427,
+          "max": 1742.727000001818
+        },
+        "cross_read_frames": 0
+      }
+    },
+    "sequence": {
+      "all_observed_type_mod256_deltas": {
+        "1": 6040,
+        "2": 40,
+        "255": 20
+      },
+      "interpretation": "Raw sequence transitions; shared-counter semantics assumed, not independently proven packet loss."
+    },
+    "consumer_kind": "production estimator/NMPC/WBC code in isolated executable, synthetic standing joints, live device_type=1 IMU; not ROS callbacks",
+    "consumer_executed_cycles": 24068,
+    "consumer_available_cycles": 24067,
+    "consumer_executed_hz": 802.2648746476162,
+    "consumer_hardware_motor_ports_opened": false,
+    "consumer_input_age": {
+      "cycles": 24067,
+      "imu_read_to_estimator_ms": {
+        "samples": 24067,
+        "mean": 5.390854736527195,
+        "p50": 5.701421,
+        "p95": 9.856155,
+        "p99": 10.021819,
+        "p999": 10.106109,
+        "min": 0.067374,
+        "max": 12.744324
+      },
+      "ahrs_read_to_estimator_ms": {
+        "samples": 24067,
+        "mean": 6.338831225453942,
+        "p50": 6.657557,
+        "p95": 10.812808,
+        "p99": 10.960389,
+        "p999": 11.035055,
+        "min": 0.65158,
+        "max": 13.700112
+      }
+    },
+    "consumer_exit_code": 0
+  },
+  "conclusion": "本测试条件未满足1ms周期预算；通信回包全有效不等于持续1kHz控制可用。",
+  "limits": [
+    "All measurements use userspace CLOCK_MONOTONIC, not physical UART edges or motor sample/application timestamps.",
+    "The finite test uses absolute releases and skips expired slots; it is not the ROS controller_manager scheduler.",
+    "Control workload uses synthetic standing joints, real estimator/NMPC/WBC code and always discards numerical motor commands.",
+    "Policy age follows production backend reception semantics, not independently measured sensor-to-solve age.",
+    "Shadow write-to-send matches host ordering only; identical zero packets have no firmware command sequence echo.",
+    "P99.9 is an empirical finite-sample quantile, not a worst-case or long-term real-time guarantee.",
+    "read_start/end describe userspace retrieval; UART, USB and driver buffering before retrieval remain unmeasured.",
+    "Device timestamps and host monotonic timestamps are unsynchronized; relative phase removes only the initial offset.",
+    "No absolute sensor latency or internal filter delay can be inferred.",
+    "Consumer executes the production estimator/NMPC/WBC algorithms in an isolated harness, with synthetic standing joints.",
+    "The consumer is not the production ROS controller callback/executor; shared-memory locking/dispatch overhead is included.",
+    "IMU and AHRS records retain separate device/retrieval times; latest gyro and orientation need not be acquired simultaneously.",
+    "测试只覆盖站姿数值负载，没有Trot或生产ROS执行器/消息队列的完整时序。",
+    "执行频率由本探针的绝对时隙和跳过策略产生，不能当作生产控制器实际频率或电机最高通信频率。",
+    "未测量设备内部采样/滤波/电机应用时刻，不能把SDK往返或shadow等待直接作为仿真额外5ms延迟的替代值。"
+  ],
+  "raw_artifact_root": "log/timing_identification_20261116",
+  "artifacts": {
+    "01_parallel_io/cycles.csv": {
+      "bytes": 3776502,
+      "sha256": "ac2990b4aaeca4cabfb8b1ea44398915bfabc85e83dc4acee11ab6f951df6f2f"
+    },
+    "01_parallel_io/motors.csv": {
+      "bytes": 29875585,
+      "sha256": "a4bada1dd394323ce583a767e2b8f02f1c486b56592b436c6d36e2face643623"
+    },
+    "01_parallel_io/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "6b9cf06af25745ede726a6d25255013643a70132e0bb4dba49958920e555489a"
+    },
+    "01_parallel_io/summary.json": {
+      "bytes": 15421,
+      "sha256": "35472d0c519eda985c75faa6a26cbb5bd0ac7c9c429cfa2e7ba0b98695b3ac02"
+    },
+    "02_control/cycles.csv": {
+      "bytes": 3283928,
+      "sha256": "b82511a7740a1787090cffc3126f8bcf127c86451a3d6fd966bdecf31ed9c878"
+    },
+    "02_control/motors.csv": {
+      "bytes": 15512019,
+      "sha256": "9935fa633892afe32ea7032706b5373bb39a589569fcc8bf6c318b6b7593efed"
+    },
+    "02_control/shutdown.csv": {
+      "bytes": 1054,
+      "sha256": "454927eaa0567f4a2ff3955d0d85705c305996b2b500ea4543c1da7226af8e84"
+    },
+    "02_control/summary.json": {
+      "bytes": 16678,
+      "sha256": "583e0c6bbca0270e8f3d581afd8e987ed80ce1e9dad8dc466d8ec7e116608c80"
+    },
+    "03_imu/frames.csv": {
+      "bytes": 756136,
+      "sha256": "521fe42c29ff55eb849c3d3f1a7841d939ee78e73e9308709e1fc139617f435b"
+    },
+    "03_imu/reads.csv": {
+      "bytes": 223351,
+      "sha256": "42d70772e3c460a06cdc3f9c6198187790864a8acb02a143d2fe493f061381d0"
+    },
+    "03_imu/raw.bin": {
+      "bytes": 365020,
+      "sha256": "4a4450abe1def166cc4d4495edb3462f826fd2d02cc333b7e75b4705e3903870"
+    },
+    "03_imu/summary.json": {
+      "bytes": 3672,
+      "sha256": "08ec1b7cd1ac4c66f979ad313d67198f24cd1e036d312e541adcb486c28bc2aa"
+    },
+    "03_imu/consumer/cycles.csv": {
+      "bytes": 7959820,
+      "sha256": "f17b5224c71ebd15aa5dacac4d3f94fce09ea7dc3230552cc8787b27cbe32e21"
+    },
+    "03_imu/consumer/summary.json": {
+      "bytes": 5200,
+      "sha256": "9db4db59e60d605d3093791b1d8576873129465eb0abc623d01b0d632bbb937b"
+    },
+    "bin/probe_control_timing": {
+      "bytes": 7134840,
+      "sha256": "ae072e04aeaf3aed48ac963d77b687a5d7597383e78350b51186dabd12718cca"
+    },
+    "bin_imu/probe_control_timing": {
+      "bytes": 7109488,
+      "sha256": "17e2f9fc6fc77dd40845103876a3e225dadef423cde1520052daf1d36058700f"
+    }
+  },
+  "stage12_source_hashes_at_capture": {
+    "tools/probe_control_timing.cpp": "a8183e4d41664240bfdbce9d60b04c32466fc6cb4a2410ce9fb85e81d7294a4f",
+    "tools/control_timing_workload.hpp": "74197c2ea928e1b55c416335367ad8d30f88f9e44a3a8c6a8779486fe8d79ce0",
+    "tools/build_timing_probe.py": "d2ced3cab5db8c6e98411afde1e743cc39fd6879e4d896d3d5614648073d67a6",
+    "tools/analyze_timing_probe.py": "1d5696be3ee016cc4f0bbb31a63b86297bb3147dbae0015dcdb5bd8899ac843d",
+    "src/custom_dog_control/src/hardware/IOSDK.cpp": "5be273eb4c587638600f6e87e6a031e3ec18ed528d995b220af9f4c996bec7de",
+    "src/custom_dog_control/include/custom_dog_control/hardware/IOSDK.hpp": "86c25076b30843ef7645a2056f6043a84a93ba8041ddb2021c66ecf008e2a280",
+    "src/custom_dog_control/config/controllers.yaml": "2f3ac1c8abf99d792251e815b0402ca08f818e8b5d5c713c874ed1ff39f7a533",
+    "src/custom_dog_control/config/real_controller.yaml": "511f7a71407eaa60cba12c96f30929d3b5c0121b6f2083420829c380aaa5184e",
+    "src/custom_dog_control/config/nmpc/task.info": "adc14437708789d9ecfd4b3bfe462543e739d11af670feb8501755c665c3d51d",
+    "src/custom_dog_control/config/nmpc/reference.info": "bd2ccb5ec75fa59c84d2058db3dee173b7ef9dfe97be4229806d4364836d0ab7",
+    "src/custom_dog_description/urdf/custom_dog.urdf": "bf01f817cfb7fe3d0112333b7c6e767c441a80c03bd78f73a82c5c3b36540741",
+    "log/timing_identification_20261116/bin/probe_control_timing": "ae072e04aeaf3aed48ac963d77b687a5d7597383e78350b51186dabd12718cca"
+  },
+  "current_source_hashes": {
+    "tools/probe_control_timing.cpp": "5680ae1af8825ec7acfa5660bf81bce826c6adbcabb0681a30c524cc89485b24",
+    "tools/control_timing_workload.hpp": "f7052e606499f7df06afe0bf0f6f7855315d3e19b70ca667393afec6b528d7dd",
+    "tools/probe_imu_timing.py": "81c84e0514e81ccb502696345b3d4e618d36ed171c41e0cf5d67d35b9015999e",
+    "tools/analyze_timing_probe.py": "23ba0a35e4d6d2acf39612b4adc41a226c6528e5da0fdf50cb1235a6d81d1c22",
+    "tools/build_timing_probe.py": "d2ced3cab5db8c6e98411afde1e743cc39fd6879e4d896d3d5614648073d67a6",
+    "tools/run_timing_identification.py": "ac999849b66b8bae513b2b12abe625ac22059c560a2332350271c3dcf34a8ad7",
+    "src/custom_dog_control/include/custom_dog_control/hardware/IOSDK.hpp": "86c25076b30843ef7645a2056f6043a84a93ba8041ddb2021c66ecf008e2a280",
+    "src/custom_dog_control/src/hardware/IOSDK.cpp": "5be273eb4c587638600f6e87e6a031e3ec18ed528d995b220af9f4c996bec7de"
+  },
+  "harness_revision_note": "Stage 3 adds warmup with the first live IMU attitude to anchor the initial world heading, plus duration/error return status; stage1/2 used the preserved bin/probe_control_timing binary. Production IOSDK instrumentation is identical in both binaries.",
+  "production_macro_off_check": {
+    "macro_enabled": false,
+    "normalized_preprocessed_sources_identical": true,
+    "head_sha256": "40ef29b0d63c6532d7f15fbe77f84e3a1e5e92b50e95e3c4af0652fc6649103d",
+    "current_sha256": "40ef29b0d63c6532d7f15fbe77f84e3a1e5e92b50e95e3c4af0652fc6649103d"
+  },
+  "generated_external_workspaces_and_raw_logs_committed": false,
+  "source_hashes_at_IMU_capture": {
+    "tools/probe_control_timing.cpp": "5680ae1af8825ec7acfa5660bf81bce826c6adbcabb0681a30c524cc89485b24",
+    "tools/control_timing_workload.hpp": "f7052e606499f7df06afe0bf0f6f7855315d3e19b70ca667393afec6b528d7dd",
+    "tools/probe_imu_timing.py": "4b4d2a05b30975aae077e1c4be5b12066c1432d2b6b9d41872dc76b808d0f4b3",
+    "tools/analyze_timing_probe.py": "23ba0a35e4d6d2acf39612b4adc41a226c6528e5da0fdf50cb1235a6d81d1c22",
+    "tools/build_timing_probe.py": "d2ced3cab5db8c6e98411afde1e743cc39fd6879e4d896d3d5614648073d67a6",
+    "tools/run_timing_identification.py": "599587f950316076ac20bfd38c98513295c61961f4ce07432f27d3f6a5b9664d",
+    "src/custom_dog_control/include/custom_dog_control/hardware/IOSDK.hpp": "86c25076b30843ef7645a2056f6043a84a93ba8041ddb2021c66ecf008e2a280",
+    "src/custom_dog_control/src/hardware/IOSDK.cpp": "5be273eb4c587638600f6e87e6a031e3ec18ed528d995b220af9f4c996bec7de"
+  },
+  "post_capture_changes": "Consumer process groups are cleaned up on interruption/timeout; this affects only termination handling, not the measured data path.",
+  "checks": {
+    "standalone_zero_command_and_encoded_packet_self_test": "passed for both probe binaries; no serial device opened by self-test",
+    "IMU_protocol_fragmentation_CRC_and_shared_layout_self_tests": "3 passed",
+    "production_macro_off_compile": "passed; output object in ignored log directory",
+    "production_preprocessing_equivalence": true,
+    "packet_mode_payload_ID_and_CRC_checks": {
+      "stage1_invalid": 0,
+      "stage2_invalid": 0,
+      "shutdown_packets_checked": 24
+    },
+    "python_syntax_and_git_diff_check": "passed"
+  },
+  "serial_ports_released_after_all_phases": true
+}

@@ -76,21 +76,21 @@ nmpc_wbc_controller:
     # 起身插值结束后，向稳定站立增益平滑过渡的时间，单位 s；时间到达并不单独触发 WBC 接管。
     stand_up_settle_duration_s: 2.0
     # 起身阶段髋外展关节 Kp。
-    stand_up_hip_kp: 60.0
+    stand_up_hip_kp: 66.0
     # 起身阶段大腿关节 Kp；此处 leg 指大腿，不含小腿。
-    stand_up_leg_kp: 60.0
+    stand_up_leg_kp: 66.0
     # 起身阶段小腿关节 Kp。
-    stand_up_calf_kp: 90.0
+    stand_up_calf_kp: 99.0
     # 起身阶段十二个关节共同使用的 Kd。
-    stand_up_kd: 2.0
+    stand_up_kd: 1.2
     # 稳定起身/首次接管混合所用髋外展 Kp；默认模式下 WBC 短暂失败回退也使用这组增益。
-    stand_up_settle_hip_kp: 60.0
+    stand_up_settle_hip_kp: 66.0
     # 稳定起身的大腿 Kp。
-    stand_up_settle_leg_kp: 60.0
+    stand_up_settle_leg_kp: 66.0
     # 稳定起身的小腿 Kp。
-    stand_up_settle_calf_kp: 90.0
+    stand_up_settle_calf_kp: 99.0
     # 稳定起身十二关节共同使用的 Kd。
-    stand_up_settle_kd: 2.0
+    stand_up_settle_kd: 1.2
     # 允许进入 MPC_STANCE 的逐关节位置误差上限，单位 rad；比较对象是 stand_up_joint_positions。
     stand_up_position_tolerance_rad: 0.20
     # 起身交接所需的逐关节速度绝对值上限，单位 rad/s。
@@ -101,13 +101,13 @@ nmpc_wbc_controller:
     handoff_duration_s: 2.0
     # MPC_STANCE/TROT 大腿关节 Kp，单位 N·m/rad；名称含 joint，但髋和小腿由下两项单独设置。
     # 这是执行器关节 PD，与 task.info 中足端/机身任务空间 PD、QP 任务权重不同。
-    wbc_joint_stiffness: 60.0
+    wbc_joint_stiffness: 38.4
     # MPC_STANCE/TROT 髋外展关节 Kp，单位 N·m/rad。
-    wbc_hip_stiffness: 60.0
+    wbc_hip_stiffness: 38.4
     # MPC_STANCE/TROT 小腿关节 Kp，单位 N·m/rad。
-    wbc_calf_stiffness: 90.0
+    wbc_calf_stiffness: 57.6
     # MPC_STANCE/TROT 十二关节共同使用的 Kd，单位 N·m·s/rad。
-    wbc_joint_damping: 2.0
+    wbc_joint_damping: 2.2
     # 关节速度目标的变化率上限，单位 rad/s²；同一整形后 dq 供 WBC 和电机 PD 使用。
     # 默认路径仅整形 dq，q 仍来自策略并受安全投影，不保证整形后的 dq 是 q 的严格时间导数。
     wbc_joint_velocity_acceleration_limit: 400.0
@@ -182,13 +182,13 @@ nmpc_wbc_controller:
        0.0, 0.715631114, -1.454556830,
        0.0, 0.713540237, -1.455606346]
     # 起身 PD 的位置目标，单位 rad，顺序同上；与名义构型不同，预先加入静力偏置：
-    # q_target=q_nominal+(g−Jᵀf)/Kp，按 15.15 kg 模型及稳定 Kp=60/60/90 估算。
+    # q_target=q_nominal+(g−Jᵀf)/Kp，按 15.15 kg 模型及稳定 Kp=66/66/99 估算。
     # 这是以位置偏置产生的重力/支撑补偿，不是额外 FF；改质量、姿态或稳定 Kp 后需复核，程序不会自动重算。
     stand_up_joint_positions:
-      [0.037211552, 0.720521938, -1.401114627,
-      -0.037725925, 0.720229885, -1.400835219,
-       0.042377004, 0.720018873, -1.395839320,
-      -0.042684870, 0.717913594, -1.396568930]
+      [0.033828683636, 0.720122692091, -1.405949174091,
+      -0.034296295455, 0.719829147636, -1.405710378364,
+       0.038524549091, 0.719619985818, -1.401177275455,
+      -0.038804427273, 0.717516016091, -1.401935967818]
     # 仿真碰撞沉降后的趴姿保持角，单位 rad，顺序同上。
     # 真机 START 标定会独立把实际趴姿映射到逻辑关节坐标，并不使用此仿真髋角作为真机标定角。
     passive_joint_positions:

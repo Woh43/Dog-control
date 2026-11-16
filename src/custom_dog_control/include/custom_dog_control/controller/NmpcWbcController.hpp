@@ -22,6 +22,8 @@
 #include "custom_dog_control/control/HostTotalTorqueCommand.hpp"
 #include "custom_dog_control/control/SimulationEffortDelay.hpp"
 #include "custom_dog_control/control/TimingStatistics.hpp"
+#include "custom_dog_control/diagnostics/CycleTrace.hpp"
+#include "custom_dog_control/diagnostics/CycleTraceTypes.hpp"
 #include "custom_dog_control/nmpc/KinematicStateEstimator.hpp"
 #include "custom_dog_control/nmpc/NmpcBackend.hpp"
 #include "custom_dog_control/safety/SafetyMonitor.hpp"
@@ -84,6 +86,9 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
       std::size_t estimator_contact_mode);
   bool IsRealHardware() const { return hardware_mode_ == "real"; }
   bool IsHybridSimulation() const { return hardware_mode_ == "fortress_hybrid"; }
+  void RecordCycleTrace(const rclcpp::Time& manager_time, std::uint64_t start_ns,
+                       double imu_use_ros_s, bool evaluated, bool available, double policy_age,
+                       const WbcOutput& wbc);
 
   std::vector<std::string> joints_;
   std::string hardware_mode_ = "gazebo";
@@ -196,6 +201,8 @@ class NmpcWbcController final : public controller_interface::ControllerInterface
   std::unique_ptr<NmpcBackend> backend_;
   std::unique_ptr<KinematicStateEstimator> estimator_;
   std::unique_ptr<SafetyMonitor> safety_monitor_;
+  std::unique_ptr<diagnostics::CycleTrace<diagnostics::ControllerCycleRecord>> cycle_trace_;
+  std::uint64_t cycle_trace_sequence_ = 0;
 
   // 回调与控制线程之间传递完整样本，避免读取到同一消息的部分更新字段。
   realtime_tools::RealtimeBuffer<ImuSample> imu_buffer_;

@@ -1,13 +1,14 @@
 import atexit
+import math
 import os
 from pathlib import Path
 import shutil
 import tempfile
 
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix, get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
-    DeclareLaunchArgument, OpaqueFunction, SetEnvironmentVariable,
+    DeclareLaunchArgument, ExecuteProcess, LogInfo, OpaqueFunction, SetEnvironmentVariable,
     SetLaunchConfiguration, TimerAction,
 )
 from launch.conditions import IfCondition
@@ -18,6 +19,16 @@ from launch_ros.parameter_descriptions import ParameterValue
 import yaml
 
 
+def _positive_integer(value, name):
+    try:
+        result = int(str(value).strip())
+    except ValueError as error:
+        raise ValueError(f'{name} must be a positive integer') from error
+    if result <= 0:
+        raise ValueError(f'{name} must be a positive integer')
+    return result
+
+
 def _configure_controllers(context, common_file, real_file, canonical_urdf):
     config = yaml.safe_load(Path(common_file).read_text())
     overrides = yaml.safe_load(Path(real_file).read_text())
@@ -25,6 +36,28 @@ def _configure_controllers(context, common_file, real_file, canonical_urdf):
         config.setdefault(node_name, {}).setdefault('ros__parameters', {}).update(
             node['ros__parameters'])
     parameters = config['nmpc_wbc_controller']['ros__parameters']
+    manager = config['controller_manager']['ros__parameters']
+    previous_hz = _positive_integer(manager['update_rate'], 'controller update_rate')
+    previous_failures = _positive_integer(
+        parameters['max_consecutive_wbc_failures'], 'max_consecutive_wbc_failures')
+    frequency_override = LaunchConfiguration('control_frequency_hz').perform(context).strip()
+    if frequency_override:
+        frequency_hz = _positive_integer(frequency_override, 'control_frequency_hz')
+        if frequency_hz < previous_hz:
+            # Preserve or tighten the nominal WBC failure-time budget. Reject
+            # rates where even one failed cycle would exceed the old budget.
+            # Actual wall-clock response still depends on scheduling and IO.
+            if frequency_hz * previous_failures < previous_hz:
+                raise ValueError(
+                    'control_frequency_hz is too low: one control period would '
+                    'exceed the original nominal WBC failure-time budget')
+            parameters['max_consecutive_wbc_failures'] = max(
+                1, min(previous_failures,
+                       previous_failures * frequency_hz // previous_hz))
+        manager['update_rate'] = frequency_hz
+    mpc_hz = float(parameters['mpc_frequency_hz'])
+    if not math.isfinite(mpc_hz) or mpc_hz <= 0.0:
+        raise ValueError('mpc_frequency_hz must be finite and positive')
     # Hardware parameters and temporary robot_description paths do not change
     # the model dynamics. Use the same canonical model as the physics tests.
     parameters['urdf_file'] = canonical_urdf
@@ -39,10 +72,44 @@ def _configure_controllers(context, common_file, real_file, canonical_urdf):
     runtime = Path(tempfile.mkdtemp(prefix='custom_dog_real_'))
     atexit.register(shutil.rmtree, runtime, ignore_errors=True)
     path = runtime / 'controllers.yaml'
-    path.write_text(yaml.safe_dump(config, sort_keys=False))
-    return [SetLaunchConfiguration('real_controllers_file', str(path)),
+    contents = yaml.safe_dump(config, sort_keys=False)
+    path.write_text(contents)
+    # Keep the exact merged parameters beside the diagnostics after the
+    # temporary launch file is removed, including explicit timing candidates.
+    snapshot = Path(launch_config.log_dir) / 'real-controllers.yaml'
+    snapshot.write_text(contents)
+    timing_message = (
+        f'Real control timing: {previous_hz} -> {manager["update_rate"]} Hz; '
+        f'WBC failure cycles {previous_failures} -> '
+        f'{parameters["max_consecutive_wbc_failures"]}; '
+        f'NMPC {mpc_hz:g} Hz; policy age limit {2.0 / mpc_hz:g} s; '
+        + ('candidate, requires standing validation; ' if frequency_override else '')
+        + f'parameters saved to {snapshot}')
+    return [LogInfo(msg=timing_message),
+            SetLaunchConfiguration('real_controllers_file', str(path)),
             SetLaunchConfiguration('real_motor_pd_signed_budget',
                 'true' if float(parameters.get('motor_pd_budget_horizon_s', 0.0)) > 0.0 else 'false')]
+
+
+def _configure_cycle_trace(context):
+    requested = LaunchConfiguration('cycle_trace').perform(context).lower()
+    if requested not in ('true', 'false', '1', '0'):
+        raise ValueError('cycle_trace must be true or false')
+    directory = ''
+    if requested in ('true', '1'):
+        path = Path(launch_config.log_dir) / 'cycle-trace'
+        # A reused/non-directory path must never redirect trace output. Native
+        # writers additionally use O_NOFOLLOW and O_EXCL for every file.
+        try:
+            path.mkdir(mode=0o700)
+            directory = str(path)
+        except OSError as error:
+            return [SetLaunchConfiguration('cycle_trace_directory', ''),
+                    LogInfo(msg=f'Cycle trace disabled: cannot create {path}: {error}')]
+    return [SetLaunchConfiguration('cycle_trace_directory', directory),
+            LogInfo(msg=(f'Cycle trace: {directory}; each stream keeps first + newest 3 x 64 MiB, '
+                         'background writer; packets are host send attempts, not measured torque'
+                         if directory else 'Cycle trace disabled'))]
 
 
 def generate_launch_description():
@@ -91,6 +158,7 @@ def generate_launch_description():
             LaunchConfiguration('real_controllers_file'),
             {'robot_description': robot_description},
         ],
+        additional_env={'CUSTOM_DOG_CYCLE_TRACE_DIR': LaunchConfiguration('cycle_trace_directory')},
         output='both',
     )
     state_publisher = Node(
@@ -170,6 +238,20 @@ def generate_launch_description():
             launch_config.log_dir, 'control-diagnostics.jsonl')}],
         output='both',
     )
+    bag_recorder = ExecuteProcess(
+        cmd=[
+            os.path.join(get_package_prefix('custom_dog_control'), 'lib',
+                         'custom_dog_control', 'record_latest_rosbag.py'),
+            '--output-dir', LaunchConfiguration('bag_directory'),
+            '--qos-profile-overrides-path',
+            os.path.join(package_share, 'config', 'rosbag_qos.yaml'),
+        ],
+        condition=IfCondition(LaunchConfiguration('record_bag')),
+        # Allow the recorder to flush SQLite and rebuild metadata after pruning.
+        sigterm_timeout='30',
+        sigkill_timeout='10',
+        output='both',
+    )
 
     return LaunchDescription([
         # Keep SDK stdout and ROS/Python diagnostics in launch.log as well as
@@ -182,6 +264,14 @@ def generate_launch_description():
             'require_physical_estop_confirmation', default_value='true',
             description='Require manual confirmation before activation; not an E-stop input'),
         DeclareLaunchArgument('task_file', default_value=''),
+        DeclareLaunchArgument(
+            'cycle_trace', default_value='true',
+            description='Record bounded per-update controller and final SDK packets in this ROS log directory'),
+        OpaqueFunction(function=_configure_cycle_trace),
+        DeclareLaunchArgument(
+            'control_frequency_hz', default_value='',
+            description='Explicit positive-integer control-rate candidate; empty inherits YAML. '
+                        'Lower rates tighten WBC failure cycles; requires standing validation.'),
         DeclareLaunchArgument('startup_alignment_enabled', default_value='false'),
         DeclareLaunchArgument('fr_port', default_value='/dev/ttyS3'),
         DeclareLaunchArgument('fl_port', default_value='/dev/ttyS4'),
@@ -204,9 +294,19 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'record_diagnostics', default_value='true',
             description='Save controller diagnostics beside launch.log'),
+        DeclareLaunchArgument(
+            'record_bag', default_value='true',
+            description='Replace the previous automatic bag; keep startup and newest splits'),
+        DeclareLaunchArgument(
+            'bag_directory',
+            default_value=os.environ.get(
+                'CUSTOM_DOG_ROSBAG_DIR',
+                os.path.expanduser('~/.ros/custom_dog/rosbag/latest')),
+            description='Dedicated recorder-owned latest directory; other logs are not removed'),
         OpaqueFunction(
             function=_configure_controllers,
             args=[controllers, real_override, canonical_urdf]),
+        bag_recorder,
         control_node,
         state_publisher,
         imu,

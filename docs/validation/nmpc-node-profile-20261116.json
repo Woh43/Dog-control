@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-16",
+  "git_head": "a6bb736f29f17e6868c6cf24852fc32aea9dbdd1",
+  "scope": "20-second device-free numerical workload with fixed synthetic joint/IMU observations; numerical outputs discarded. No ROS controller or motor device opened. Test-only WBC reuse enabled. No production controller frequency, solver settings, OCS2 archive or installed plugin changed by this profile.",
+  "configuration": {
+    "phase": "offline",
+    "requested_duration_s": 20,
+    "target_hz": 250,
+    "mpc_hz": 50,
+    "mpc_threads": 2,
+    "policy_age_limit_ms": 40,
+    "wbc_reuse": true,
+    "wbc_paired_comparison": false,
+    "cpu_affinity": "4,5",
+    "nmpc_cpu_affinity_request": "6-7",
+    "scheduler_policy": 0,
+    "motor_ports_opened": false,
+    "completed_requested_duration": true,
+    "solver_failed": false
+  },
+  "measurement_epoch": {
+    "begin_ns": 6144517342973,
+    "finish_ns": 6164517407407,
+    "cpu_samples": 200,
+    "thread_samples": 19
+  },
+  "counts": {
+    "estimate_valid": 4999,
+    "policy_valid": 4999,
+    "policy_fresh": 4995,
+    "wbc_executed": 4995,
+    "wbc_valid": 4995,
+    "solver_healthy": 4999,
+    "new_policy": 734,
+    "cycles": 4999,
+    "stale_policy_cycles": 4,
+    "policy_age_over_40ms": 4
+  },
+  "stages": {
+    "dynamics_discretization": {
+      "calls": 100209,
+      "mean_wall_us": 61.22668347154447,
+      "mean_cpu_us": 60.22657825145446,
+      "sum_wall_ms_across_workers": 6135.464724,
+      "sum_cpu_ms_across_workers": 6035.24518,
+      "fraction_of_intermediate_child_cpu": 0.2560121085097071,
+      "fraction_of_intermediate_child_accumulated_wall": 0.2552451280757907,
+      "fraction_of_instrumented_exclusive_cpu": 0.2203096011719082
+    },
+    "precomputation": {
+      "calls": 100209,
+      "mean_wall_us": 37.33872852737778,
+      "mean_cpu_us": 36.69379660509535,
+      "sum_wall_ms_across_workers": 3741.676647,
+      "sum_cpu_ms_across_workers": 3677.048664,
+      "fraction_of_intermediate_child_cpu": 0.15597858139765608,
+      "fraction_of_intermediate_child_accumulated_wall": 0.1556597222775769,
+      "fraction_of_instrumented_exclusive_cpu": 0.13422638194386294
+    },
+    "cost": {
+      "calls": 100209,
+      "mean_wall_us": 54.59778815276073,
+      "mean_cpu_us": 53.71230665908252,
+      "sum_wall_ms_across_workers": 5471.189753,
+      "sum_cpu_ms_across_workers": 5382.456538,
+      "fraction_of_intermediate_child_cpu": 0.22832113794177927,
+      "fraction_of_intermediate_child_accumulated_wall": 0.22761022873602274,
+      "fraction_of_instrumented_exclusive_cpu": 0.19648031154417986
+    },
+    "state_equality": {
+      "calls": 100209,
+      "mean_wall_us": 0.8348690237403825,
+      "mean_cpu_us": 0.41273585206917546,
+      "sum_wall_ms_across_workers": 83.66139,
+      "sum_cpu_ms_across_workers": 41.359847,
+      "fraction_of_intermediate_child_cpu": 0.0017544642052319875,
+      "fraction_of_intermediate_child_accumulated_wall": 0.0034804473933356564,
+      "fraction_of_instrumented_exclusive_cpu": 0.0015097930780504172
+    },
+    "state_input_equality": {
+      "calls": 100209,
+      "mean_wall_us": 80.98096464389425,
+      "mean_cpu_us": 80.16574640002396,
+      "sum_wall_ms_across_workers": 8115.021486,
+      "sum_cpu_ms_across_workers": 8033.329281,
+      "fraction_of_intermediate_child_cpu": 0.3407698455063559,
+      "fraction_of_intermediate_child_accumulated_wall": 0.33759784983026875,
+      "fraction_of_instrumented_exclusive_cpu": 0.2932473358074447
+    },
+    "state_inequality": {
+      "calls": 100209,
+      "mean_wall_us": 0.8363457074713848,
+      "mean_cpu_us": 0.416172838766977,
+      "sum_wall_ms_across_workers": 83.809367,
+      "sum_cpu_ms_across_workers": 41.704264,
+      "fraction_of_intermediate_child_cpu": 0.0017690742036242297,
+      "fraction_of_intermediate_child_accumulated_wall": 0.003486603472787882,
+      "fraction_of_instrumented_exclusive_cpu": 0.0015223656197854698
+    },
+    "state_input_inequality": {
+      "calls": 100209,
+      "mean_wall_us": 4.058673831691764,
+      "mean_cpu_us": 3.621607679948907,
+      "sum_wall_ms_across_workers": 406.715646,
+      "sum_cpu_ms_across_workers": 362.917684,
+      "fraction_of_intermediate_child_cpu": 0.015394788235645399,
+      "fraction_of_intermediate_child_accumulated_wall": 0.016920020214217426,
+      "fraction_of_instrumented_exclusive_cpu": 0.013247887672439616
+    },
+    "projection": {
+      "calls": 100211,
+      "mean_wall_us": 38.625301224416475,
+      "mean_cpu_us": 37.95831849796928,
+      "sum_wall_ms_across_workers": 3870.680061,
+      "sum_cpu_ms_across_workers": 3803.841055,
+      "fraction_of_instrumented_exclusive_cpu": 0.138854790609912
+    },
+    "intermediate_inclusive": {
+      "calls": 100209,
+      "mean_wall_us": 241.24331175842488,
+      "mean_cpu_us": 240.06164498198766,
+      "sum_wall_ms_across_workers": 24174.751028,
+      "sum_cpu_ms_across_workers": 24056.337382
+    },
+    "terminal_inclusive": {
+      "calls": 1470,
+      "mean_wall_us": 2.0396619047619047,
+      "mean_cpu_us": 1.5886979591836734,
+      "sum_wall_ms_across_workers": 2.998303,
+      "sum_cpu_ms_across_workers": 2.335386,
+      "fraction_of_instrumented_exclusive_cpu": 8.5250547889499e-05
+    },
+    "event_inclusive": {
+      "calls": 3673,
+      "mean_wall_us": 4.314746528723115,
+      "mean_cpu_us": 3.8505924312551048,
+      "sum_wall_ms_across_workers": 15.848064,
+      "sum_cpu_ms_across_workers": 14.143226,
+      "fraction_of_instrumented_exclusive_cpu": 0.0005162820045273061
+    }
+  },
+  "health_and_timing": {
+    "cycles": 4999,
+    "valid_estimates": 4999,
+    "valid_wbc": 4995,
+    "fresh_policies": 4995,
+    "solver_healthy": 4999,
+    "adopted_policies": 734,
+    "control_ms": {
+      "samples": 4999,
+      "mean": 1.6397148273654731,
+      "p50": 1.672103,
+      "p99": 2.388426,
+      "max": 3.578703
+    },
+    "new_policy_mpc_solve_ms": {
+      "samples": 734,
+      "mean": 27.164295257493187,
+      "p50": 26.727688,
+      "p99": 31.913744,
+      "max": 51.066657
+    }
+  },
+  "worker_validation": {
+    "worker_affinity_verified": true,
+    "worker_snapshots": {
+      "31968": {
+        "observations": 19,
+        "names": [
+          "dog-timing-ctrl"
+        ],
+        "affinities": [
+          [
+            6,
+            7
+          ]
+        ],
+        "last_cpus": [
+          6,
+          7
+        ],
+        "cpu_ticks_advanced": 1508
+      },
+      "31969": {
+        "observations": 19,
+        "names": [
+          "dog-timing-mpc"
+        ],
+        "affinities": [
+          [
+            6,
+            7
+          ]
+        ],
+        "last_cpus": [
+          6,
+          7
+        ],
+        "cpu_ticks_advanced": 1827
+      }
+    },
+    "frequency_observations": {
+      "policy0_scaling_cur_freq": {
+        "min_khz": 1800000,
+        "max_khz": 1800000,
+        "mean_khz": 1800000
+      },
+      "policy4_scaling_cur_freq": {
+        "min_khz": 600000,
+        "max_khz": 2400000,
+        "mean_khz": 1326240
+      },
+      "policy6_scaling_cur_freq": {
+        "min_khz": 2400000,
+        "max_khz": 2400000,
+        "mean_khz": 2400000
+      }
+    },
+    "governor_comparison": {
+      "fixed_performance_comparison": "skipped_not_performance",
+      "governor_request": "any",
+      "performance_governor_present": false,
+      "restoration_required": false,
+      "scope": "Observation only. CPU frequency may change under thermal or power limits even with performance governor.",
+      "system_mutations": []
+    }
+  },
+  "timing_semantics": {
+    "wall_clock": "CLOCK_MONOTONIC",
+    "cpu_clock": "CLOCK_THREAD_CPUTIME_ID",
+    "node_capture": "begin called after numerical warmup; Stop drains the final in-flight solve before end writes worker-local counters. Each intermediate node pins its capture decision for all seven children.",
+    "measurement_epoch_samples": "CPU and thread snapshots filtered to begin_ns..finish_ns; stage counters may extend through the final drained solve.",
+    "intermediate_fraction_denominator": "Sum of CPU durations of the seven non-overlapping intermediate child scopes, accumulated across both workers.",
+    "exclusive_fraction_denominator": "Seven intermediate children plus projection, terminal-inclusive and event-inclusive CPU durations. Intermediate-inclusive is excluded to prevent double counting.",
+    "accumulated_wall": "Wall duration sums across overlapping workers; not elapsed SQP wall time or CPU utilization.",
+    "unattributed_intermediate_inclusive_cpu_ms": 482.275924,
+    "unattributed_intermediate_inclusive_accumulated_wall_ms": 137.212015,
+    "ring_limit": "Node counters are whole-capture accumulators and are not limited by the separate OCS2 SQP ring. The SQP CSV logging ring retains only the last 1000 iterations/500 two-iteration problems; it is not the source of these node-stage percentages.",
+    "instrumentation_overhead": "Every active scope reads two monotonic and two thread-CPU timestamps and updates counters. Empty-scope self-test was about 2.04 us wall / 0.98 us CPU under unfixed CPU conditions; this is not a correction constant for the measured run. Use uninstrumented runs for end-to-end P99 and speedup claims."
+  },
+  "implementation": {
+    "method": "Reuse existing four timing-probe objects; instrumented Transcription.o linked before unchanged static archives. No recompilation.",
+    "vendor_source": "external/ocs2_ws/src/ocs2/ocs2_oc/src/multiple_shooting/Transcription.cpp",
+    "vendor_sha256": "7d025a0467d06afa8b311aedc1ff176175c0a0412dbc8d035212a4af88115e3f",
+    "generated_transcription_sha256": "889926cfad4df6af37079b1b69bc876484f15d8bf99ba702f9fcb0163e1aa4e1",
+    "object_sha256": "e7df341fe26e2459c8a4be6e88eb11120163decad2abdca7f6312bfab6f76704",
+    "binary_sha256": "91a8861c9efcdb5aaffc7b54eeda02d5fd3c2cf04e7df00ecef429f36c1151db",
+    "input_objects_sha256": {
+      "log/optimization_validation_20261116/bin/probe.o": "ea05084e9df4192b4ad63117e84522e9ae92d73f9753085d170bd0d4d8e96591",
+      "log/optimization_validation_20261116/bin/backend.o": "1f53b0724905f24beccc2e3dceee8974eb7589b7d740785b34ae0a99cf64d548",
+      "log/optimization_validation_20261116/bin/wbc.o": "6de73b4534c1f2d96d00e3479ce2c9a62e379fa1a49bea44129d90f6d91322c2",
+      "log/optimization_validation_20261116/bin/iosdk.o": "4d624511b284d357b611442e72f97d5328cc4a09678b5ec38610df7e3034cd1c",
+      "log/optimization_validation_20261116/nmpc_profile_object/transcription.o": "e7df341fe26e2459c8a4be6e88eb11120163decad2abdca7f6312bfab6f76704"
+    },
+    "link_provenance": "log/optimization_validation_20261116/bin_profile/link_provenance.json",
+    "source_review": "log/optimization_validation_20261116/nmpc_profile/source_findings.json",
+    "source_sha256": {
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/LeggedInterface.cpp": "7fa1eb1d56bc3f5d30c654a7c919dcda1122a025f6de6b905282d5c252b48c7c",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/constraint/ZeroVelocityConstraintCppAd.cpp": "fcdd35824fa925a15ffd712dcf88e913d9b4c874c1851cc1bf11c5ecac4c61d3",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/constraint/NormalVelocityConstraintCppAd.cpp": "39f4b4d09439b68223595fa11fee1813c4f1b00ca2d7f25a43bfd15c0722bdf1",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/constraint/ZeroForceConstraint.cpp": "a6fd4efc8511b0dc01926a74a80d78fcb095284c27b03dc554c7771ba242e016",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/constraint/EndEffectorLinearConstraint.cpp": "248959c29d54c7f8fc3560eb37cf223f92be842cfd83ac497788c3ed66b6c79f",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/src/LeggedRobotPreComputation.cpp": "918d673ca1bc728937950f05d040caeb173b44c48c768b61a0d26384b57b5237",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/include/legged_interface/cost/LeggedRobotQuadraticTrackingCost.h": "c44e25c9c440152420a1467e5557999382d0cbb1068b9ccd89d20007c5b4d80f",
+      "src/custom_dog_control/third_party/legged_control/legged_interface/include/legged_interface/constraint/LeggedSelfCollisionConstraint.h": "12d5a379d0fd15db8ef9a9799ac7b7167022d63533fdee0d41ea5a3b3f43ef7c",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_pinocchio_interface/src/PinocchioEndEffectorKinematicsCppAd.cpp": "4148df930b700e4eaa16b1d40cc97a5c2295cf013fb7b984f541631882f26541",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_pinocchio_interface/src/PinocchioEndEffectorKinematics.cpp": "b5fa7619a74bed0f91fd203266034135941453ba6558a2517253e6b0f4507b4e",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_centroidal_model/src/ModelHelperFunctions.cpp": "e8988013d2e9875370c1ced76c2392690afc3cd41d67ba5f48f54f1fa85f82ba",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_centroidal_model/src/CentroidalModelPinocchioMapping.cpp": "2e552e509063ae45c03d4c5deb3fe0f26d8dad603ba2f3b95d42abbab9948227",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_self_collision/src/SelfCollisionConstraint.cpp": "a0d416d12e169b97f541ecac98f44471dfb9d1ff5388c84ef156870e81b451b4",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_self_collision/src/SelfCollision.cpp": "b1cd1b81779d85e20c4255f3215a082f8341b2ae3710de963854424635573319",
+      "external/ocs2_ws/src/ocs2/ocs2_pinocchio/ocs2_self_collision/src/PinocchioGeometryInterface.cpp": "c7b26117fe39bda664f0718dbcc161342b295d0e476266b7072383890687a240",
+      "external/ocs2_ws/src/ocs2/ocs2_core/src/soft_constraint/StateSoftConstraint.cpp": "da693cc0511fb8bec708c6ccc21b92c6d6d5d2357c1d98f639798bb9f304e331",
+      "external/ocs2_ws/src/ocs2/ocs2_core/src/cost/QuadraticStateInputCost.cpp": "fb04fcfcd07209af4b45ba91c2d0a7492073f2bb07726c19b8467e24304fc97f",
+      "external/ocs2_ws/src/ocs2/ocs2_oc/src/approximate_model/LinearQuadraticApproximator.cpp": "5f702cf00d6d430cd1d317bfdb220c57fab3bc370473aaabe149febbec8fdf7d",
+      "external/ocs2_ws/src/ocs2/ocs2_oc/src/multiple_shooting/Transcription.cpp": "7d025a0467d06afa8b311aedc1ff176175c0a0412dbc8d035212a4af88115e3f",
+      "external/ocs2_ws/src/ocs2/ocs2_sqp/ocs2_sqp/src/SqpSolver.cpp": "8ac63604e468527a1e693487af7bdac4a618633fbf39df6b9b5045f075e96e84",
+      "src/custom_dog_control/config/nmpc/task.info": "adc14437708789d9ecfd4b3bfe462543e739d11af670feb8501755c665c3d51d",
+      "tools/profile_nmpc_stages.hpp": "85e63bd5bb9253784ab3772380a04d078a911d441b54929a2d1457512bac4faa",
+      "tools/build_nmpc_profile.py": "73abd1903700937f1017ea7069af581212e066540ecb2065bb018295dd3fd438",
+      "tools/analyze_nmpc_profile.py": "f9ab6877adbfd16da20d54f7bbd0eec0e9f05bf207b0889d8213b9e5e917e016"
+    },
+    "source_hash_scope": "Profiling instrumentation hashes were captured at its build; reviewed vendor/configuration source hashes were read while producing this evidence. Four main-probe input objects are identified by captured link hashes, not reconstructed source identities."
+  },
+  "findings": [
+    "State-input equality constraints account for 34.08% of the seven intermediate child CPU durations; dynamics 25.60%, cost 22.83%, precomputation 15.60%.",
+    "Projection adds 13.89% of the measured exclusive-stage CPU denominator and is outside the seven-child denominator.",
+    "This profile identifies several material contributors rather than one dominant dynamics-only hotspot.",
+    "Shared all-foot AD/kinematics caching, Pinocchio update reuse and collision-data allocation reuse are unimplemented candidates; no speedup was demonstrated."
+  ],
+  "validation": [
+    "Profiling object compiled successfully from a generated vendor-source copy, retaining its original license notice.",
+    "Scope self-test verified an in-flight excluded node remains excluded after begin, worker-local counters survive worker exit, and all seven child counts sum correctly.",
+    "Seven intermediate child counts equal 100209; both worker TIDs observed on CPUs 6/7 with advancing CPU ticks.",
+    "4999 estimates, policies and solver-health samples valid; four policies exceeded the 40 ms age ceiling, so only 4995 WBC executions were valid."
+  ],
+  "limits": [
+    "Generated copy of unchanged vendor transcription math with inserted scope timers; production archives/plugins are untouched.",
+    "Accumulated wall time sums overlapping workers and must not be interpreted as SQP elapsed wall time or CPU utilization.",
+    "Thread CPU time separates time executing from scheduler preemption but includes instrumentation overhead.",
+    "Inclusive intermediate totals overlap their seven child stages and are excluded from fraction denominators.",
+    "The denominator excludes SQP scheduling, metrics, vector moves, horizon allocation, QP and line search.",
+    "Clock reads and counter bookkeeping add overhead; use an uninstrumented run for end-to-end timing.",
+    "Final in-flight solve is drained before counters are collected; warmup is excluded when begin is called after initialization.",
+    "Synthetic stationary inputs establish a profiling workload, not dynamic motion performance or control stability.",
+    "Single short stationary synthetic-input run; planned contact scheduling can still differ across horizon nodes.",
+    "A solver-healthy sample does not prove full SQP convergence, feasibility margins in dynamic motion or physical robot stability.",
+    "Four policy-age violations occurred; this instrumented run is not a passed real-time or motion acceptance test.",
+    "CPU frequency was observed, not forced: policy6 stayed at 2.4 GHz in sampled measurement epochs, while policy4 ranged 0.6..2.4 GHz. FIFO permission remained denied; no fixed-governor/FIFO comparison was achieved.",
+    "Cost timing combines tracking and self-collision; its internal split has not been measured."
+  ],
+  "raw_artifacts": [
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/nmpc_stages.csv",
+      "sha256": "3e7745ff1ebf05ea30d777de97df7a003debe3a85c594b233fb2ece0e8eba9ae",
+      "bytes": 1409
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/cycles.csv",
+      "sha256": "77609dc5793a1831e68040ba27ffaddc4e12119af92eec2e4cd654c50b646c16",
+      "bytes": 1287550
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/wbc.csv",
+      "sha256": "dcf88a930930cf5bc3bd4e0ca0cc750d4adc6167c3df648160fd08c7e1ce42cd",
+      "bytes": 792190
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/metadata.json",
+      "sha256": "323c1d688efbf5fc3361f23e5e9ca5e41c928dca09af24ed1bc2d17cbf00c39c",
+      "bytes": 947
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/summary.json",
+      "sha256": "7b8b2baa4743583b99c13c5efdb3792aef68e04be29aa47c6eadb815e24c94c4",
+      "bytes": 6910
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/profile_with_environment.json",
+      "sha256": "25a74db7641303ec12747b50635b39c3899296330f93e2bc7739ae14dbff20cf",
+      "bytes": 8271
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile/source_findings.json",
+      "sha256": "ff60e0ebd0bf03aed63b34cb3dc5063d50f2c36818b862a16a1075e5c8c7fe25",
+      "bytes": 23173
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/samples.csv",
+      "sha256": "81f942f0189e1f06bb18aa1b71f324bee365c0f7f463ada78b3e1072d9e61aa6",
+      "bytes": 53750
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/threads.jsonl",
+      "sha256": "814cd7b7ea40a6e0237d279ce60df5a04f564fb635abb12ed18866889e60b04f",
+      "bytes": 9965
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/before.json",
+      "sha256": "ed9b166cb413e12bad9034c93c3847c3085e1f4cb7a2d84021d5968c2d9afe3e",
+      "bytes": 4363
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/after.json",
+      "sha256": "bd74f53b72d62c4491496191bd298849abe4593c2e304cfceac0a3981fddef00",
+      "bytes": 4362
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/conditions.json",
+      "sha256": "25e2abca48780e343788d95d5028052c41831a5d1dad44f1cb80e7fe41fe50bb",
+      "bytes": 312
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_cpu/result.json",
+      "sha256": "5fc3540bd2757a7a3063fdf4e1756a60cd2700343672fd274939dc232d88f3cc",
+      "bytes": 1268
+    },
+    {
+      "path": "log/optimization_validation_20261116/bin_profile/link_provenance.json",
+      "sha256": "730a1853fd0ad1952f3c19f41b14300d00b3279d300da72961bb85e730e0c558",
+      "bytes": 8970
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_object/build_metadata.json",
+      "sha256": "5387d1b574f290cbb865956732e1180d06b5a9d7b7c87961923a3740e143504f",
+      "bytes": 835
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_object/scope_selftest.csv",
+      "sha256": "84127077c7b1a5082494cf7500125889a50849b12cefeda050953d5c795bb698",
+      "bytes": 876
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_object/scope_selftest.json",
+      "sha256": "51d1d2c5c0eb18cc2ad2a0db164d42f87584f44b55791252614721130e137c22",
+      "bytes": 5448
+    },
+    {
+      "path": "log/optimization_validation_20261116/nmpc_profile_command.json",
+      "sha256": "f941263c21bb262e976414139bd52ec3a01d9d0da5c9e7923d4aef1298b33c24",
+      "bytes": 988
+    }
+  ]
+}

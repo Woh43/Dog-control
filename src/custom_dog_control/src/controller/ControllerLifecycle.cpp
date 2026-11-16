@@ -55,6 +55,7 @@ std::array<double, kJointCount> DefaultPassiveJointPositions() {
 
 NmpcWbcController::~NmpcWbcController() {
   command_output_active_ = false;
+  cycle_trace_.reset();
   simulation_effort_delay_.Reset();
   if (backend_) {
     backend_->Stop();
@@ -172,6 +173,8 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
   host_total_torque_budget_ = {};
   host_stance_handoff_start_ = {};
   host_stance_handoff_start_valid_ = false;
+  cycle_trace_.reset();
+  cycle_trace_sequence_ = 0;
   try {
     const auto node = get_node();
     joints_ = node->get_parameter("joints").as_string_array();
@@ -347,6 +350,11 @@ controller_interface::CallbackReturn NmpcWbcController::on_configure(
     }
 
     NmpcBackendConfig backend_config;
+    if (IsRealHardware()) {
+      cycle_trace_ = diagnostics::CycleTrace<diagnostics::ControllerCycleRecord>::
+          CreateFromEnvironment("controller.bin", 1);
+    }
+    backend_config.cycle_trace_enabled = cycle_trace_ && cycle_trace_->enabled();
     backend_config.use_sim_time = node->get_parameter("use_sim_time").as_bool();
     backend_config.task_file = task_file_;
     backend_config.reference_file = reference_file_;

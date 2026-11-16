@@ -14,10 +14,46 @@
 #include "custom_dog_control/hardware/ActuatorTypes.hpp"
 #include "custom_dog_control/hardware/Calibration.hpp"
 #include "custom_dog_control/hardware/StartupAlignment.hpp"
+#include "custom_dog_control/diagnostics/CycleTraceTypes.hpp"
 #include "serialPort/SerialPort.h"
 #include "unitreeMotor/unitreeMotor.h"
 
 namespace custom_dog_control {
+
+#ifdef CUSTOM_DOG_TIMING_PROBE
+// Standalone zero-output timing executable only. Never enabled for the installed
+// plugin: these timestamps bracket host SDK calls, not physical UART edges.
+struct MotorTimingProbeRecord {
+  std::uint64_t cycle = 0;
+  std::int64_t sdk_start_ns = 0;
+  std::int64_t sdk_return_ns = 0;
+  std::int64_t parsed_ns = 0;
+  bool received = false;
+  bool frame_valid = false;
+  bool success = false;
+  int motor_error = -1;
+  std::array<std::uint8_t, 17> tx{};
+};
+
+inline bool TimingProbeZeroCommand(const LowLevelCommand& command) {
+  for (const auto& motor : command.motors) {
+    if (motor.mode != 0 || motor.position != 0.0F || motor.velocity != 0.0F ||
+        motor.effort != 0.0F || motor.kp != 0.0F || motor.kd != 0.0F) return false;
+  }
+  return true;
+}
+
+inline bool TimingProbeZeroPacket(const MotorCmd& command) {
+  // SDK accessor is not const-qualified in all pinned SDK versions.
+  auto& packet = const_cast<MotorCmd&>(command);
+  const auto* raw = packet.get_motor_send_data();
+  if (command.mode != 0 || command.q != 0.0F || command.dq != 0.0F ||
+      command.tau != 0.0F || command.kp != 0.0F || command.kd != 0.0F ||
+      raw[0] != 0xfe || raw[1] != 0xee || (raw[2] & 0x70) != 0) return false;
+  for (int index = 3; index < 15; ++index) if (raw[index] != 0) return false;
+  return true;
+}
+#endif
 
 // GO-M8010-6 通信与电机侧/关节侧单位转换；不负责运动学或步态。
 // 标定前位置仅经过减速比和方向转换，标定后才与 URDF 零位对齐。
@@ -50,6 +86,18 @@ class IOSDK final {
   const std::array<float, kJointCount>& CalibrationOffsets() const {
     return calibration_offsets_;
   }
+  // Configure only on the serial lifecycle thread, outside SendReceive. Worker
+  // threads write distinct motor slots; inspect the snapshot after its barrier.
+  void EnableCycleTrace(bool enabled) noexcept { cycle_trace_enabled_ = enabled; }
+  const diagnostics::SdkCycleRecord& CycleTraceSnapshot() const noexcept {
+    return cycle_trace_record_;
+  }
+#ifdef CUSTOM_DOG_TIMING_PROBE
+  // Only inspect after SendReceive returns (all workers have joined its barrier).
+  const std::array<MotorTimingProbeRecord, kJointCount>& TimingProbeRecords() const {
+    return timing_probe_records_;
+  }
+#endif
 
  private:
   bool StartupForcePacketAllowed();
@@ -115,6 +163,15 @@ class IOSDK final {
   double startup_force_deadline_seconds_ = 0.0;
   std::atomic<bool> startup_cycle_cancelled_{false};
   std::atomic<bool> startup_cycle_force_expired_{false};
+  bool cycle_trace_enabled_ = false;
+  bool cycle_trace_capturing_ = false;
+  diagnostics::SdkCycleRecord cycle_trace_record_{};
+  // Published before worker dispatch, unchanged until the completion barrier.
+  diagnostics::SdkRoundRecord* active_trace_round_ = nullptr;
+#ifdef CUSTOM_DOG_TIMING_PROBE
+  std::uint64_t timing_probe_cycle_ = 0;
+  std::array<MotorTimingProbeRecord, kJointCount> timing_probe_records_{};
+#endif
 };
 
 }  // namespace custom_dog_control

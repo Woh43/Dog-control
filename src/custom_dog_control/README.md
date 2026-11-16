@@ -10,16 +10,17 @@ ROS 2 Humble 四足模型式 NMPC＋WBC 控制包。真机与 Gazebo 复用控�
 
 ### 当前公共配置
 
-参数以 [controllers.yaml](config/controllers.yaml)、[task.info](config/nmpc/task.info) 和 [Fortress 启动文件](launch/fortress.launch.py) 为准；下表核对于 2026-11-16。频率是配置目标，桌面仿真不证明板载实时期限。
+参数以 [controllers.yaml](config/controllers.yaml)、[task.info](config/nmpc/task.info) 和 [Fortress 启动文件](launch/fortress.launch.py) 为准；下表核对于 2026-11-17。频率是配置目标，桌面仿真不证明板载实时期限。
 
 | 项目 | 默认值与含义 |
 | --- | --- |
-| 主控／状态估计／WBC | 1000 Hz |
+| 主控／状态估计／WBC | 公共 YAML 1000 Hz；桌面 Run Dog 默认覆盖为 250 Hz |
 | NMPC | 50 Hz，运行时求解线程数 2，预测时域 1.0 s |
 | Trot | 完整周期 0.40 s，每组对角腿摆动约 0.20 s，无四足支撑重叠 |
 | 摆足 | 规划抬脚高度 0.10 m，不等同于实测足底净空 |
 | 站姿 | 地面到 `base` 原点 0.34 m；名义髋角 0 rad，左右足心间距约 0.2787 m |
-| 起身／起身稳定／MPC_STANCE／TROT 关节 PD | 髋／大腿／小腿 Kp **60／60／90**，Kd 均为 **2.0**；可能受预算缩放 |
+| PD 起身／起身稳定 | 髋／大腿／小腿 Kp **66／66／99**，Kd 均为 **1.2**；可能受预算缩放 |
+| MPC_STANCE／TROT 关节 PD | 髋／大腿／小腿 Kp **38.4／38.4／57.6**，Kd 均为 **2.2**；可能受预算缩放 |
 | 公共速度限制 | 前后 0.05 m/s、侧向 0.05 m/s、偏航 0.20 rad/s |
 | 速度变化率限制 | 平移 0.2 m/s²，偏航 1.0 rad/s² |
 | 关节目标速度变化率限制 | 400 rad/s²；用于 WBC 和电机 `dq_des` |
@@ -53,7 +54,7 @@ flowchart LR
     estimate --> reference
     reference --> nmpc[50 Hz OCS2 SQP NMPC]
     nmpc --> policy[MRT 策略评估]
-    policy --> wbc[1000 Hz Weighted WBC]
+    policy --> wbc[Weighted WBC · 主控频率]
     estimate --> wbc
     wbc --> output[状态机交接与采样时预算]
     output --> hardware[电机侧 FF + PD]
@@ -185,7 +186,9 @@ src/custom_dog_control/scripts/run_fortress.sh gui:=true \
 
 本轮硬件检查限于**零力矩、零增益通信和 IMU 数据**。以下只说明软件接口；没有自动起身、台架激励或真机行走验收。机器人只有 IMU 与关节反馈，无足底接触传感器，计划接触和运动学接触估计不能标成实测足底力。SDK `effort` 含义、力矩标定、扭矩常数 0.63895 N·m/A 的轴侧与电流约定仍需确认，暂不据此改力矩上限。
 
-`build_real.sh` 只构建、不打开电机端口；`run_real.sh` 会进入真实硬件链路。桌面 `run_dog.sh` 释放本工具身份匹配的 mode 0 监视占用并启动真机，默认启用 RViz 和单次预对位；**预对位会发送非零力矩，即使控制器仍显示 PASSIVE**，不能把该入口作为零输出检查命令。预对位关节侧幅值髋／大腿／小腿为 0.95／0.63／1.52 N·m，通信或心跳失效时中止且不自动重试；真实辅助流程仍未验收。详细启动参数以[硬件说明](../../docs/hardware.md)为准。
+`build_real.sh` 只构建、不打开电机端口；`run_real.sh` 会进入真实硬件链路。桌面 `run_dog.sh` 释放本工具身份匹配的 mode 0 监视占用并启动真机，默认以 `control_frequency_hz:=250 use_rviz:=false` 运行并保留单次预对位，用户显式参数可覆盖；**预对位会发送非零力矩，即使控制器仍显示 PASSIVE**，不能把该入口作为零输出检查命令。预对位关节侧幅值髋／大腿／小腿为 0.95／0.63／1.52 N·m，通信或心跳失效时中止且不自动重试；真实辅助流程仍未验收。详细启动参数以[硬件说明](../../docs/hardware.md)为准。
+
+2026-11-16 晚间两次真机站立在首次交接中触发策略过期。现保存故障当周期的策略年龄与门限，并提供 `control_frequency_hz:=250 use_rviz:=false` 显式排查入口；保持 NMPC 50 Hz、40 ms 门限，降频时 WBC 连续失败次数由 5 收紧至 1。公共 YAML 及直接 `run_real.sh` 保持 1000 Hz，桌面 Run Dog 现默认使用 250 Hz 并关闭 RViz；仍需真实持续站立验收。有效参数保存到本次 ROS 日志目录的 `real-controllers.yaml`。
 
 ```text
 若启用启动辅助：12 路反馈／接管／心跳有效 → 单次预对位 → 释放
@@ -202,7 +205,13 @@ MPC_TROT → 停车与新站立策略 → MPC_STANCE
 
 `~/diagnostics` 按 ROS 时间约 10 Hz 发布，包含关节反馈、控制器五分量请求、手柄门限、策略和 WBC 状态及定时统计。周期／IO P99 由最近 512 个样本计算；`io_period_ms` 是整轮主机收发耗时，既非单电机单向延迟，也非机械响应延迟。真机默认保存 `control-diagnostics.jsonl`，每段最多 16 MiB，保留初始段与最近三个分段；`record_diagnostics:=false` 可关闭。控制器请求不是最终 SDK 报文，SDK effort 尚未完成物理标定。
 
-`simulation_control_trace` 默认关闭，仅仿真可用；打开后每次主循环发布，当前格式 v4 含 297 个数值，真机启用会被拒绝。真实通信／调度／电机响应辨识**目前只有设计建议，尚无逐电机高频时序记录模块或辨识结果**。要估计毫秒级响应，需后续补充统一单调时钟、命令序号、最终发送包及逐电机收发时间；普通 10 Hz 诊断不能代替这些数据。台架激励不在本轮硬件检查范围内。
+Run Dog／`run_real.sh` 默认另存 rosbag 到本工作区的 `log/rosbag/latest/bag`；下一次启动只替换带录包器所属标记的 `latest`，不清理其他日志。录制现有 IMU、完整关节反馈、手柄、诊断、模式、接触计划、里程计、TF 和模型话题，`/cmd_vel` 有发布者时也会录制；不增加发布频率。按 64 MiB 分片，保留首片与最新七片，通常约 512 MiB 加写入边界开销，长运行的中间片段会丢弃。`record_bag:=false` 可关闭，`bag_directory:=/绝对路径/latest` 可改目录；直接 `ros2 launch` 且未设置 `CUSTOM_DOG_ROSBAG_DIR` 时默认为 `~/.ros/custom_dog/rosbag/latest/bag`。
+
+真机入口默认另开 `cycle_trace:=true`，在**本次 ROS 日志目录的 `cycle-trace/`** 保存逐周期二进制记录（默认 Run Dog 约 250 Hz，随实际 update/read 执行，不额外补帧）。控制记录包含策略序号、同一查询时刻的新旧名义参考、插值节点、WBC 参考及 QP 力矩/建模 PD、最终控制接口五分量和同反馈样本的 FF/P/D；硬件记录包含上一 `write()` 的整数时间戳与序号、限幅后的命令、下一 `read()` 各电机最终 17 字节发送包、16 字节接收缓冲及 SDK 调用时刻/验收标志。本机控制管理器会分别采样 `update()`／`write()` 的 ROS 时间，不能假设两者相等；分析器使用源 `write()` 的单调时间落在控制结束至下一周期开始的唯一区间，并核对完整五分量命令，不能按文件行号或最近 ROS 时间硬配。后台写盘，控制线程仅复制到预分配队列，满队列丢记录且计数；每流按 64 MiB 分片，保留首片及最新三片，约 256 MiB。写盘失败仅停记录。`cycle_trace:=false` 可关闭；它独立于 rosbag 和 10 Hz 诊断，也不启用仿真 trace。
+
+离线运行 `python3 tools/analyze_cycle_trace.py --trace-dir /本次ROS日志目录/cycle-trace --output /分析输出目录`（从工作区根目录）。分析关联命令与发送，分别检查策略替换、同策略 q/dq、软件 FF＋PD 与 QP 建模总请求、SDK 编码和等待下一 `read()` 的时间，并报告缺口、丢帧及未正常关闭的文件。SDK 边界时刻不是设备实际执行时刻；合成力矩是软件请求，不是测得的电机力矩。上述记录与离线核验不构成承重/行走验收。
+
+`simulation_control_trace` 默认关闭，仅仿真可用；打开后每次主循环发布，当前格式 v4 含 297 个数值，真机启用会被拒绝。独立的 [`run_timing_identification.py`](../../tools/run_timing_identification.py) 现可按顺序执行 mode 0 全零并行 IO、隔离数值控制负载和只接收 IMU 时序检查，记录统一单调时钟、逐电机 SDK 边界、最终报文及隔离估计器使用的帧编号。2026-11-16 的整轮 IO／含计算 P99 为 1.77／3.05 ms，未满足 1 ms 预算，见[硬件说明](../../docs/hardware.md)。该工具不运行生产 ROS 控制器，不测设备内部滤波或电机应用／机械响应；普通 10 Hz 诊断仍不能替代逐周期记录，台架激励不在本轮范围内。
 
 已有构建的离线回归入口：
 
@@ -237,7 +246,7 @@ colcon test-result --verbose
 
 This ROS 2 Humble package provides model-based quadruped velocity control with OCS2 SQP NMPC and weighted whole-body QP control. Hardware and simulation share the controller core but use different actuator interfaces. RL policies and the removed precision-footstep runtime are outside this repository. Development and merges target `RC2027`.
 
-Current defaults are **1000 Hz** controller/WBC, **50 Hz** NMPC with two runtime solver threads, a **0.40 s** full Trot cycle, **0.10 m** planned swing height, and a **0.34 m** nominal base-origin height. Stand-up, settling, MPC_STANCE and TROT use joint-side Kp **60/60/90** and Kd **2**, subject to sampled budget scaling. The public velocity limits remain **0.05/0.05 m/s and 0.20 rad/s**. High-speed tests use isolated profiles.
+Shared YAML defaults are **1000 Hz** controller/WBC, **50 Hz** NMPC with two runtime solver threads, a **0.40 s** full Trot cycle, **0.10 m** planned swing height, and a **0.34 m** nominal base-origin height. PD stand-up and settling use joint-side Kp **66/66/99** and Kd **1.2**; MPC_STANCE and TROT use Kp **38.4/38.4/57.6** and Kd **2.2**, subject to sampled budget scaling. The public velocity limits remain **0.05/0.05 m/s and 0.20 rad/s**. High-speed tests use isolated profiles.
 
 NMPC produces time-indexed states and inputs: normalized centroidal momentum, base pose, joint positions, contact forces and joint velocities. WBC combines these references with measured state to optimize generalized accelerations, contact forces and feedforward joint torques under dynamics/contact/torque constraints. Motor-side PD adds position and velocity feedback. The default sampled budget does not guarantee delayed execution stays below nominal total torque; joint position/velocity references are not yet strictly integrable.
 
@@ -249,4 +258,10 @@ The [2026-11-15 visual showcase](../../docs/validation/simulation-showcase-20261
 
 Earlier [16-case tuning comparisons](../../docs/validation/wbc-weight-rolling-20261115.json) did not produce a balanced replacement for the shared defaults. Historical 500 Hz and lower-PD records retain their original configurations and failures. No hardware locomotion or onboard real-time deadline acceptance is claimed.
 
-Current hardware work is restricted to zero-torque, zero-gain communication and IMU checks. `run_dog.sh` can automatically execute nonzero startup alignment and is not a zero-output check. Diagnostics publish at about 10 Hz; timing P99 uses 512 samples. Simulation trace is prohibited on hardware. Actuator-response identification still requires new timing instrumentation and independently validated experiments; SDK effort and the torque constant's conventions remain uncalibrated.
+Current hardware work is restricted to zero-torque, zero-gain communication and IMU checks. `run_dog.sh` can automatically execute nonzero startup alignment and is not a zero-output check. Diagnostics publish at about 10 Hz; timing P99 uses 512 samples. Simulation trace is prohibited on hardware. The standalone [timing tool](../../tools/run_timing_identification.py) now records zero-command parallel IO, isolated estimator/NMPC/WBC computation, and receive-only IMU consumption. On 2026-11-16, IO and IO-plus-compute P99 were 1.77 and 3.05 ms, exceeding the 1 ms budget. It does not measure production ROS callback timing, internal sensor filtering, or motor application/physical response; SDK effort and torque-constant conventions remain uncalibrated. See the [hardware guide](../../docs/hardware.md).
+
+Run Dog / `run_real.sh` also records selected existing sensor, joint, command, diagnostic, mode, contact-plan, odometry, TF and model topics to `log/rosbag/latest/bag` in this workspace, without increasing publisher rates. The next launch replaces only the recorder-owned `latest` directory. It keeps the first and newest seven 64 MiB splits, approximately 512 MiB plus write-boundary overhead; long runs lose intermediate segments. Disable with `record_bag:=false` or change the directory with `bag_directory:=/absolute/path/latest`. Direct `ros2 launch` without `CUSTOM_DOG_ROSBAG_DIR` defaults to `~/.ros/custom_dog/rosbag/latest/bag`; a topic is recorded only when its publisher exists.
+
+Real launches also default to `cycle_trace:=true`: bounded native binary streams in this run's ROS log directory, `cycle-trace/`, follow each actual controller update/read (normally 250 Hz with Run Dog). They capture policy sequence and old/new nominal references at the same query time, interpolation nodes, WBC/QP and modeled PD, final interface FF/P/D, and the subsequent `read()`'s final 17-byte SDK packets/16-byte receive buffers and host timestamps. The local controller manager samples update/write ROS timestamps separately. Join by the retained monotonic write time in the unique controller-end/next-start interval and verify all five command fields; never use row number or nearest ROS timestamp. Preallocated producer queues feed background writers; full queues drop records with counters. Each stream retains the first and newest three 64 MiB splits, about 256 MiB. IO failure disables only tracing; `cycle_trace:=false` disables it explicitly. Analyze with `python3 tools/analyze_cycle_trace.py --trace-dir /run/log/cycle-trace --output /analysis/output` from the workspace root. Missing records/unclean files are reported. Host SDK timestamps do not measure motor execution, and reconstructed FF+PD is a software request rather than measured torque; no motion acceptance is implied.
+
+Two operator standing attempts that evening faulted during the initial handoff because of stale policies. The triggering policy age and threshold are now retained. The explicit `control_frequency_hz:=250 use_rviz:=false` candidate keeps NMPC at 50 Hz and its age limit at 40 ms, tightening the WBC failure count from 5 to 1. Desktop Run Dog now defaults to `control_frequency_hz:=250 use_rviz:=false`, retaining startup alignment and allowing explicit argument overrides. Shared YAML and direct `run_real.sh` remain at 1000 Hz; sustained hardware standing remains unverified. Effective parameters are saved beside each launch log as `real-controllers.yaml`.

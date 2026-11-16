@@ -12,11 +12,13 @@ ROS 2 Humble 四足机器人模型式运控工作区，维护状态估计、OCS2
 
 | 项目 | 当前默认值／含义 |
 | --- | --- |
-| 主控／WBC、NMPC | 1000 Hz / 50 Hz；NMPC 两个求解线程 |
+| 公共 YAML／直接真机入口的主控／WBC、NMPC | 1000 Hz / 50 Hz；NMPC 两个求解线程 |
+| 桌面 Run Dog | 主控／WBC 250 Hz、NMPC 50 Hz，默认关闭 RViz；显式参数可覆盖 |
 | Trot | 完整周期 0.40 s；每次对角摆动 0.20 s；四足支撑重叠默认 0 |
 | 规划抬脚高度 | 0.10 m；实际足端净空仍需测量，短摆动会触发规划器幅值缩放 |
 | 名义高度 | 地面到 `base` 原点 0.34 m，不是机身底面净空 |
-| 起身、稳定、MPC_STANCE/TROT 关节 PD | 髋／大腿／小腿 Kp = 60/60/90 N·m/rad；Kd = 2 N·m·s/rad |
+| PD 起身／起身稳定 | 髋／大腿／小腿 Kp = 66/66/99 N·m/rad；Kd = 1.2 N·m·s/rad |
+| MPC_STANCE／TROT 关节 PD | 髋／大腿／小腿 Kp = 38.4/38.4/57.6 N·m/rad；Kd = 2.2 N·m·s/rad |
 | WBC 任务空间 PD | 摆足 500/45；机身高度 80/15；姿态 yaw/pitch/roll Kp = 150/100/100、Kd = 30/20/20 |
 | WBC 任务残差乘数 | 摆足 100、机身加速度 1、接触力 0.01；不能直接按数值比解释任务重要性 |
 | NMPC 主要权重 | 归一化前向线动量 `Q(0,0)=100`，高度 `Q(8,8)=2000`；完整 Q/R 见 task 文件 |
@@ -90,7 +92,15 @@ python3 src/custom_dog_control/scripts/simulation_fortress_test.py \
 
 当前真机检查范围是零力矩、零增益通信和 IMU 数据检查；构建、离线求解、伪终端测试或通信成功均不等于承重运动验收。已有用户起身与站立日志不能替代当前配置的正式验证，详见 [真机说明及历史问题](docs/hardware.md)。
 
-桌面 **Run Dog** 实际调用控制包的 `scripts/run_dog.sh`，默认启用 RViz 和约 0.9 秒的小力矩预对位。预对位在 START 前可以产生非零力矩，不能把该入口当作零输出通信探针。直接 `run_real.sh` 默认关闭预对位和 RViz；两种入口的确认参数区别见真机说明。
+2026-11-16 的本机零输出时序测量中，四腿整轮 IO 的 P99 为 **1.77 ms**，加入隔离估计／WBC／NMPC 负载后的同步周期 P99 为 **3.05 ms**，未满足配置目标的 1 ms 期限。测试采用 CPU 4–7、普通调度，没有生产 ROS 控制器或真实运动；方法与边界见[时序测量摘要](docs/validation/timing-identification-20261116.json)。
+
+同日比较 250 Hz WBC 与 50／25／20 Hz NMPC 后，优先保留 250／50 Hz 为板载时序候选，实际新策略约 35.6–37.2 Hz；仍有偶发超期，当时公共 1000／50 Hz 配置未改，未完成候选动态验收。见[频率候选证据](docs/validation/control-frequency-candidates-20261116.json)。
+
+后续优化验证中，WBC 热启动结果与冷启动一致，但未见明显提速；CPU 布局候选将整轮 P99 降至约 2.06–2.19 ms，仍有策略过龄，未部署。新增 NMPC 节点分项定位与 500 Hz 纯 IO 检查，见[优化验证](docs/validation/control-optimization-20261116.json)。
+
+同日晚间两次操作者站立记录都在首次交接中因策略过期进入 FAULT（进入 MPC_STANCE 后约 1.585／0.140 秒），未进入 Trot。控制器现锁存故障当周期的时效数据；真机启动新增显式 `control_frequency_hz:=250` 候选覆盖，保持 NMPC 50 Hz／40 ms 保护，联动将 WBC 失败次数由 5 收紧至 1。公共 YAML 和直接 `run_real.sh` 仍为 1000／50 Hz，桌面 Run Dog 现默认 250／50 Hz、关闭 RViz；仍需持续站立验证，操作与边界见[站立故障处理](docs/hardware.md#2026-11-16站立交接策略超时与处理入口)。
+
+桌面 **Run Dog** 实际调用控制包的 `scripts/run_dog.sh`，默认传入 `control_frequency_hz:=250 use_rviz:=false`，并保留约 0.9 秒的小力矩预对位；用户显式参数可覆盖这些默认值。预对位在 START 前可以产生非零力矩，不能把该入口当作零输出通信探针。直接 `run_real.sh` 默认关闭预对位和 RViz；两种入口的确认参数区别见真机说明。
 
 | 既有手柄操作 | 行为 |
 | --- | --- |

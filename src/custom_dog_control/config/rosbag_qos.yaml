@@ -1,0 +1,13 @@
+# Sensors may publish BEST_EFFORT; this subscriber QoS also accepts RELIABLE.
+/imu: {history: keep_last, depth: 50, reliability: best_effort, durability: volatile}
+/joint_states: {history: keep_last, depth: 50, reliability: best_effort, durability: volatile}
+/joy: {history: keep_last, depth: 50, reliability: best_effort, durability: volatile}
+/cmd_vel: {history: keep_last, depth: 10, reliability: best_effort, durability: volatile}
+/nmpc_wbc_controller/diagnostics: {history: keep_last, depth: 20, reliability: best_effort, durability: volatile}
+/nmpc_wbc_controller/contact_plan: {history: keep_last, depth: 20, reliability: best_effort, durability: volatile}
+/odom: {history: keep_last, depth: 50, reliability: best_effort, durability: volatile}
+/tf: {history: keep_last, depth: 100, reliability: best_effort, durability: volatile}
+# Capture publishers which started before recording; retain bag_0.db3 for these.
+/tf_static: {history: keep_last, depth: 100, reliability: reliable, durability: transient_local}
+/robot_description: {history: keep_last, depth: 1, reliability: reliable, durability: transient_local}
+/nmpc_wbc_controller/control_mode: {history: keep_last, depth: 1, reliability: reliable, durability: transient_local}

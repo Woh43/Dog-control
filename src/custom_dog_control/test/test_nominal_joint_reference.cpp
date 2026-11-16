@@ -7,6 +7,7 @@
 #include <ocs2_oc/oc_data/PrimalSolution.h>
 
 #include "custom_dog_control/control/NominalJointReference.hpp"
+#include "custom_dog_control/diagnostics/PolicyReferenceTrace.hpp"
 
 namespace custom_dog_control {
 namespace {
@@ -145,6 +146,46 @@ TEST(NominalJointReference, PolicyReplacementIsStatelessAndDoesNotClaimToHideAJu
   ASSERT_TRUE(next);
   EXPECT_NEAR(next->position_model_rad[0] - first->position_model_rad[0], .3, 1e-12);
   EXPECT_DOUBLE_EQ(next->velocity_model_rad_s[0] - first->velocity_model_rad_s[0], -2.);
+}
+
+TEST(NominalJointReference, CycleTraceMatchesMrtSamplingAndMapsEveryJointByNameSlot) {
+  auto policy = MakePolicy();
+  std::array<int, kJointCount> slots{};
+  for (std::size_t i = 0; i < kJointCount; ++i) slots[i] = kJointCount - 1 - i;
+  for (double time : {-1.0, 0.0, .25, 1.0, 2.0}) {
+    diagnostics::ControllerCycleRecord trace;
+    std::array<double, kJointCount> q{}, dq{};
+    ASSERT_TRUE(diagnostics::SampleCycleTraceNominal(policy, time, slots, q, dq, &trace));
+    const auto expected = SampleNominalJointReference(policy, time, kTrotFrRlMode);
+    ASSERT_TRUE(expected);
+    for (std::size_t i = 0; i < kJointCount; ++i) {
+      EXPECT_DOUBLE_EQ(q[i], expected->position_model_rad[slots[i]]);
+      EXPECT_DOUBLE_EQ(dq[i], expected->velocity_model_rad_s[slots[i]]);
+      EXPECT_DOUBLE_EQ(trace.node_left_position[i], policy.stateTrajectory_[0](12 + slots[i]));
+    }
+  }
+}
+
+TEST(NominalJointReference, CycleTraceComparesOldAndReplacementAtSameQueryAndPreservesEventSide) {
+  auto policy = MakePolicy();
+  policy.timeTrajectory_ = {0., 1., 1., 2.};
+  policy.modeSchedule_ = ocs2::ModeSchedule({1.}, {9, 6});
+  policy.stateTrajectory_.resize(4, policy.stateTrajectory_.back());
+  policy.inputTrajectory_.resize(4, policy.inputTrajectory_.back());
+  policy.stateTrajectory_[2].tail(12).setConstant(100.0);
+  policy.inputTrajectory_[2].tail(12).setConstant(10.0);
+  std::array<int, kJointCount> slots{};
+  for (std::size_t i = 0; i < kJointCount; ++i) slots[i] = i;
+  std::array<double, kJointCount> old_q{}, old_dq{}, new_q{}, new_dq{};
+  ASSERT_TRUE(diagnostics::SampleCycleTraceNominal(policy, 1.0, slots, old_q, old_dq));
+  EXPECT_DOUBLE_EQ(old_q[0], policy.stateTrajectory_[1](12));
+  for (auto& x : policy.stateTrajectory_) x.tail(12).array() += .3;
+  for (auto& u : policy.inputTrajectory_) u.tail(12).array() -= 2.0;
+  ASSERT_TRUE(diagnostics::SampleCycleTraceNominal(policy, 1.0, slots, new_q, new_dq));
+  EXPECT_NEAR(new_q[0] - old_q[0], .3, 1e-12);
+  EXPECT_NEAR(new_dq[0] - old_dq[0], -2.0, 1e-12);
+  ASSERT_TRUE(diagnostics::SampleCycleTraceNominal(policy, 1.0 + 1e-6, slots, new_q, new_dq));
+  EXPECT_GT(new_q[0], 100.0);
 }
 
 }  // namespace

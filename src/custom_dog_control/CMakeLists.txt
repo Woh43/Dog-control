@@ -306,6 +306,7 @@ install(FILES
   config/dependencies.lock.yaml
   config/legged_control_upstream.sha256
   config/real_controller.yaml
+  config/rosbag_qos.yaml
   DESTINATION share/${PROJECT_NAME}/config
 )
 install(FILES README.md DESTINATION share/${PROJECT_NAME})
@@ -338,6 +339,7 @@ if(CUSTOM_DOG_CONTROL_BUILD_REAL_HARDWARE)
 endif()
 # Workspace-relative shell entry points are run from source, not ros2 run.
 install(PROGRAMS
+  scripts/record_latest_rosbag.py
   scripts/event2joy.py
   scripts/fortress_odom_adapter.py
   scripts/record_fortress_kinematics.py
@@ -361,6 +363,31 @@ install(DIRECTORY patches repos DESTINATION share/${PROJECT_NAME})
 if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  add_test(
+    NAME test_record_latest_rosbag
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_record_latest_rosbag.py
+  )
+  # Check the installed paths consumed by real.launch.py without starting ROS.
+  add_test(
+    NAME test_installed_rosbag
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/check_installed_rosbag.py
+            ${CMAKE_INSTALL_PREFIX}
+  )
+  add_test(
+    NAME test_real_launch_timing
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_real_launch_timing.py
+  )
+  add_test(
+    NAME test_analyze_cycle_trace
+    COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/test/test_analyze_cycle_trace.py
+  )
+  ament_add_gtest(test_cycle_trace test/test_cycle_trace.cpp)
+  target_include_directories(test_cycle_trace PRIVATE include)
+  target_link_libraries(test_cycle_trace pthread)
   add_test(
     NAME test_record_control_diagnostics
     COMMAND ${Python3_EXECUTABLE}
@@ -434,6 +461,9 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
   if(TARGET custom_dog_control_unitree_system)
     # Exercises the actual plugin and SDK through PTYs; never opens hardware.
     ament_add_gtest(test_unitree_motion_gate test/test_unitree_motion_gate.cpp)
+    # The userspace UART peer must meet the unchanged 2 ms SDK deadline.
+    # Avoid competing CTest workloads introducing synthetic receive failures.
+    set_tests_properties(test_unitree_motion_gate PROPERTIES RUN_SERIAL TRUE)
     ament_target_dependencies(test_unitree_motion_gate
       hardware_interface rclcpp rclcpp_lifecycle)
     target_link_libraries(test_unitree_motion_gate
@@ -496,6 +526,12 @@ if(BUILD_TESTING AND CUSTOM_DOG_CONTROL_BUILD_TESTING)
     target_compile_definitions(test_wbc_contact_force_bounds PRIVATE
       CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}")
     target_link_libraries(test_wbc_contact_force_bounds custom_dog_control_core)
+    ament_add_gtest(test_wbc_solver_reuse test/test_wbc_solver_reuse.cpp)
+    target_include_directories(test_wbc_solver_reuse PRIVATE include)
+    target_compile_definitions(test_wbc_solver_reuse PRIVATE
+      CUSTOM_DOG_CONTROL_CANONICAL_URDF="${CUSTOM_DOG_CONTROL_CANONICAL_URDF}"
+      CUSTOM_DOG_CONTROL_WBC_TASK_FILE="${CMAKE_CURRENT_SOURCE_DIR}/config/nmpc/task.info")
+    target_link_libraries(test_wbc_solver_reuse custom_dog_control_core)
   else()
     message(FATAL_ERROR "Cannot run URDF contract test: ${CUSTOM_DOG_CONTROL_CANONICAL_URDF} does not exist")
   endif()

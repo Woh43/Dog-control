@@ -24,6 +24,27 @@ bool ParseBool(const std::string& value) {
   throw std::invalid_argument("Expected a true/false hardware parameter");
 }
 
+std::uint64_t SteadyPointNs(std::chrono::steady_clock::time_point time) noexcept {
+  return static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+      time.time_since_epoch()).count());
+}
+
+diagnostics::TraceCommand TraceLowCommand(
+    const LowLevelCommand& command,
+    std::array<double, kJointCount>& modes) noexcept {
+  diagnostics::TraceCommand output;
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    const auto& motor = command.motors[i];
+    output.position[i] = motor.position;
+    output.velocity[i] = motor.velocity;
+    output.effort[i] = motor.effort;
+    output.kp[i] = motor.kp;
+    output.kd[i] = motor.kd;
+    modes[i] = motor.mode;
+  }
+  return output;
+}
+
 template <typename T>
 T ParameterOr(
     const hardware_interface::HardwareInfo& info,
@@ -233,6 +254,15 @@ hardware_interface::CallbackReturn UnitreeSystemInterface::on_configure(
     motion_enabled_ = 0.0;
     claimed_command_interfaces_.fill(false);
     command_written_ = false;
+    // File setup and any previous writer shutdown run on the lifecycle thread,
+    // never inside read/write. Logging failure does not authorize or alter IO.
+    hardware_trace_ = HardwareTrace::CreateFromEnvironment("hardware.bin", 2);
+    trace_read_sequence_ = trace_write_sequence_ = 0;
+    trace_write_time_ns_ = trace_write_steady_ns_ = trace_write_flags_ = 0;
+    trace_requested_command_ = {};
+    trace_staged_command_ = {};
+    trace_staged_mode_ = {};
+    sdk_->EnableCycleTrace(hardware_trace_ && hardware_trace_->enabled());
     return hardware_interface::CallbackReturn::SUCCESS;
   } catch (const std::exception& exception) {
     RCLCPP_ERROR(
@@ -325,35 +355,77 @@ hardware_interface::return_type UnitreeSystemInterface::perform_command_mode_swi
 }
 
 hardware_interface::return_type UnitreeSystemInterface::read(
-    const rclcpp::Time&, const rclcpp::Duration&) {
+    const rclcpp::Time& time, const rclcpp::Duration&) {
   // 本实现的串口收发集中在 read：发送上一轮 write 打包的命令并获取反馈。
   // 因此 read -> update -> write 链路中的新控制量在下一次 read 才真正发出。
+  const bool tracing = hardware_trace_ && hardware_trace_->enabled();
+  const auto start = std::chrono::steady_clock::now();
+  auto& trace = hardware_trace_record_;
+  if (tracing) {
+    trace = {};
+    trace.read_sequence = ++trace_read_sequence_;
+    trace.manager_time_ns = static_cast<std::uint64_t>(time.nanoseconds());
+    trace.source_write_sequence = trace_write_sequence_;
+    trace.source_write_time_ns = trace_write_time_ns_;
+    trace.source_write_steady_ns = trace_write_steady_ns_;
+    trace.read_start_ns = SteadyPointNs(start);
+    trace.flags = trace_write_flags_;
+    if (sdk_) trace.flags |= kHardwareTraceSdkPresent;
+    if (command_written_) trace.flags |= kHardwareTraceCommandWrittenAtReadEntry;
+    if (signed_budget_enabled_) trace.flags |= kHardwareTraceSignedBudget;
+    trace.calibration_request = calibration_request_;
+    trace.emergency_stop_request = emergency_stop_request_;
+    trace.motion_request = motion_enabled_request_;
+    trace.calibrated_before = calibrated_;
+    trace.alignment_before = startup_alignment_;
+    trace.before_feedback = diagnostics::ToTraceFeedback(state_);
+    trace.requested_command = trace_requested_command_;
+    trace.staged_command = trace_staged_command_;
+    trace.staged_mode = trace_staged_mode_;
+    if (std::all_of(claimed_command_interfaces_.begin(), claimed_command_interfaces_.end(),
+                    [](bool claimed) { return claimed; })) {
+      trace.flags |= kHardwareTraceAllInterfacesClaimed;
+    }
+  }
   if (!sdk_) {
+    if (tracing) {
+      trace.flags |= kHardwareTraceReadError;
+      trace.read_end_ns = diagnostics::TraceSteadyNs();
+      hardware_trace_->tryPush(trace);
+    }
     return hardware_interface::return_type::ERROR;
   }
-  const auto start = std::chrono::steady_clock::now();
   // After a scheduling pause, never replay an old torque frame before acquiring
   // new feedback. This host watchdog cannot stop a powered motor while the host
   // itself is stalled; an independent drive/physical watchdog is still required.
   const bool command_fresh = command_written_ &&
       std::chrono::duration<double>(start - last_command_written_).count() <= command_timeout_s_;
+  if (tracing && command_fresh) trace.flags |= kHardwareTraceCommandFresh;
   if (!command_fresh) {
     low_command_ = {};
     motion_enabled_ = 0.0;
+    if (tracing) trace.flags |= kHardwareTraceWatchdogCleared;
   }
   if (calibration_request_ < -0.5) {
     sdk_->CancelStartupAlignment();
     sdk_->ResetCalibration();
     low_command_ = {};
     motion_enabled_ = 0.0;
+    if (tracing) trace.flags |= kHardwareTraceCalibrationReset;
   }
   if (emergency_stop_request_ != 0.0 || physical_estop_ > 0.5) {
+    if (tracing) trace.flags |= kHardwareTraceEmergencyRequested;
     sdk_->CancelStartupAlignment();
   }
   const bool alignment_allowed = command_fresh && motion_enabled_request_ == 0.0 &&
       emergency_stop_request_ == 0.0 && physical_estop_ < 0.5 && calibration_request_ >= 0.0 &&
       std::all_of(claimed_command_interfaces_.begin(), claimed_command_interfaces_.end(),
                   [](bool claimed) { return claimed; });
+  if (tracing) {
+    if (alignment_allowed) trace.flags |= kHardwareTraceAlignmentAllowed;
+    trace.sdk_command = TraceLowCommand(low_command_, trace.sdk_mode);
+  }
+  sdk_->EnableCycleTrace(tracing);
   sdk_->SendReceive(low_command_, low_state_, calibration_request_ > 0.5, alignment_allowed);
   startup_alignment_ = static_cast<double>(sdk_->StartupAlignmentStage());
   io_period_ms_ = std::chrono::duration<double, std::milli>(
@@ -378,12 +450,36 @@ hardware_interface::return_type UnitreeSystemInterface::read(
     low_command_ = {};
     motion_enabled_ = 0.0;
   }
-  if (consecutive_failures_ >= 3) {
+  const bool read_error = consecutive_failures_ >= 3;
+  if (read_error) {
     sdk_->Deactivate();
     startup_alignment_ = static_cast<double>(sdk_->StartupAlignmentStage());
-    return hardware_interface::return_type::ERROR;
   }
-  return hardware_interface::return_type::OK;
+  if (tracing) {
+    // IOSDK workers have completed their barrier; this is the sole producer.
+    // Lifecycle Deactivate's separate stop frames are outside read trace scope.
+    trace.sdk = sdk_->CycleTraceSnapshot();
+    trace.after_feedback = diagnostics::ToTraceFeedback(state_);
+    trace.calibrated_after = calibrated_;
+    trace.alignment_after = startup_alignment_;
+    trace.motion_enabled = motion_enabled_;
+    if (communication_ok_ > 0.5) trace.flags |= kHardwareTraceCommunicationOkAfter;
+    if (read_error) trace.flags |= kHardwareTraceReadError;
+    trace.read_end_ns = diagnostics::TraceSteadyNs();
+    hardware_trace_->tryPush(trace);
+  }
+  return read_error ? hardware_interface::return_type::ERROR
+                    : hardware_interface::return_type::OK;
+}
+
+void UnitreeSystemInterface::CaptureTraceWrite(
+    bool succeeded, std::uint64_t failure_flags) noexcept {
+  if (!hardware_trace_ || !hardware_trace_->enabled()) return;
+  trace_write_flags_ = kHardwareTraceSourceWriteAttempted | failure_flags;
+  if (succeeded) trace_write_flags_ |= kHardwareTraceSourceWriteSucceeded;
+  trace_staged_command_ = TraceLowCommand(low_command_, trace_staged_mode_);
+  trace_write_steady_ns_ = succeeded
+      ? SteadyPointNs(last_command_written_) : diagnostics::TraceSteadyNs();
 }
 
 void UnitreeSystemInterface::SetDampingCommand() {
@@ -467,7 +563,12 @@ bool UnitreeSystemInterface::FillLowCommand() {
 }
 
 hardware_interface::return_type UnitreeSystemInterface::write(
-    const rclcpp::Time&, const rclcpp::Duration&) {
+    const rclcpp::Time& time, const rclcpp::Duration&) {
+  if (hardware_trace_ && hardware_trace_->enabled()) {
+    ++trace_write_sequence_;
+    trace_write_time_ns_ = static_cast<std::uint64_t>(time.nanoseconds());
+    trace_requested_command_ = diagnostics::ToTraceCommand(command_);
+  }
   // Switch values are discrete protocol values; rounding or thresholding an
   // invalid/NaN request must never turn on a drive.
   const bool valid_calibration = calibration_request_ == -1.0 ||
@@ -485,6 +586,7 @@ hardware_interface::return_type UnitreeSystemInterface::write(
       sdk_->Deactivate();
       startup_alignment_ = static_cast<double>(sdk_->StartupAlignmentStage());
     }
+    CaptureTraceWrite(false, kHardwareTraceWriteDiscreteInvalid);
     return hardware_interface::return_type::ERROR;
   }
   if (!FillLowCommand()) {
@@ -496,10 +598,12 @@ hardware_interface::return_type UnitreeSystemInterface::write(
       sdk_->Deactivate();
       startup_alignment_ = static_cast<double>(sdk_->StartupAlignmentStage());
     }
+    CaptureTraceWrite(false, kHardwareTraceWriteBudgetInvalid);
     return hardware_interface::return_type::ERROR;
   }
   last_command_written_ = std::chrono::steady_clock::now();
   command_written_ = true;
+  CaptureTraceWrite(true);
   return hardware_interface::return_type::OK;
 }
 

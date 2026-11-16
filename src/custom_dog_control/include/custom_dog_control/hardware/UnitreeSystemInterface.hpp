@@ -13,8 +13,29 @@
 #include "custom_dog_control/control/ControlTypes.hpp"
 #include "custom_dog_control/hardware/ActuatorTypes.hpp"
 #include "custom_dog_control/hardware/IOSDK.hpp"
+#include "custom_dog_control/diagnostics/CycleTrace.hpp"
 
 namespace custom_dog_control {
+
+// HardwareCycleRecord::flags. Source-write flags refer to the last write
+// attempt; freshness/clear flags describe this read, never a measured drive mode.
+enum HardwareCycleTraceFlag : std::uint64_t {
+  kHardwareTraceSdkPresent = 1ULL << 0,
+  kHardwareTraceSourceWriteAttempted = 1ULL << 1,
+  kHardwareTraceSourceWriteSucceeded = 1ULL << 2,
+  kHardwareTraceCommandWrittenAtReadEntry = 1ULL << 3,
+  kHardwareTraceCommandFresh = 1ULL << 4,
+  kHardwareTraceAlignmentAllowed = 1ULL << 5,
+  kHardwareTraceCommunicationOkAfter = 1ULL << 6,
+  kHardwareTraceSignedBudget = 1ULL << 7,
+  kHardwareTraceAllInterfacesClaimed = 1ULL << 8,
+  kHardwareTraceWatchdogCleared = 1ULL << 9,
+  kHardwareTraceCalibrationReset = 1ULL << 10,
+  kHardwareTraceEmergencyRequested = 1ULL << 11,
+  kHardwareTraceReadError = 1ULL << 12,
+  kHardwareTraceWriteDiscreteInvalid = 1ULL << 13,
+  kHardwareTraceWriteBudgetInvalid = 1ULL << 14,
+};
 
 class UnitreeSystemInterface final : public hardware_interface::SystemInterface {
  public:
@@ -42,6 +63,7 @@ class UnitreeSystemInterface final : public hardware_interface::SystemInterface 
   bool ParseHardwareParameters();
   void SetDampingCommand();
   bool FillLowCommand();
+  void CaptureTraceWrite(bool succeeded, std::uint64_t failure_flags = 0) noexcept;
 
   DriveParameters drive_parameters_;
   std::unique_ptr<IOSDK> sdk_;
@@ -73,6 +95,14 @@ class UnitreeSystemInterface final : public hardware_interface::SystemInterface 
   bool physical_estop_verified_ = false;
   bool signed_budget_enabled_ = false;
   int consecutive_failures_ = 0;
+  using HardwareTrace = diagnostics::CycleTrace<diagnostics::HardwareCycleRecord>;
+  std::unique_ptr<HardwareTrace> hardware_trace_;
+  diagnostics::HardwareCycleRecord hardware_trace_record_{};
+  std::uint64_t trace_read_sequence_ = 0, trace_write_sequence_ = 0;
+  std::uint64_t trace_write_time_ns_ = 0, trace_write_steady_ns_ = 0;
+  std::uint64_t trace_write_flags_ = 0;
+  diagnostics::TraceCommand trace_requested_command_{}, trace_staged_command_{};
+  std::array<double, kJointCount> trace_staged_mode_{};
 };
 
 }  // namespace custom_dog_control

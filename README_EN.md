@@ -12,11 +12,13 @@ The sources of truth are [controllers.yaml](src/custom_dog_control/config/contro
 
 | Item | Default / meaning |
 | --- | --- |
-| Main control / WBC, NMPC | 1000 Hz / 50 Hz; two NMPC solver threads |
+| Shared YAML / direct hardware entry: main control / WBC, NMPC | 1000 Hz / 50 Hz; two NMPC solver threads |
+| Desktop Run Dog | 250 Hz main control / WBC, 50 Hz NMPC, RViz off; explicit arguments override these defaults |
 | Trot | Full cycle 0.40 s; each diagonal swing 0.20 s; four-foot support overlap defaults to 0 |
 | Planned swing clearance | 0.10 m; actual clearance requires measurement, and short swings scale the planned amplitude |
 | Nominal height | 0.34 m from ground to the `base` origin, not underside clearance |
-| Stand-up, settling, MPC_STANCE/TROT joint PD | Hip/thigh/calf Kp = 60/60/90 N·m/rad; Kd = 2 N·m·s/rad |
+| PD stand-up / settling | Hip/thigh/calf Kp = 66/66/99 N·m/rad; Kd = 1.2 N·m·s/rad |
+| MPC_STANCE / TROT joint PD | Hip/thigh/calf Kp = 38.4/38.4/57.6 N·m/rad; Kd = 2.2 N·m·s/rad |
 | WBC task-space PD | Swing 500/45; base height 80/15; yaw/pitch/roll Kp = 150/100/100, Kd = 30/20/20 |
 | WBC task residual multipliers | Swing 100, base acceleration 1, contact force 0.01; their numerical ratio alone does not establish task priority |
 | Main NMPC weights | Normalized forward linear momentum `Q(0,0)=100`, height `Q(8,8)=2000`; see the task file for full Q/R |
@@ -90,7 +92,15 @@ Results at 500/50 Hz, 250/20 Hz, and older gains/heights are historical profiles
 
 The current hardware-check scope is zero-torque, zero-gain communication and IMU inspection. Builds, offline solves, PTY tests, and communication success do not establish loaded-motion acceptance. Historical user stand-up/stance logs do not formally validate the current profile; see the [hardware guide](docs/hardware.md).
 
-The desktop **Run Dog** entry invokes the controller package's `scripts/run_dog.sh`, enabling RViz and approximately 0.9 seconds of startup alignment by default. Alignment can produce nonzero torque before START, so this entry is not a zero-output communication probe. Direct `run_real.sh` defaults to alignment and RViz disabled; confirmation-parameter differences are documented in the hardware guide.
+On 2026-11-16, this board's zero-command timing probe measured **1.77 ms P99** for four-leg IO and **3.05 ms P99** for IO plus isolated estimator/WBC computation with background NMPC, missing the configured 1 ms deadline. It used CPU 4–7 and ordinary scheduling, without a production ROS controller or real motion. See the [timing evidence and limits](docs/validation/timing-identification-20261116.json).
+
+Follow-up comparisons at 250 Hz WBC with 50/25/20 Hz NMPC favor 250/50 Hz as a board timing candidate, with actual new policies at about 35.6–37.2 Hz. Occasional deadline misses remained in those tests; shared defaults were kept at 1000/50 Hz, without dynamic acceptance of the candidate. See the [frequency candidate evidence](docs/validation/control-frequency-candidates-20261116.json).
+
+Optimization checks found equivalent WBC hot/cold results without a substantial speedup. A CPU-layout candidate measured about 2.06–2.19 ms loop P99 but still had stale policies and was not deployed. NMPC node-stage profiling and a 500 Hz IO-only check are included in the [optimization evidence](docs/validation/control-optimization-20261116.json).
+
+Two operator standing attempts that evening faulted on stale policies about 1.585/0.140 seconds after entering MPC_STANCE, before completing the initial handoff or entering Trot. The controller now retains the triggering timing snapshot. Hardware launch accepts an explicit `control_frequency_hz:=250` candidate, retaining 50 Hz NMPC and the 40 ms policy guard while tightening the WBC failure count from 5 to 1. Shared YAML and direct `run_real.sh` remain at 1000/50 Hz. Desktop Run Dog now defaults to 250/50 Hz with RViz off; sustained standing validation is still required. See the [standing fault procedure](docs/hardware.md#2026-11-16站立交接策略超时与处理入口).
+
+The desktop **Run Dog** entry invokes the controller package's `scripts/run_dog.sh`, passing `control_frequency_hz:=250 use_rviz:=false` and retaining approximately 0.9 seconds of startup alignment. Explicit operator arguments override these defaults. Alignment can produce nonzero torque before START, so this entry is not a zero-output communication probe. Direct `run_real.sh` defaults to alignment and RViz disabled; confirmation-parameter differences are documented in the hardware guide.
 
 | Existing gamepad operation | Behavior |
 | --- | --- |

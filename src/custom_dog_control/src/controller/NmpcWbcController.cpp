@@ -29,6 +29,8 @@ double LimitAcceleratingReference(
 controller_interface::return_type NmpcWbcController::update(
     const rclcpp::Time& time, const rclcpp::Duration& period) {
   // 估计、限速及 WBC 使用有界步长；诊断仍记录真实周期，以免掩盖调度抖动或超时。
+  const auto trace_start_ns = cycle_trace_ && cycle_trace_->enabled()
+      ? diagnostics::TraceSteadyNs() : 0;
   const double dt = std::clamp(period.seconds(), 1e-4, 0.02);
   control_period_ms_ = period.seconds() * 1000.0;
   control_timing_.Add(control_period_ms_);
@@ -235,9 +237,37 @@ controller_interface::return_type NmpcWbcController::update(
     safety_input.dynamic_mode = mode_ == OperatingMode::MPC_TROT ||
                                 mode_ == OperatingMode::MPC_STANCE;
     if (!safety_monitor_->Evaluate(safety_input)) {
-      RCLCPP_ERROR(
-          get_node()->get_logger(), "Safety fault: %s",
-          safety_monitor_->reason().c_str());
+      if (controller_fault_reason_.empty()) {
+        // Latch the exact safety input before FAULT invalidates the policy.
+        // lastSolveTimeMs is an asynchronous diagnostic sample, not an input
+        // to this decision and not necessarily the solve for this policy.
+        std::ostringstream reason;
+        reason << std::setprecision(17)
+               << "Safety fault: " << safety_monitor_->reason()
+               << "; mode=" << ToString(mode_)
+               << "; cycle_time=" << time.seconds()
+               << "; check_time=" << safety_input.now_seconds
+               << "; policy_age_s=" << safety_input.policy_age_s
+               << "; max_policy_age_s=" << safety_monitor_->limits().max_policy_age_s
+               << "; policy_sequence=" << last_policy_.sequence
+               << "; policy_valid=" << last_policy_.valid
+               << "; policy_evaluated=" << evaluated
+               << "; solver_healthy=" << safety_input.solver_valid
+               << "; last_solve_ms_async=" << backend_->lastSolveTimeMs()
+               << "; control_period_ms=" << control_period_ms_
+               << "; io_period_ms=" << io_period_ms_
+               << "; io_failures=" << safety_input.consecutive_io_failures
+               << "; communication_ok=" << safety_input.communication_ok
+               << "; imu_age_s=" << safety_input.now_seconds - safety_input.imu.stamp_seconds
+               << "; estimate_valid=" << estimate_.valid;
+        controller_fault_reason_ = reason.str();
+        RCLCPP_ERROR(get_node()->get_logger(), "%s", controller_fault_reason_.c_str());
+      } else {
+        // An estimate/solver failure earlier in this cycle remains primary.
+        RCLCPP_ERROR(
+            get_node()->get_logger(), "Safety fault: %s",
+            safety_monitor_->reason().c_str());
+      }
       TransitionTo(OperatingMode::FAULT, now_seconds);
     }
   }
@@ -262,9 +292,71 @@ controller_interface::return_type NmpcWbcController::update(
     WriteHybridCommand(hybrid_command);
   }
 
+  if (trace_start_ns != 0) {
+    RecordCycleTrace(time, trace_start_ns, now_seconds, evaluated, policy_available, policy_age, wbc);
+  }
   PublishDiagnostics(state_time, estimate_, last_policy_, wbc, planned_mode);
   // FAULT 由内部模式和安全命令处理；这里的 OK 表示完成 update，不表示机器人无故障。
   return controller_interface::return_type::OK;
+}
+
+void NmpcWbcController::RecordCycleTrace(
+    const rclcpp::Time& manager_time, std::uint64_t start_ns,
+    double imu_use_ros_s, bool evaluated, bool available, double policy_age, const WbcOutput& wbc) {
+  diagnostics::ControllerCycleRecord record;
+  record.cycle = ++cycle_trace_sequence_;
+  // Keep update's ROS timestamp for context. Some ros2_control versions sample
+  // a different ROS timestamp for write; align by the retained monotonic write
+  // time within controller end/next-start, verified against all five fields.
+  record.manager_time_ns = manager_time.nanoseconds();
+  record.start_ns = start_ns;
+  record.policy_sequence = last_policy_.sequence;
+  record.mode = static_cast<std::uint64_t>(mode_);
+  record.policy_mode = last_policy_.mode;
+  record.flags = (evaluated ? 1 : 0) | (available ? 2 : 0) |
+      (estimate_.valid ? 4 : 0) | (communication_ok_ ? 8 : 0) |
+      (wbc.valid ? 16 : 0) | (command_output_active_ ? 32 : 0) |
+      (host_total_torque_command_ ? 128 : 0);
+  record.period_s = control_period_ms_ * 0.001;
+  record.policy_age_s = policy_age;
+  record.feedback = diagnostics::ToTraceFeedback(joints_state_);
+  if (last_policy_.valid) backend_->FillCycleTraceReferences(record);
+  record.wbc_command = diagnostics::ToTraceCommand(wbc.command);
+  record.qp_torque = wbc.trace_qp_torque;
+  record.qp_pd_nominal = wbc.trace_pd_nominal;
+  record.qp_pd_lower = wbc.trace_pd_lower;
+  record.qp_pd_upper = wbc.trace_pd_upper;
+  record.wbc_solve_ms = wbc.solve_time_ms;
+  record.equality_residual = wbc.equality_residual;
+  record.inequality_violation = wbc.inequality_violation;
+  record.motor_pd_horizon_s = motor_pd_window_model_.horizon_seconds;
+  const double handoff_phase = std::clamp(
+      (imu_use_ros_s - state_entered_seconds_) / std::max(0.1, handoff_duration_s_), 0.0, 1.0);
+  record.handoff_alpha = mode_ == OperatingMode::MPC_STANCE && stance_handoff_active_
+      ? handoff_phase * handoff_phase * (3.0 - 2.0 * handoff_phase) : 1.0;
+  // The state's latch persists after alpha reaches one. Flag only the actual
+  // blending interval, so steady-stance reference checks remain eligible.
+  if (record.handoff_alpha < 1.0) record.flags |= 64;
+  record.imu_stamp_s = imu_sample_.stamp_seconds;
+  record.imu_use_ros_s = imu_use_ros_s;
+  for (std::size_t i = 0; i < kJointCount; ++i) {
+    auto& c = record.output_command;
+    c.position[i] = command_interfaces_[command_interface_indices_[i][0]].get_value();
+    c.velocity[i] = command_interfaces_[command_interface_indices_[i][1]].get_value();
+    c.effort[i] = command_interfaces_[command_interface_indices_[i][2]].get_value();
+    c.kp[i] = command_interfaces_[command_interface_indices_[i][3]].get_value();
+    c.kd[i] = command_interfaces_[command_interface_indices_[i][4]].get_value();
+    record.output_p[i] = c.kp[i] * (c.position[i] - joints_state_.position[i]);
+    record.output_d[i] = c.kd[i] * (c.velocity[i] - joints_state_.velocity[i]);
+    record.output_total[i] = c.effort[i] + record.output_p[i] + record.output_d[i];
+  }
+  for (std::size_t i = 0; i < 3; ++i) {
+    record.base_position[i] = estimate_.position(i);
+    record.base_velocity[i] = estimate_.velocity_world(i);
+    record.base_euler_zyx[i] = estimate_.euler_zyx(i);
+  }
+  record.end_ns = diagnostics::TraceSteadyNs();
+  cycle_trace_->tryPush(record);
 }
 
 }  // namespace custom_dog_control

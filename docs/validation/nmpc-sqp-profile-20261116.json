@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "date_local": "2026-11-16",
+  "frequency_evidence": "docs/validation/control-frequency-candidates-20261116.json",
+  "scope": "Retained SQP logging rings from the four zero-output, synthetic-stance timing cases. No new device activity.",
+  "timer_semantics": "SqpSolver.cpp surrounds three sequential phases with non-overlapping wall-clock RepeatedTimer calls; fractions use only these three phases, not complete solve wall time.",
+  "ring_capacity_iterations": 1000,
+  "cases": {
+    "250_50": {
+      "source_path": "/tmp/ocs2/sqp_log/log_Mon_Nov_16_22:39:12_2026.txt",
+      "copied_path": "log/frequency_evaluation_20261116/sqp_logs/250_50.csv",
+      "sha256": "c0dfaed90f48603cb8183e875c8da071b590eb67b4874b556d7fed552e128f34",
+      "iteration_rows": 1000,
+      "unique_problems": 500,
+      "problem_number_range": [
+        573,
+        1072
+      ],
+      "model_time_range_s": [
+        16.167005824,
+        30.139427803
+      ],
+      "per_iteration_stage_ms": {
+        "linearQuadraticApproximationTime": {
+          "samples": 1000,
+          "mean": 10.148637162000002,
+          "p50": 10.068492,
+          "p95": 10.728233,
+          "p99": 12.167297,
+          "p999": 14.230227,
+          "min": 8.825424,
+          "max": 16.470906
+        },
+        "solveQpTime": {
+          "samples": 1000,
+          "mean": 1.7262741719999999,
+          "p50": 1.744143,
+          "p95": 1.826684,
+          "p99": 1.884433,
+          "p999": 2.781297,
+          "min": 1.590146,
+          "max": 2.943752
+        },
+        "linesearchTime": {
+          "samples": 1000,
+          "mean": 1.667420703,
+          "p50": 1.633312,
+          "p95": 1.860225,
+          "p99": 2.085389,
+          "p999": 2.291886,
+          "min": 1.545521,
+          "max": 2.321344
+        }
+      },
+      "stage_fraction_of_three_logged_phases": {
+        "linearQuadraticApproximationTime": 0.749400999345767,
+        "solveQpTime": 0.12747244472248365,
+        "linesearchTime": 0.12312655593174941
+      },
+      "iteration_index_counts": {
+        "0": 500,
+        "1": 500
+      },
+      "termination_counts": {
+        "Not Converged": 500,
+        "Maximum number of iterations reached": 500
+      }
+    },
+    "250_25": {
+      "source_path": "/tmp/ocs2/sqp_log/log_Mon_Nov_16_22:39:46_2026.txt",
+      "copied_path": "log/frequency_evaluation_20261116/sqp_logs/250_25.csv",
+      "sha256": "da16fe1f54ce80a37bf10bda36c3ef27c0a6cfd1d2771dc7ec33a2e8c24bc0d7",
+      "iteration_rows": 1000,
+      "unique_problems": 500,
+      "problem_number_range": [
+        242,
+        741
+      ],
+      "model_time_range_s": [
+        9.826367182,
+        30.130193759
+      ],
+      "per_iteration_stage_ms": {
+        "linearQuadraticApproximationTime": {
+          "samples": 1000,
+          "mean": 12.554801837000001,
+          "p50": 10.884272,
+          "p95": 22.631658,
+          "p99": 26.732061,
+          "p999": 28.172584,
+          "min": 8.782549,
+          "max": 28.565995
+        },
+        "solveQpTime": {
+          "samples": 1000,
+          "mean": 1.993953995,
+          "p50": 1.766019,
+          "p95": 3.122542,
+          "p99": 4.545856,
+          "p999": 5.040516,
+          "min": 1.483105,
+          "max": 5.044016
+        },
+        "linesearchTime": {
+          "samples": 1000,
+          "mean": 1.941787371,
+          "p50": 1.766018,
+          "p95": 2.842254,
+          "p99": 3.167874,
+          "p999": 4.107487,
+          "min": 1.560687,
+          "max": 4.173236
+        }
+      },
+      "stage_fraction_of_three_logged_phases": {
+        "linearQuadraticApproximationTime": 0.7613334310731498,
+        "solveQpTime": 0.12091499779323552,
+        "linesearchTime": 0.11775157113361465
+      },
+      "iteration_index_counts": {
+        "0": 500,
+        "1": 500
+      },
+      "termination_counts": {
+        "Not Converged": 500,
+        "Maximum number of iterations reached": 500
+      }
+    },
+    "250_20": {
+      "source_path": "/tmp/ocs2/sqp_log/log_Mon_Nov_16_22:42:10_2026.txt",
+      "copied_path": "log/frequency_evaluation_20261116/sqp_logs/250_20.csv",
+      "sha256": "89638c88dc531d58ab3d6a271890a40f98d2adbfc0e5f6deca052aac31bda56e",
+      "iteration_rows": 1000,
+      "unique_problems": 500,
+      "problem_number_range": [
+        103,
+        602
+      ],
+      "model_time_range_s": [
+        5.150104022000001,
+        30.102160924
+      ],
+      "per_iteration_stage_ms": {
+        "linearQuadraticApproximationTime": {
+          "samples": 1000,
+          "mean": 14.406053137999999,
+          "p50": 12.585125,
+          "p95": 24.290468,
+          "p99": 26.908725,
+          "p999": 31.160753,
+          "min": 8.834174,
+          "max": 32.041282
+        },
+        "solveQpTime": {
+          "samples": 1000,
+          "mean": 2.1690926800000003,
+          "p50": 1.900474,
+          "p95": 3.486412,
+          "p99": 4.711521,
+          "p999": 6.562996,
+          "min": 1.498272,
+          "max": 6.59187
+        },
+        "linesearchTime": {
+          "samples": 1000,
+          "mean": 2.044724791,
+          "p50": 1.834559,
+          "p95": 2.930627,
+          "p99": 3.313081,
+          "p999": 3.831574,
+          "min": 1.547563,
+          "max": 3.911198
+        }
+      },
+      "stage_fraction_of_three_logged_phases": {
+        "linearQuadraticApproximationTime": 0.7736924407539528,
+        "solveQpTime": 0.11649343465102059,
+        "linesearchTime": 0.10981412459502647
+      },
+      "iteration_index_counts": {
+        "0": 500,
+        "1": 500
+      },
+      "termination_counts": {
+        "Not Converged": 500,
+        "Maximum number of iterations reached": 500
+      }
+    },
+    "250_50_repeat": {
+      "source_path": "/tmp/ocs2/sqp_log/log_Mon_Nov_16_22:42:45_2026.txt",
+      "copied_path": "log/frequency_evaluation_20261116/sqp_logs/250_50_repeat.csv",
+      "sha256": "47e477fea547a83e53e85f9fd1d775b395724ab85798df11c62bd4151bc799f0",
+      "iteration_rows": 1000,
+      "unique_problems": 500,
+      "problem_number_range": [
+        623,
+        1122
+      ],
+      "model_time_range_s": [
+        16.754645588,
+        30.158138137
+      ],
+      "per_iteration_stage_ms": {
+        "linearQuadraticApproximationTime": {
+          "samples": 1000,
+          "mean": 9.593038129,
+          "p50": 9.578789,
+          "p95": 10.466611,
+          "p99": 11.819634,
+          "p999": 13.363405,
+          "min": 8.622427,
+          "max": 13.431947
+        },
+        "solveQpTime": {
+          "samples": 1000,
+          "mean": 1.720566886,
+          "p50": 1.739185,
+          "p95": 1.823767,
+          "p99": 1.874225,
+          "p999": 2.296261,
+          "min": 1.585479,
+          "max": 2.514717
+        },
+        "linesearchTime": {
+          "samples": 1000,
+          "mean": 1.660057957,
+          "p50": 1.615812,
+          "p95": 1.842142,
+          "p99": 2.119514,
+          "p999": 2.302386,
+          "min": 1.534147,
+          "max": 2.400093
+        }
+      },
+      "stage_fraction_of_three_logged_phases": {
+        "linearQuadraticApproximationTime": 0.7394240277170658,
+        "solveQpTime": 0.13261997708074907,
+        "linesearchTime": 0.1279559952021852
+      },
+      "iteration_index_counts": {
+        "0": 500,
+        "1": 500
+      },
+      "termination_counts": {
+        "Not Converged": 500,
+        "Maximum number of iterations reached": 500
+      }
+    }
+  },
+  "findings": [
+    "Linear-quadratic approximation accounts for about 74-77% of the sum of the three logged stage timers.",
+    "Every retained problem used two SQP iterations, with maximum-iterations termination. This is not a solver exception and is not evidence of convergence.",
+    "Prioritize detailed dynamics/constraint-derivative/precomputation profiling before changing the QP solver or cutting SQP iterations."
+  ],
+  "limits": [
+    "Each ring retains only the last 1000 iterations / 500 problems and may include the final solve drained during worker stop.",
+    "Does not represent every solve in the full 30-second capture.",
+    "Synthetic stationary joints/IMU do not establish dynamic motion performance.",
+    "Initialization, feedback-policy construction and other overhead are outside the ratio denominator.",
+    "No performance optimization or production parameter change implemented in this analysis."
+  ],
+  "timer_implementation_sha256": {
+    "external/ocs2_ws/src/ocs2/ocs2_sqp/ocs2_sqp/src/SqpSolver.cpp": "8ac63604e468527a1e693487af7bdac4a618633fbf39df6b9b5045f075e96e84"
+  }
+}

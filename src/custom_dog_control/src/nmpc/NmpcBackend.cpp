@@ -1,5 +1,6 @@
 #include "custom_dog_control/nmpc/NmpcBackend.hpp"
 #include "custom_dog_control/nmpc/ModelCache.hpp"
+#include "custom_dog_control/diagnostics/PolicyReferenceTrace.hpp"
 #include "custom_dog_control/control/ContactForceRamp.hpp"
 #include "custom_dog_control/control/JointVelocityReferenceLimiter.hpp"
 #include "custom_dog_control/control/NominalJointReference.hpp"
@@ -33,6 +34,10 @@
 #include <ocs2_oc/synchronized_module/SolverSynchronizedModule.h>
 #include <ocs2_pinocchio_interface/PinocchioEndEffectorKinematics.h>
 #include <ocs2_sqp/SqpMpc.h>
+
+#ifdef CUSTOM_DOG_TIMING_PROBE
+#include "timing_backend_hooks.hpp"
+#endif
 
 namespace custom_dog_control {
 namespace {
@@ -232,6 +237,16 @@ class NmpcBackend::Impl {
       wbc->setUseJointAccelerationDecision(config.use_joint_acceleration_decision);
       wbc->setNominalHeightFeedback(
           config.nominal_height_m, config.max_nominal_height_correction_mps2);
+#ifdef CUSTOM_DOG_TIMING_PROBE
+      wbc->setSolverReuseEnabled(timing_probe::backend_options.wbc_reuse);
+      if (timing_probe::backend_options.wbc_compare) {
+        wbc_reference = std::make_unique<legged::WeightedWbc>(
+            interface->getPinocchioInterface(), info, *end_effector_kinematics);
+        wbc_reference->loadTasksSetting(config.task_file, false);
+        wbc_reference->setUseJointAccelerationDecision(config.use_joint_acceleration_decision);
+        wbc_reference->setNominalHeightFeedback(config.nominal_height_m, config.max_nominal_height_correction_mps2);
+      }
+#endif
 
       auto sqp_settings = interface->sqpSettings();
       if (config.solver_threads > 0) sqp_settings.nThreads = config.solver_threads;
@@ -288,6 +303,20 @@ class NmpcBackend::Impl {
       last_error.clear();
     }
     worker = std::thread([this] {
+#ifdef CUSTOM_DOG_TIMING_PROBE
+      try {
+        prctl(PR_SET_NAME, "dog-timing-mpc", 0, 0, 0);
+        if (timing_probe::split_nmpc_cpus) timing_probe::ApplyCpuSet(timing_probe::nmpc_cpu_mask);
+      } catch (const std::exception& exception) {
+        {
+          std::lock_guard<std::mutex> lock(error_mutex);
+          last_error = std::string("timing probe NMPC affinity: ") + exception.what();
+        }
+        solver_healthy.store(false, std::memory_order_release);
+        running.store(false, std::memory_order_release);
+        return;
+      }
+#endif
       const auto period = std::chrono::duration<double>(
           1.0 / std::max(1.0, config.frequency_hz));
       auto next = std::chrono::steady_clock::now();
@@ -582,6 +611,14 @@ class NmpcBackend::Impl {
       return false;
     }
     try {
+      // Trace the old and replacement nominal policy at the identical query
+      // time. This observes resets without evaluating an extra controller or
+      // modifying the accepted q/dq, and allocates no Eigen temporaries.
+      std::array<double, kJointCount> previous_q{}, previous_dq{};
+      bool previous_valid = false;
+      if (config.cycle_trace_enabled && active_policy_seconds >= 0.0) {
+        previous_valid = SampleTraceNominal(previous_q, previous_dq, nullptr);
+      }
       if (mrt->updatePolicy()) {
         // 只有新策略被控制线程接收时才更新时间和序号；重复评估旧策略
         // 不能使其重新变“新鲜”，否则后台停滞会被高频评估掩盖。
@@ -641,6 +678,22 @@ class NmpcBackend::Impl {
       output.generated_at_seconds = active_policy_seconds;
       output.solve_time_ms = last_solve_time_ms.load(std::memory_order_acquire);
       output.valid = true;
+      if (config.cycle_trace_enabled) {
+        reference_trace.flags = 0;
+        reference_trace.query_time_s = evaluation_time;
+        reference_trace.previous_nominal_position = previous_q;
+        reference_trace.previous_nominal_velocity = previous_dq;
+        if (previous_valid) reference_trace.flags |= 1024;
+        if (SampleTraceNominal(reference_trace.nominal_position,
+                               reference_trace.nominal_velocity, &reference_trace)) {
+          reference_trace.flags |= 512;
+        }
+        for (std::size_t i = 0; i < kJointCount; ++i) {
+          const auto slot = model_joint_slots[i];
+          reference_trace.policy_position[i] = state(12 + slot);
+          reference_trace.policy_velocity[i] = input(12 + slot);
+        }
+      }
       return true;
     } catch (const std::exception& exception) {
       {
@@ -654,15 +707,37 @@ class NmpcBackend::Impl {
     }
   }
 
+  bool SampleTraceNominal(std::array<double, kJointCount>& q,
+                          std::array<double, kJointCount>& dq,
+                          diagnostics::ControllerCycleRecord* trace) const noexcept {
+    try {
+      const bool valid = diagnostics::SampleCycleTraceNominal(
+          mrt->getPolicy(), observation.time, model_joint_slots, q, dq, trace);
+      if (valid && trace) {
+        trace->source_observation_s = mrt->getCommand().mpcInitObservation_.time;
+      }
+      return valid;
+    } catch (...) { return false; }  // Trace failures never reject a policy.
+  }
+
   void ResetWbcReferenceHistory() {
     velocity_reference_limiter.Reset();
     if (wbc) wbc->resetInputHistory();
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    if (wbc_reference) wbc_reference->resetInputHistory();
+#endif
   }
 
   WbcOutput ComputeWbc(
       const PolicySample& policy,
       const ocs2::vector_t& measured_rbd_state,
       double period_seconds) {
+#ifdef CUSTOM_DOG_TIMING_PROBE
+    // Each attempted call owns its diagnostics, including rejection before
+    // update(). A failed call must never borrow the preceding cycle's metrics.
+    timing_probe::last_wbc_probe = {};
+    timing_probe::last_wbc_probe.measured.failed = true;
+#endif
     WbcOutput output;
     const auto reject = [this, &output]() {
       output.valid = false;
@@ -800,12 +875,44 @@ class NmpcBackend::Impl {
           interface->getCentroidalModelInfo().robotMass * 9.81);
       wbc->setContactNormalForceUpperBounds(Eigen::Map<const ocs2::vector_t>(
           force_bounds.data(), force_bounds.size()));
+#ifdef CUSTOM_DOG_TIMING_PROBE
+      if (wbc_reference) {
+        wbc_reference->setMotorPdTorqueModel(pd_nominal, pd_lower, pd_upper);
+        wbc_reference->setJointTorqueUpperBounds(feedforward_bounds);
+        wbc_reference->setContactNormalForceUpperBounds(Eigen::Map<const ocs2::vector_t>(
+            force_bounds.data(), force_bounds.size()));
+      }
+#endif
       const auto start = std::chrono::steady_clock::now();
       const ocs2::vector_t solution = wbc->update(
           desired_state, desired_input, measured_rbd_state,
           policy.mode, period_seconds);
       output.solve_time_ms = std::chrono::duration<double, std::milli>(
           std::chrono::steady_clock::now() - start).count();
+#ifdef CUSTOM_DOG_TIMING_PROBE
+      auto& probe = timing_probe::last_wbc_probe;
+      probe = {};
+      probe.measured = wbc->lastSolverMetrics();
+      probe.equality_residual = wbc->lastEqualityResidual();
+      probe.inequality_violation = wbc->lastInequalityViolation();
+      if (wbc_reference) {
+        const auto reference_solution = wbc_reference->update(desired_state, desired_input, measured_rbd_state,
+                                                             policy.mode, period_seconds);
+        probe.compared = true;
+        probe.reference = wbc_reference->lastSolverMetrics();
+        probe.reference_equality_residual = wbc_reference->lastEqualityResidual();
+        probe.reference_inequality_violation = wbc_reference->lastInequalityViolation();
+        const bool matching = solution.size() == reference_solution.size() && solution.allFinite() && reference_solution.allFinite();
+        probe.max_solution_difference = matching ? (solution-reference_solution).lpNorm<Eigen::Infinity>() : std::numeric_limits<double>::infinity();
+        probe.max_torque_difference = matching ? (solution.tail(kJointCount)-reference_solution.tail(kJointCount)).lpNorm<Eigen::Infinity>() : std::numeric_limits<double>::infinity();
+        probe.objective_relative_difference = std::abs(probe.measured.objective-probe.reference.objective) /
+            std::max(1.0, std::abs(probe.reference.objective));
+        probe.comparison_ok = matching && wbc->lastSolverSucceeded() && wbc_reference->lastSolverSucceeded() &&
+            probe.equality_residual <= 1e-3 && probe.inequality_violation <= 1e-4 &&
+            probe.reference_equality_residual <= 1e-3 && probe.reference_inequality_violation <= 1e-4 &&
+            probe.max_torque_difference <= 1e-3 && probe.objective_relative_difference <= 1e-5;
+      }
+#endif
       output.equality_residual = wbc->lastEqualityResidual();
       output.inequality_violation = wbc->lastInequalityViolation();
       output.raw_base_az_task_rhs_mps2 = wbc->lastBaseVerticalAccelerationTarget();
@@ -862,6 +969,12 @@ class NmpcBackend::Impl {
         }
         output.command.kp[i] = pd_reference.kp[i];
         output.command.kd[i] = pd_reference.kd[i];
+        if (config.cycle_trace_enabled) {
+          output.trace_qp_torque[i] = joint_torques(model_slot);
+          output.trace_pd_nominal[i] = pd_nominal(model_slot);
+          output.trace_pd_lower[i] = pd_lower(model_slot);
+          output.trace_pd_upper[i] = pd_upper(model_slot);
+        }
       }
       return output;
     } catch (const std::exception& exception) {
@@ -874,6 +987,7 @@ class NmpcBackend::Impl {
   }
 
   NmpcBackendConfig config;
+  diagnostics::ControllerCycleRecord reference_trace;
   bool configured_flag = false;
   std::atomic_bool running{false};
   std::atomic_bool solver_healthy{false};
@@ -900,6 +1014,9 @@ class NmpcBackend::Impl {
   std::unique_ptr<ocs2::CentroidalModelRbdConversions> rbd_conversions;
   std::unique_ptr<ocs2::PinocchioEndEffectorKinematics> end_effector_kinematics;
   std::unique_ptr<legged::WeightedWbc> wbc;
+#ifdef CUSTOM_DOG_TIMING_PROBE
+  std::unique_ptr<legged::WeightedWbc> wbc_reference;
+#endif
   ContactForceRamp contact_force_ramp;
   JointVelocityReferenceLimiter velocity_reference_limiter;
   std::array<int, kJointCount> model_joint_slots{};
@@ -941,6 +1058,27 @@ void NmpcBackend::RequestGait(bool trot) {
 }
 bool NmpcBackend::EvaluatePolicy(double now_seconds, PolicySample& output) {
   return impl_->EvaluatePolicy(now_seconds, output);
+}
+
+void NmpcBackend::FillCycleTraceReferences(diagnostics::ControllerCycleRecord& output) const {
+  const auto& source = impl_->reference_trace;
+  output.flags |= source.flags | (impl_->config.nominal_joint_reference ? 256 : 0);
+  output.query_time_s = source.query_time_s;
+  output.source_observation_s = source.source_observation_s;
+  output.policy_first_time_s = source.policy_first_time_s;
+  output.policy_last_time_s = source.policy_last_time_s;
+  output.node_left_time_s = source.node_left_time_s;
+  output.node_right_time_s = source.node_right_time_s;
+  output.policy_position = source.policy_position;
+  output.policy_velocity = source.policy_velocity;
+  output.nominal_position = source.nominal_position;
+  output.nominal_velocity = source.nominal_velocity;
+  output.previous_nominal_position = source.previous_nominal_position;
+  output.previous_nominal_velocity = source.previous_nominal_velocity;
+  output.node_left_position = source.node_left_position;
+  output.node_right_position = source.node_right_position;
+  output.node_left_velocity = source.node_left_velocity;
+  output.node_right_velocity = source.node_right_velocity;
 }
 WbcOutput NmpcBackend::ComputeWbc(
     const PolicySample& policy, const ocs2::vector_t& measured_rbd_state,

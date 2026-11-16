@@ -11,6 +11,10 @@ export OMP_NUM_THREADS="${DOG_OMP_NUM_THREADS:-2}"
 source "$(dirname "${BASH_SOURCE[0]}")/lib/workspace.sh"
 dog_source_runtime
 
+# The automatic recorder owns only this dedicated latest directory. Explicit
+# launch bag_directory:=... or environment overrides remain available.
+export CUSTOM_DOG_ROSBAG_DIR="${CUSTOM_DOG_ROSBAG_DIR:-${DOG_WORKSPACE}/log/rosbag/latest}"
+
 if [[ -z "${UNITREE_ACTUATOR_SDK_ROOT:-}" ]]; then
   for sdk_candidate in \
     "${DOG_WORKSPACE}/../unitree_actuator_sdk-main/unitree_actuator_sdk-main" \
