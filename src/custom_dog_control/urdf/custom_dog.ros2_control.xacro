@@ -4,11 +4,11 @@
   <xacro:arg name="description_urdf" default="$(find custom_dog_description)/urdf/custom_dog.urdf"/>
   <xacro:arg name="controllers_file" default=""/>
   <xacro:arg name="gazebo_control_plugin" default="libgazebo_ros2_control.so"/>
-  <!-- Fortress motor-PD stress defaults: 20 ms extra delay, equal calf
+  <!-- Fortress motor-PD stress defaults: 5 ms extra delay, equal calf
        friction coefficients. Assumed values, not identified hardware parameters;
        these actuator parameters never affect real IO. -->
   <xacro:arg name="simulation_imu_rate_hz" default="100.0"/>
-  <xacro:arg name="simulation_command_delay_s" default="0.020"/>
+  <xacro:arg name="simulation_command_delay_s" default="0.005"/>
   <!-- Enabled together with the controller's signed delivery-window budget.
        Unknown real-hardware latency retains the legacy budget by default. -->
   <xacro:arg name="motor_pd_signed_budget" default="false"/>

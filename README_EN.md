@@ -22,9 +22,9 @@ The sources of truth are [controllers.yaml](src/custom_dog_control/config/contro
 | Main NMPC weights | Normalized forward linear momentum `Q(0,0)=100`, height `Q(8,8)=2000`; see the task file for full Q/R |
 | Shared velocity limits | Forward/lateral 0.05 m/s each, yaw 0.20 rad/s; faster tests use isolated simulation profiles |
 | Model / transmission | 15.15 kg; internal motor ratio 6.33, total calf ratio 12.66; nominal joint torque limits 23.7/23.7/45 N·m |
-| Simulation stress defaults | 100 Hz IMU; 20 ms additional command delay; equal added calf Coulomb friction 0.45 N·m and viscous coefficient 0.0175 N·m·s/rad; zero added hip/thigh friction |
+| Simulation stress defaults | 100 Hz IMU; 5 ms additional command delay; equal added calf Coulomb friction 0.45 N·m and viscous coefficient 0.0175 N·m·s/rad; zero added hip/thigh friction |
 
-1000 Hz is a configured target, not proof of a 1 ms hardware deadline. The additional 20 ms excludes one outer-loop cycle and physics-step phase. Neither delay nor friction has been identified on the robot. Attitude prediction defaults to disabled in simulation and hardware; optional rolling-foot estimation defaults to radius 0.
+1000 Hz is a configured target, not proof of a 1 ms hardware deadline. The additional 5 ms excludes one outer-loop cycle and physics-step phase. Neither delay nor friction has been identified on the robot. The default Fortress profile uses a 5 ms planned-contact confidence delay and a 10 ms ramp; a custom `controllers_file` preserves its values unless explicitly overridden. Attitude prediction defaults to disabled in simulation and hardware; optional rolling-foot estimation defaults to radius 0.
 
 Other retained defaults are a joint velocity-reference slew limit of 400 rad/s², nominal-height acceleration correction capped at 2 m/s², and a cross-track reference position error cap of 0.04 m. Windowed torque budgeting, fixed-total-torque execution, nominal joint references, and joint-acceleration coupling remain disabled experimental options.
 
@@ -66,6 +66,8 @@ python3 src/custom_dog_control/scripts/simulation_fortress_test.py \
 This script requests simulated stand-up, forward motion, stop, and resume; keep its ROS domain isolated from hardware. Faster tests require explicit limits in an isolated simulation profile; scripts do not relax shared limits. Overrides, speed sweeps, and historical Gazebo Classic entries are documented in the [controller README](src/custom_dog_control/README.md).
 
 ## Latest evidence and limitations
+
+On 2026-11-16, the default extra delay and matching planned-contact confidence delay were reduced to 5 ms. A new 20 ms baseline used the same sources, libraries and input profiles. Both completed sequential 20-second forward phases at 0.5 and 1.0 m/s, then 30 seconds standing, without recorded nominal torque excursions. At 1 m/s, 5 ms reduced roll peak-to-peak to 2.08° (20 ms: 4.48°) and body-frame swing-foot FK error RMS to 6.52 mm (13.60 mm), but mean height rose to 0.3461 m. Height oscillation increased at 0.5 m/s, so improvement is not universal. See the [5/20 ms comparison](docs/validation/delay5-comparison-20261116.json). Each condition has one sequential trial, without repeatability acceptance.
 
 The **2026-11-15 visual showcase** used one fresh world, sequentially running forward at 0.5 and 1.0 m/s for 20 seconds each, followed by a 30-second stance. These are not independent fresh-world repetitions per speed. Source, library, and input fingerprints remained unchanged during recording; hardware IO was disabled.
 

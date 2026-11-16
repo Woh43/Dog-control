@@ -247,7 +247,7 @@ def generate_launch_description():
             description='Bounded gyro prediction of attitude to the control timestamp; 0 disables'),
         # Assumed hardware stress profile, not identified actuator parameters.
         # Hip/thigh added friction is zero; all calves use the same coefficients.
-        DeclareLaunchArgument('simulation_command_delay_s', default_value='0.020',
+        DeclareLaunchArgument('simulation_command_delay_s', default_value='0.005',
             description='Additional motor command delay beyond one outer control cycle, in seconds'),
         DeclareLaunchArgument('simulation_motor_pd_budget_horizon_s', default_value='',
             description='Opt-in signed FF+PD window in seconds; blank preserves the profile; '

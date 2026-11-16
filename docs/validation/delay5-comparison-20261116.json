@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "date": "2026-11-16",
+  "hardware_io": false,
+  "protocol": "Two current-library fresh worlds, one per delay. Each sequential forward0.5then1.0m/s,20s each, final30s stance. No repeats per condition.",
+  "configuration": {
+    "controller_hz": 1000,
+    "nmpc_hz": 50,
+    "imu_hz": 100,
+    "trot_period_s": 0.4,
+    "swing_height_m": 0.1,
+    "nominal_base_origin_height_m": 0.34,
+    "joint_kp_hip_thigh_calf": [
+      60,
+      60,
+      90
+    ],
+    "joint_kd": 2,
+    "calf_coulomb_nm": 0.45,
+    "calf_viscous_nms_rad": 0.0175,
+    "confidence_ramp_s": 0.01,
+    "extra_command_and_matching_contact_delays_s": [
+      0.02,
+      0.005
+    ],
+    "speed_limit_override_scope": "Isolated simulation profile only; shared velocity limits unchanged.",
+    "ground_truth_feedback": false,
+    "motor_pd_budget_horizon_s": 0
+  },
+  "equivalence": {
+    "same_cpp_headers_urdf_and_installed_libraries": true,
+    "fingerprint_differences": {},
+    "matched_installed_library_sha256": {
+      "install/custom_dog_control/lib/libcustom_dog_control_fortress_motor_system.so": "c2bfc1c52690ea4afc43cc740453fac82f48e9c12ac660b4bc4fab17cab44406",
+      "install/custom_dog_control/lib/libcustom_dog_control_nmpc_wbc_controller.so": "785d1466bc60aa6851f8e2ff4799cbf8e950eb718155e6a777bd19d0d73fc7b1"
+    },
+    "same_frozen_profile_bytes": {
+      "controllers.yaml": true,
+      "task.info": true
+    },
+    "actual_controller_parameter_differences": {
+      "estimator_planned_contact_delay_s": {
+        "20ms": 0.02,
+        "5ms": 0.005
+      }
+    },
+    "actual_hardware_parameter_differences": {
+      "simulation_command_delay_s": {
+        "20ms": "0.020",
+        "5ms": "0.005"
+      }
+    },
+    "robot_xml_equal_except_delay_and_generated_config_path": true
+  },
+  "checks": {
+    "ctest_groups_passed": [
+      "test_simulation_effort_delay",
+      "test_fortress_motor_system",
+      "test_urdf_contract",
+      "test_kinematic_state_estimator"
+    ]
+  },
+  "comparison": [
+    {
+      "command_vx_mps": 0.5,
+      "delay20ms": {
+        "command_vx_mps": 0.5,
+        "actual_vx_last2s_mps": 0.5159889928427713,
+        "speed_rmse_last2s_mps": 0.02979172789778055,
+        "height_mean_m": 0.3354179721340852,
+        "height_rmse_m": 0.004674523389129996,
+        "height_p2p_mm": 5.0232210585414165,
+        "roll_p2p_deg": 1.5187272528523184,
+        "pitch_p2p_deg": 1.3052832554794318,
+        "lateral_displacement_m": 0.2110921498830413,
+        "nominal_torque_peak_ratio": 0.7001664968095772,
+        "nominal_torque_peak": {
+          "joint": "RR_thigh_joint",
+          "sim_time_s": 9.929,
+          "signed_nm": 16.59394597438698,
+          "absolute_nm": 16.59394597438698,
+          "ratio_to_nominal": 0.7001664968095772,
+          "nominal_limit_nm": 23.7,
+          "physical_cumulative_peak_matches": true,
+          "physical_ff_p_d_nm": [
+            14.748693841,
+            2.536382946,
+            -0.691130813
+          ],
+          "physical_packet_age_ms": 20.0,
+          "physical_sum_matches_trace": true
+        },
+        "trace_over_nominal_joint_samples": 0,
+        "joint_error_rms_rad": 0.0266020060796118,
+        "joint_error_p95_rad": 0.06174515488448024,
+        "swing_foot_body_fk_error_mean_mm": 9.100553963655239,
+        "swing_foot_body_fk_error_rms_mm": 10.364464259788836,
+        "swing_foot_body_fk_error_p95_mm": 18.233601424038923
+      },
+      "delay5ms": {
+        "command_vx_mps": 0.5,
+        "actual_vx_last2s_mps": 0.5315370694378511,
+        "speed_rmse_last2s_mps": 0.03525535772158583,
+        "height_mean_m": 0.34026060186121804,
+        "height_rmse_m": 0.0010800769011110082,
+        "height_p2p_mm": 7.168450411550453,
+        "roll_p2p_deg": 1.2844534494981232,
+        "pitch_p2p_deg": 1.5140540150862154,
+        "lateral_displacement_m": 0.23514188569407654,
+        "nominal_torque_peak_ratio": 0.5662685019688541,
+        "nominal_torque_peak": {
+          "joint": "RL_calf_joint",
+          "sim_time_s": 27.307,
+          "signed_nm": 25.482082588598438,
+          "absolute_nm": 25.482082588598438,
+          "ratio_to_nominal": 0.5662685019688541,
+          "nominal_limit_nm": 45.0,
+          "physical_cumulative_peak_matches": true,
+          "physical_ff_p_d_nm": [
+            17.999243488,
+            -0.581228947,
+            8.064068047
+          ],
+          "physical_packet_age_ms": 5.0,
+          "physical_sum_matches_trace": true
+        },
+        "trace_over_nominal_joint_samples": 0,
+        "joint_error_rms_rad": 0.011189619057094155,
+        "joint_error_p95_rad": 0.024722782693162144,
+        "swing_foot_body_fk_error_mean_mm": 2.926369435816707,
+        "swing_foot_body_fk_error_rms_mm": 3.493807148661338,
+        "swing_foot_body_fk_error_p95_mm": 6.386703482146899
+      }
+    },
+    {
+      "command_vx_mps": 1.0,
+      "delay20ms": {
+        "command_vx_mps": 1.0,
+        "actual_vx_last2s_mps": 0.9586450773464189,
+        "speed_rmse_last2s_mps": 0.05300154846492593,
+        "height_mean_m": 0.3352458914598277,
+        "height_rmse_m": 0.005022207336485599,
+        "height_p2p_mm": 11.23258027210544,
+        "roll_p2p_deg": 4.48092792518834,
+        "pitch_p2p_deg": 2.6001153575502878,
+        "lateral_displacement_m": 0.11306268647594087,
+        "nominal_torque_peak_ratio": 0.9394823226012966,
+        "nominal_torque_peak": {
+          "joint": "RR_thigh_joint",
+          "sim_time_s": 44.046,
+          "signed_nm": 22.26573104565073,
+          "absolute_nm": 22.26573104565073,
+          "ratio_to_nominal": 0.9394823226012966,
+          "nominal_limit_nm": 23.7,
+          "physical_cumulative_peak_matches": true,
+          "physical_ff_p_d_nm": [
+            20.247001548,
+            1.618595183,
+            0.400134315
+          ],
+          "physical_packet_age_ms": 20.0,
+          "physical_sum_matches_trace": true
+        },
+        "trace_over_nominal_joint_samples": 0,
+        "joint_error_rms_rad": 0.037791703189287415,
+        "joint_error_p95_rad": 0.08243667679794703,
+        "swing_foot_body_fk_error_mean_mm": 11.19804869096803,
+        "swing_foot_body_fk_error_rms_mm": 13.59700233355812,
+        "swing_foot_body_fk_error_p95_mm": 28.40493598709144
+      },
+      "delay5ms": {
+        "command_vx_mps": 1.0,
+        "actual_vx_last2s_mps": 1.0280831593039597,
+        "speed_rmse_last2s_mps": 0.033779882235336636,
+        "height_mean_m": 0.3461074565549687,
+        "height_rmse_m": 0.00633039798275628,
+        "height_p2p_mm": 8.7450069451524,
+        "roll_p2p_deg": 2.0823269130723383,
+        "pitch_p2p_deg": 2.1646039568441178,
+        "lateral_displacement_m": 0.03863143100595051,
+        "nominal_torque_peak_ratio": 0.7815279975645355,
+        "nominal_torque_peak": {
+          "joint": "FL_thigh_joint",
+          "sim_time_s": 48.027,
+          "signed_nm": 18.52221354227949,
+          "absolute_nm": 18.52221354227949,
+          "ratio_to_nominal": 0.7815279975645355,
+          "nominal_limit_nm": 23.7,
+          "physical_cumulative_peak_matches": true,
+          "physical_ff_p_d_nm": [
+            21.236890753,
+            -0.544131221,
+            -2.17054599
+          ],
+          "physical_packet_age_ms": 5.0,
+          "physical_sum_matches_trace": true
+        },
+        "trace_over_nominal_joint_samples": 0,
+        "joint_error_rms_rad": 0.017185260362185085,
+        "joint_error_p95_rad": 0.036479629399923205,
+        "swing_foot_body_fk_error_mean_mm": 4.574445761278679,
+        "swing_foot_body_fk_error_rms_mm": 6.522241855080357,
+        "swing_foot_body_fk_error_p95_mm": 14.961231692715284
+      }
+    }
+  ],
+  "methods": {
+    "speed": "Independent truth twist body frame; time-weighted mean and RMSE in phase final2s, from original speed sweep.",
+    "body": "Original100Hz independent truth in phase6–20s, no interpolation/smoothing; trapezoidal time-weighted height and RMSE; rawsamplep2p.",
+    "torque": "Readback of delayed simulated motorFF+PD request before passivefriction. Phasepeak selects maxfractionofjointnominal23.7/23.7/45Nm. Independently matched cumulativephysicalcallbackpeak.",
+    "joint_error": "Current exported hostqtarget vs same-time jointqfeedback, validTrot6–20s; not actual delayed activepackettarget.",
+    "foot_error": "BodyframeURDFFK of current exportedqtarget vs feedback, sampled~200Hz validTrot6–20s, planned swinglabels; notworldplacementaccuracy."
+  },
+  "runs": {
+    "delay20ms": {
+      "directory": "log/delay5-simulation-20261116-112050/delay20_current_libraries",
+      "script_passed": true,
+      "completed": true,
+      "test_returncode": 0,
+      "integrity": {
+        "finalized": true,
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "physics_cumulative_final": {
+        "sim_time": 94.414,
+        "joint_samples": 1116036.0,
+        "over_nominal": 0.0,
+        "over_guard": 0.0,
+        "peak_ratio": 0.939482323,
+        "peak_time": 44.046,
+        "peak_index": 7.0,
+        "peak_ff": 20.247001548,
+        "peak_p": 1.618595183,
+        "peak_d": 0.400134315,
+        "peak_age_ms": 20.0
+      },
+      "physical_counter_unprinted_tail": {
+        "duration_s": 0.2079999999999984,
+        "trace_samples": 208,
+        "trace_over_nominal_joint_samples": 0
+      },
+      "strict_nominal_torque_passed": true,
+      "trace_total_fault_frames": 0,
+      "final_mode": "MPC_STANCE",
+      "artifact_sha256": {
+        "run.json": "44f3ffa2f4fd5d2e3974baea6371f7a10029663f44c0f7be0a57f628c4f07c29",
+        "sweep.json": "cd78bf477410c7d4797bbcf419dc40cd94252fce525d0e21a6a24e1cff85a14d",
+        "trace.bin": "b1a6a472507455d0ec6905b93cbf84ddd2f72f67f2478aa74a11b23131dd8c70",
+        "trace.meta.json": "6f3964f685277cf9b508770d6746cfebafcc52a8349284323968e66c92f8454b",
+        "kinematics.csv": "67fcc3bb9797f304c2879e5dd2ade9638f0506408b3a2134c763ae2d31fd3531",
+        "launch.log": "ac01e6cf49fc9f2a505cba438baa639b55f90a661195c56ac0aee8d209607dba",
+        "controller-params.yaml": "995aa3be9511ff3571c0bbac907a6033e853c11fe4d7c1f301324ed6b653af4e",
+        "manager-params.yaml": "3f4fe9abf384e70db3cd3d0c434058695e69c48c25c1d50992d19d392bfb0f6b",
+        "controllers.yaml": "c49df8f6f31694a145ff282d35016b1a0cf8765f651cdc15579fcc810239c824",
+        "task.info": "adc14437708789d9ecfd4b3bfe462543e739d11af670feb8501755c665c3d51d"
+      },
+      "final_stance": {
+        "elapsed_sim_s": 30.0,
+        "min_height_m": 0.34006226827207864,
+        "max_height_m": 0.34008571814804367,
+        "final_horizontal_speed_mps": 8.1443026597502e-05,
+        "invalid_wbc_samples": 0
+      },
+      "local_run_json_sha256": "44f3ffa2f4fd5d2e3974baea6371f7a10029663f44c0f7be0a57f628c4f07c29"
+    },
+    "delay5ms": {
+      "directory": "log/delay5-simulation-20261116-112050/current_forward",
+      "script_passed": true,
+      "completed": true,
+      "test_returncode": 0,
+      "integrity": {
+        "finalized": true,
+        "actual_parameters_verified": true,
+        "sources_and_libraries_unchanged": true,
+        "effective_inputs_unchanged": true,
+        "owned_processes_reaped": true
+      },
+      "physics_cumulative_final": {
+        "sim_time": 93.311,
+        "joint_samples": 1104012.0,
+        "over_nominal": 0.0,
+        "over_guard": 0.0,
+        "peak_ratio": 0.781527998,
+        "peak_time": 48.027,
+        "peak_index": 4.0,
+        "peak_ff": 21.236890753,
+        "peak_p": -0.544131221,
+        "peak_d": -2.17054599,
+        "peak_age_ms": 5.0
+      },
+      "physical_counter_unprinted_tail": {
+        "duration_s": 0.9349999999999881,
+        "trace_samples": 935,
+        "trace_over_nominal_joint_samples": 0
+      },
+      "strict_nominal_torque_passed": true,
+      "trace_total_fault_frames": 0,
+      "final_mode": "MPC_STANCE",
+      "artifact_sha256": {
+        "run.json": "ce940f498cc0c6e622c4dfd0fe89426c1cb1df8aa181f206bcdd72153a7552c5",
+        "sweep.json": "09686de1050cba66139418c0781a08f8563d395b032a2f81abe1d20b1c082605",
+        "trace.bin": "40868b6b049b9fd43e238a40ed2873025337ed2af6d4b2f8b0ed2cf3a043d4c9",
+        "trace.meta.json": "193d8185cdfa28a6f09e456d133bf8fcc9596b00e4a2375320eaea6535b0bf6a",
+        "kinematics.csv": "54907b878992ed28e72c554d1133ab43511806cbe8aa5bd5cbfbef24798b5555",
+        "launch.log": "ba67cc314c8b98e5782237d2fa88703dcead10cc3242bccc12892e19c637c22b",
+        "controller-params.yaml": "c0f3199b9459a747ed0c78f212ce38b322777972ddede5231e7f55cc47bfcdae",
+        "manager-params.yaml": "2cb28d6c07da0bf9c99458f851e165305d61a78cb7dc2ee63585c035bf4f3708",
+        "controllers.yaml": "c49df8f6f31694a145ff282d35016b1a0cf8765f651cdc15579fcc810239c824",
+        "task.info": "adc14437708789d9ecfd4b3bfe462543e739d11af670feb8501755c665c3d51d"
+      },
+      "final_stance": {
+        "elapsed_sim_s": 30.0,
+        "min_height_m": 0.34007125734079774,
+        "max_height_m": 0.3400788961271587,
+        "final_horizontal_speed_mps": 0.0,
+        "invalid_wbc_samples": 0
+      },
+      "local_run_json_sha256": "ce940f498cc0c6e622c4dfd0fe89426c1cb1df8aa181f206bcdd72153a7552c5"
+    }
+  },
+  "limitations": [
+    "Only one sequentialrunperdelay. Sameinstalledbinaryandinputs establish a better controlled comparison, not statisticalrepeatability.",
+    "Extra packetdelay and matching estimatorplannedcontactdelay jointlychanged20to5ms; confidence ramp10ms fixed. This compares matched delay configurations, not actuator delay alone.",
+    "Velocityfinal2s and body6–20s are separatewindows and are explicitly reported.",
+    "MotorlocalPDusescurrentphysicalfeedbackeach1ms; packetsdelaytargets/gains/FF rather than freezinglocalfeedback.",
+    "Torque is simulationFF+PDrequestbeforefriction, notcalibratedhardwaretorque ormeasuredfootforce. Physicalcounterenclosingintervalsincludeexplicitboundaryslack.",
+    "Currenthosttargettrackingmetricsincludepacketlag; activedelayedtargettelemetryisnotavailable. FKerrorisbodyframedescriptivewithplannedcontactbits.",
+    "Flatgroundforwardonly; noall-directionrepeatregression, onboarddeadlineorhardwaremotionacceptance."
+  ],
+  "historical_reference": {
+    "path": "docs/validation/simulation-showcase-20261115.json",
+    "note": "Historical installed library fingerprints differ; quantitative matched comparison above uses the newly rerun20ms baseline."
+  },
+  "local_artifact_directory": "log/delay5-simulation-20261116-112050",
+  "local_comparison_plot": "log/delay5-simulation-20261116-112050/analysis/matched/delay20-vs5-body.png",
+  "bulk_logs_committed": false,
+  "parent_commit": "5dc32087ab1ecc5841322f212c6652471f6f7751",
+  "analysis_sha256": {
+    "log/delay5-simulation-20261116-112050/analysis/compare_matched.py": "a215ebbc2b80d36e41e62d71594ae68c467dc88877287080a608ddd80ac86446",
+    "log/delay5-simulation-20261116-112050/analysis/matched/delay-comparison.json": "66c10da6efa8a93bf3bf9269662cb08578fafe7e9590cac4130ff825d3e50c56",
+    "log/delay5-simulation-20261116-112050/analysis/matched/delay20-vs5-body.png": "41b9f2c99f42ac26c6b9c64daf84b3b4eb683bcd65b758a1abda54fec6b568a1"
+  }
+}

@@ -120,13 +120,13 @@ Fortress 默认 `actuator_model:=motor_pd`，每个 1 ms 物理步根据当前�
 | 仿真参数 | 默认值 |
 | --- | --- |
 | `simulation_imu_rate_hz` | 100 Hz |
-| `simulation_command_delay_s` | **额外 0.020 s**，原有外环一周期和物理步相位另计 |
+| `simulation_command_delay_s` | **额外 0.005 s**，原有外环一周期和物理步相位另计 |
 | `simulation_coulomb_friction` | 髋／大腿／小腿 `0 0 0.45` N·m，四腿相同 |
 | `simulation_viscous_friction` | `0 0 0.0175` N·m·s/rad，四腿相同 |
 | `simulation_friction_velocity_scale` | 0.05 rad/s |
 | `use_sim_ground_truth` | false；独立评估仍可读取真值 |
 
-20 ms 和摩擦系数是压力测试假设，**尚未通过真机辨识**。1000 Hz 外环的一周期约 1 ms，不能继续套用历史 500 Hz 的 2 ms。小腿附加 2:1 齿轮连杆，总减速比为 12.66；髋／大腿仍有电机内部 6.33 减速。摩擦输入已在关节输出侧，不重复乘减速比；髋／大腿附加摩擦设 0 不表示内部摩擦严格为零。
+5 ms 和摩擦系数是仿真假设，**尚未通过真机辨识**。1000 Hz 外环的一周期约 1 ms，不能继续套用历史 500 Hz 的 2 ms。小腿附加 2:1 齿轮连杆，总减速比为 12.66；髋／大腿仍有电机内部 6.33 减速。摩擦输入已在关节输出侧，不重复乘减速比；髋／大腿附加摩擦设 0 不表示内部摩擦严格为零。
 
 附加负载为 `-Fc*tanh(dq/0.05)-B*dq`，不包含静摩擦锁止、齿隙、正反向差异、连杆位置相关阻力或真实电流／热限制。摩擦参数接受 1 个统一值、3 个关节类型值或 12 个关节值；12 值顺序为 FR、FL、RR、RL，每腿依次髋、大腿、小腿。它们仅适用于 `motor_pd`。停机、安全输出、超时、无效反馈和时钟回退会清空延迟队列，旧包不会恢复后重放。
 
@@ -139,13 +139,15 @@ src/custom_dog_control/scripts/run_fortress.sh gui:=true \
   simulation_viscous_friction:=0
 ```
 
-这仍保留外环一周期及物理步相位延迟。默认 Fortress profile 根据额外延迟派生计划接触信任 delay／ramp 为 20／10 ms，零额外延迟时为 0／0；自定义 `controllers_file` 保留其自设值，也可通过 `simulation_estimator_planned_contact_delay_s`／`simulation_estimator_planned_contact_ramp_s` 显式覆盖。这是计划接触的信任时序，**不是实测触地或足底力**。
+这仍保留外环一周期及物理步相位延迟。默认 Fortress profile 根据额外延迟派生计划接触信任 delay／ramp 为 5／10 ms，零额外延迟时为 0／0；自定义 `controllers_file` 保留其自设值，也可通过 `simulation_estimator_planned_contact_delay_s`／`simulation_estimator_planned_contact_ramp_s` 显式覆盖。这是计划接触的信任时序，**不是实测触地或足底力**。
 
 1000 Hz 估计器在两帧 100 Hz IMU 之间保持输入并按实际控制步长积分。姿态前推默认关闭；真机 AHRS 主机接收时间与设备内部延迟不是同一个量，AHRS／gyro 对齐未标定。可选球足半径 0.026 m 只修正平地无滑动球足的速度观测和足心位置预测；不改变 NMPC/WBC 接触模型，显式 `ContactSupport.center_velocity` 仍由调用者提供。实际半径与适用条件尚未标定。
 
 ### 最新仿真结果与不足
 
-2026-11-15 可视化展示保持当前控制增益、步态、100 Hz IMU、20 ms 额外延迟和摩擦，仅在隔离 profile 放开速度限制；关闭真值反馈。**一个新世界中顺序执行**前进 0.5 m/s、1.0 m/s 各 20 秒，阶段间停车，最后站立 30 秒，不是两次独立重复试验。精简证据与原始文件指纹见[展示记录](../../docs/validation/simulation-showcase-20261115.json)。
+2026-11-16 的[5／20 ms 配套延迟对照](../../docs/validation/delay5-comparison-20261116.json)使用相同源码、安装库和输入 profile，在两个新世界中各顺序测试 0.5／1.0 m/s，各 20 秒并最终站立 30 秒。只联动改变电机额外指令延迟及估计器计划接触信任延后，ramp 保持 10 ms；两组均通过原脚本检查，未记录名义力矩越限。1 m/s 下实际速度为 0.9586／1.0281 m/s（20／5 ms），横滚峰峰值 4.48°／2.08°，总请求最大名义限值占用 94.0%／78.2%，摆动足机身坐标 FK 误差 RMS 为 13.60／6.52 mm。5 ms 的平均高度升至 0.3461 m，0.5 m/s 高度峰峰值从 5.02 增至 7.17 mm；仍存在高度偏差和波动。仅一次前进对照，不代替多方向重复回归或真机验收。
+
+2026-11-15 可视化展示使用当时的 20 ms 额外延迟（当前默认已改为 5 ms），控制增益、步态、100 Hz IMU 和摩擦保持原配置，仅在隔离 profile 放开速度限制；关闭真值反馈。**一个新世界中顺序执行**前进 0.5 m/s、1.0 m/s 各 20 秒，阶段间停车，最后站立 30 秒，不是两次独立重复试验。精简证据与原始文件指纹见[展示记录](../../docs/validation/simulation-showcase-20261115.json)。
 
 | 指标 | 0.5 m/s 阶段 | 1.0 m/s 阶段 |
 | --- | ---: | ---: |
@@ -239,11 +241,11 @@ Current defaults are **1000 Hz** controller/WBC, **50 Hz** NMPC with two runtime
 
 NMPC produces time-indexed states and inputs: normalized centroidal momentum, base pose, joint positions, contact forces and joint velocities. WBC combines these references with measured state to optimize generalized accelerations, contact forces and feedforward joint torques under dynamics/contact/torque constraints. Motor-side PD adds position and velocity feedback. The default sampled budget does not guarantee delayed execution stays below nominal total torque; joint position/velocity references are not yet strictly integrable.
 
-Fortress defaults to a **100 Hz IMU**, **20 ms additional command delay**, and equal calf friction **Fc=0.45 N·m, B=0.0175 N·m·s/rad**. These are assumed stress-test parameters, not identified hardware values. Attitude prediction and spherical-foot rolling estimation are disabled by default. There are no sole contact sensors; planned contact and estimated contact are not measured ground reaction forces.
+Fortress defaults to a **100 Hz IMU**, **5 ms additional command delay**, and equal calf friction **Fc=0.45 N·m, B=0.0175 N·m·s/rad**. These are assumed simulation parameters, not identified hardware values. Its default profile derives a **5 ms** planned-contact confidence delay with a **10 ms** ramp; custom controller files preserve their own values unless explicitly overridden. Attitude prediction and spherical-foot rolling estimation are disabled by default. There are no sole contact sensors; planned contact and estimated contact are not measured ground reaction forces.
 
 From the repository root, use `scripts/run_fortress.sh` under this package with `gui:=true`; the Chinese simulation section provides the full keyboard and build commands. This simulation entry does not open hardware ports. The Classic Gazebo scripts follow a different actuator path and must not be labeled Fortress motor-PD tests.
 
-The [2026-11-15 visual showcase](../../docs/validation/simulation-showcase-20261115.json) ran sequential 20 s forward phases at 0.5 and 1.0 m/s followed by 30 s standing in one fresh world. Both script checks passed; final-2-second actual speeds were **0.5193 and 0.9609 m/s**. Mean motion height was approximately **0.335 m**. At 1.0 m/s, one delayed FF+PD request reached **24.119 N·m**, above the thigh's **23.7 N·m nominal limit** but below the **26.07 N·m guard**. The strict nominal total-torque budget therefore failed. Body oscillation, drift and motion-height error remain; this single demonstration does not establish repeatability or hardware movement acceptance.
+The [2026-11-15 visual showcase](../../docs/validation/simulation-showcase-20261115.json) used the then-configured **20 ms additional delay**, rather than the current 5 ms default. It ran sequential 20 s forward phases at 0.5 and 1.0 m/s followed by 30 s standing in one fresh world. Both script checks passed; final-2-second actual speeds were **0.5193 and 0.9609 m/s**. Mean motion height was approximately **0.335 m**. At 1.0 m/s, one delayed FF+PD request reached **24.119 N·m**, above the thigh's **23.7 N·m nominal limit** but below the **26.07 N·m guard**. The strict nominal total-torque budget therefore failed. Body oscillation, drift and motion-height error remain; this single demonstration does not establish repeatability or hardware movement acceptance.
 
 Earlier [16-case tuning comparisons](../../docs/validation/wbc-weight-rolling-20261115.json) did not produce a balanced replacement for the shared defaults. Historical 500 Hz and lower-PD records retain their original configurations and failures. No hardware locomotion or onboard real-time deadline acceptance is claimed.
 

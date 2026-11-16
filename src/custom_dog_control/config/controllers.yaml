@@ -118,7 +118,7 @@ nmpc_wbc_controller:
     # 坐标来自估计器；这是参考误差界，不是物理横漂保证。0 关闭该横向位置记忆。
     nmpc_cross_track_position_error_limit_m: 0.04
     # 估计器在规划“落地”后延后采纳支撑约束的时间，单位 s；不是足底传感器测量或已辨识延迟。
-    # 默认 Fortress 按 launch 的电机延迟覆盖：当前此项 0.020 s、下一项 0.010 s；
+    # 默认 Fortress 按 launch 的电机延迟覆盖：当前此项 0.005 s、下一项 0.010 s；
     # 显式 controllers_file 的自定义配置保留文件值，除非给对应 launch 覆盖。真机继承这里的 0/0。
     estimator_planned_contact_delay_s: 0.0
     # 上述延后结束后，支撑置信度由 0 平滑增至 1 的时间，单位 s；0 表示直接切换。
