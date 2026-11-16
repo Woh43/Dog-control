@@ -1,3 +1,9 @@
+# 算法源码来源/完整性校验清单，不是控制增益、频率或模型参数文件。
+# 每个非注释行格式为 SHA-256摘要＋相对路径；摘要对应本仓库实际纳入的源码及本地适配。
+# 固定上游提交与本地适配说明见下方原始来源注释及 dependencies.lock.yaml。
+# 修改算法时应审查真实差异、保留来源并验证后更新清单，不应只改摘要来掩盖变化。
+# 本次仅补中文说明，下面全部摘要与路径保持不变。
+
 # qiayuanl/legged_control a7f381c0367e98e31c01336e678eef47e304d40d
 # Checksums describe the checked-in local overlay against this fixed upstream source.
 # LeggedInterface, LeggedRobotPreComputation and SwitchedModelReferenceManager h/cpp

@@ -1,46 +1,69 @@
+# 固定来源与依赖版本清单；用于复现、来源记录和相关校验，不是控制运行参数。
+# 修改这里的版本号不会自动安装或升级依赖；必须同步获取/构建脚本与对应验证。
+# repository/revision：上游地址与固定 Git 提交；*_package/version：发行包名称和记录的版本。
+# workspace_path/upstream_path：本仓库集成位置/上游资源路径；components：纳入的算法组件。
+
+# 目标部署平台记录；不改变本机系统、ROS 版本或运行时调度。
 platform:
+  # 目标操作系统发行版。
   os: Ubuntu 22.04
+  # ROS 2 发行版。
   ros: humble
+  # 板载目标架构；桌面仿真需使用匹配本机架构的依赖。
   architecture: arm64
 
+# 依赖来源与版本；保留第三方作者和许可证，生成的 external 工作区不提交。
 dependencies:
+  # 本地机器人模型来源；含电池修正的总质量为 15.15 kg，不依赖 RL 运行环境。
   custom_dog_description:
     repository: https://github.com/Woh43/custom_dog_stack.git
     revision: 6c776de8deb76b8fd565cd80f16ac6a4cc8b635d
     upstream_path: ros2/src/custom_dog_description
     workspace_path: src/custom_dog_description
+    # 本地模型总质量，单位 kg；这是来源记录，实际动力学质量由 URDF 惯性参数决定。
     local_model_mass_kg: 15.15
+    # 本地修改：在 base 原点加入电池质量，并同步质心与平行轴惯量；不重复叠加电池。
     local_modification: base-origin battery mass, center of mass, and parallel-axis inertia
+  # NMPC 接口与 WBC 的固定算法来源；本地适配另由 sha256 清单校验。
   legged_control:
     repository: https://github.com/qiayuanl/legged_control.git
     revision: a7f381c0367e98e31c01336e678eef47e304d40d
     components:
       - legged_interface
       - legged_wbc
+  # OCS2 最优控制框架，独立构建为 underlay。
   ocs2:
     repository: https://github.com/leggedrobotics/ocs2.git
     revision: cc73189408d4931d4d9b467a5e280a56ad7ab492
+  # OCS2 示例/建模资源依赖；当前机器人规范模型由本仓库 description 包提供。
   ocs2_robotic_assets:
     repository: https://github.com/leggedrobotics/ocs2_robotic_assets.git
     revision: 9feab348a1d9d10a0573ca43c7fc4ac2e4565cf2
+  # 刚体运动学、动力学与质心量计算库。
   pinocchio:
     ros_package: ros-humble-pinocchio
     version: 4.0.0-2jammy.20260606.100000
+  # 几何碰撞/距离计算依赖，用于模型自碰撞等约束。
   coal:
     ros_package: ros-humble-coal
     version: 3.0.3-5jammy.20260606.085557
+  # 当前 Weighted WBC 使用的 QP 求解器来源。
   qpoases:
     repository: https://github.com/coin-or/qpOASES.git
     revision: 51d3fbea30142d3acbf40cf7a1c519efc27ea67b
+  # OCS2 SQP 子问题使用的结构化 QP 求解依赖。
   hpipm:
     repository: https://github.com/giaf/hpipm.git
     revision: 255ffdf38d3a5e2c3285b29568ce65ae286e5faf
+  # HPIPM 等使用的高性能小矩阵运算依赖。
   blasfeo:
     repository: https://github.com/giaf/blasfeo.git
     revision: ae6e2d1dea015862a09990b95905038a756ffc7d
+  # C++ 线性代数库的发行包记录。
   eigen:
     ubuntu_package: libeigen3-dev
     version: 3.4.0-2ubuntu2
+  # C++ YAML 解析库的发行包记录；不等同于 .info 文件使用的 Boost INFO 解析器。
   yaml_cpp:
     ubuntu_package: libyaml-cpp-dev
     version: 0.7.0+dfsg-8build1

@@ -1,325 +1,375 @@
-centroidalModelType             0
+; NMPC/WBC 参数说明：仅说明当前代码读取与生效方式，不改变参数值。
+; task.info 与 reference.info 的原始字节参与 CppAD 缓存指纹，修改注释也会生成新指纹；
+; 下一次初始化可能重新编译模型库，应等待初始化完成。
+; 当前链路：SqpMpc 在 NMPC 工作线程求解，WBC 在 controller_manager 的 update 循环求解。
+; 运行频率以 controllers.yaml 的 mpc_frequency_hz / controller_manager.update_rate 为准。
 
+centroidalModelType             0  ; 0=全质心动力学 FullCentroidalDynamics；1=单刚体 SRBD，当前为 0。
+
+; 模型接口日志与上游兼容字段。当前 vendored LeggedInterface 固定使用 AD 动力学/运动学。
 legged_robot_interface
 {
-  verbose                               false
-  useAnalyticalGradientsDynamics        false
-  useAnalyticalGradientsConstraints     false
+  verbose                               false  ; 模型设置加载日志开关，不代表控制环诊断日志频率。
+  useAnalyticalGradientsDynamics        false  ; 上游兼容字段：当前 vendored 接口未读取，不通过此项切换求导。
+  useAnalyticalGradientsConstraints     false  ; 上游兼容字段：当前 vendored 接口未读取，不通过此项切换求导。
 }
 
+; 模型与自动微分库设置。名称用于识别关节/足端，不保证状态向量按此列表排序。
 model_settings
 {
-  positionErrorGain             0.0
-  phaseTransitionStanceTime     0.10
-  verboseCppAd                  false
-  recompileLibrariesCppAd       false
-  modelFolderCppAd              /tmp/custom_dog_control_ocs2
+  positionErrorGain             0.0  ; 支撑足零速度约束的 z 位置恢复系数，单位 1/s；0 表示不加入该位置项。
+  phaseTransitionStanceTime     0.10  ; 插入新步态模板时的过渡站立时长，单位 s；不是每步对角换腿的支撑重叠。
+  verboseCppAd                  false  ; 是否打印 CppAD 模型库生成/加载细节。
+  recompileLibrariesCppAd       false  ; 是否强制重编译自动微分库；false 时优先复用匹配缓存。
+  modelFolderCppAd              /tmp/custom_dog_control_ocs2  ; 缓存根目录；可被 CUSTOM_DOG_CPPAD_CACHE_DIR 覆盖，实际目录还附加模型指纹。
 
+  ; 参与运动学模型的 12 个关节名称。当前 Pinocchio 的实际关节顺序是 FL、FR、RL、RR，按名称映射到硬件。
   jointNames
   {
-    [0]  FR_hip_joint
-    [1]  FR_thigh_joint
-    [2]  FR_calf_joint
-    [3]  FL_hip_joint
-    [4]  FL_thigh_joint
-    [5]  FL_calf_joint
-    [6]  RR_hip_joint
-    [7]  RR_thigh_joint
-    [8]  RR_calf_joint
-    [9]  RL_hip_joint
-    [10] RL_thigh_joint
-    [11] RL_calf_joint
+    [0]  FR_hip_joint  ; FR 髋关节名称。
+    [1]  FR_thigh_joint  ; FR 大腿关节名称。
+    [2]  FR_calf_joint  ; FR 小腿关节名称。
+    [3]  FL_hip_joint  ; FL 髋关节名称。
+    [4]  FL_thigh_joint  ; FL 大腿关节名称。
+    [5]  FL_calf_joint  ; FL 小腿关节名称。
+    [6]  RR_hip_joint  ; RR 髋关节名称。
+    [7]  RR_thigh_joint  ; RR 大腿关节名称。
+    [8]  RR_calf_joint  ; RR 小腿关节名称。
+    [9]  RL_hip_joint  ; RL 髋关节名称。
+    [10] RL_thigh_joint  ; RL 大腿关节名称。
+    [11] RL_calf_joint  ; RL 小腿关节名称。
   }
+  ; 三自由度点接触，仅含力、不含足底力矩；接触力块的顺序为 FR、FL、RR、RL。
   contactNames3DoF
   {
-    [0] FR_foot
-    [1] FL_foot
-    [2] RR_foot
-    [3] RL_foot
+    [0] FR_foot  ; FR 右前足端接触坐标名称。
+    [1] FL_foot  ; FL 左前足端接触坐标名称。
+    [2] RR_foot  ; RR 右后足端接触坐标名称。
+    [3] RL_foot  ; RL 左后足端接触坐标名称。
   }
 }
 
+; 摆动足 z 方向三次样条：相对配置的足端参考平面抬脚，不是关节侧轨迹增益。
+; swing_reference 区未配置时，足端参考平面和摆动位置误差增益分别采用默认 0 m、0 1/s。
 swing_trajectory_config
 {
-  liftOffVelocity               0.05
-  touchDownVelocity            -0.10
-  swingHeight                   0.10
-  touchdownAfterHorizon         0.15
-  swingTimeScale                0.15
+  liftOffVelocity               0.05  ; 离地端点 z 速度，单位 m/s，向上为正。
+  touchDownVelocity            -0.10  ; 触地端点 z 速度，单位 m/s，负值表示向下。
+  swingHeight                   0.10  ; 完整缩放下相对足端参考平面的峰值抬脚高度，单位 m。
+  touchdownAfterHorizon         0.15  ; 遗留字段：当前 SwingTrajectoryPlanner 加载器未读取此项。
+  swingTimeScale                0.15  ; 短摆动缩放时间，单位 s；高度和端点速度乘 min(1, 摆动时长/此值)。
 }
 
+; 当前实际选用的多重打靶 SQP 求解设置。线性化的 QP 子问题由 HPIPM 处理；WBC 使用的 qpOASES 是另一层。
+; dt 是预测时域内的离散网格步长；50 Hz NMPC 的更新周期为 0.020 s，两者不同。
 sqp
 {
-  nThreads                              3
-  dt                                    0.015
-  sqpIteration                          2
-  deltaTol                              1e-4
-  g_max                                 1e-2
-  g_min                                 1e-6
-  inequalityConstraintMu                0.1
-  inequalityConstraintDelta             5.0
-  projectStateInputEqualityConstraints  true
-  printSolverStatistics                 false
-  printSolverStatus                     false
-  printLinesearch                       false
-  useFeedbackPolicy                     true
-  integratorType                        RK2
-  threadPriority                        50
+  nThreads                              3  ; 任务文件默认线程数；controllers.yaml 的 mpc_solver_threads=2 当前覆盖为 2。
+  dt                                    0.015  ; 预测轨迹离散时间步长，单位 s；不是 NMPC 运行周期。
+  sqpIteration                          2  ; 每次 NMPC 求解最多的 SQP 外迭代次数。
+  deltaTol                              1e-4  ; 状态与输入更新 RMS 的收敛门限，不是物理位置跟踪精度。
+  g_max                                 1e-2  ; 线搜索的较大约束违反门限，影响接受步长时优先降低违反量。
+  g_min                                 1e-6  ; 线搜索的小约束违反门限，用于近可行区的步长/收敛判断。
+  inequalityConstraintMu                0.1  ; SQP 不等式松弛障碍惩罚的缩放系数 mu。
+  inequalityConstraintDelta             5.0  ; SQP 不等式松弛障碍的平滑/松弛切换参数 delta，不是位置误差容限。
+  projectStateInputEqualityConstraints  true  ; 是否用投影处理状态-输入等式约束。
+  printSolverStatistics                 false  ; 是否输出 SQP 求解统计。
+  printSolverStatus                     false  ; 是否输出 HPIPM 子问题求解状态。
+  printLinesearch                       false  ; 是否输出线搜索细节。
+  useFeedbackPolicy                     true  ; 输出局部状态反馈策略；该反馈不是电机关节 PD。
+  integratorType                        RK2  ; 离散动力学/灵敏度的积分方式：二阶 Runge-Kutta。
+  threadPriority                        50  ; 求解工作线程优先级请求值；实际是否获准取决于系统权限/调度。
 }
 
+; 备用内点法设置：当前创建 SqpMpc，没有选用此 IPM 求解器。以下字段保留供切换实现参考。
 ipm
 {
-  nThreads                              3
-  dt                                    0.015
-  ipmIteration                          1
-  deltaTol                              1e-4
-  g_max                                 10.0
-  g_min                                 1e-6
-  computeLagrangeMultipliers            true
-  printSolverStatistics                 false
-  printSolverStatus                     false
-  printLinesearch                       false
-  useFeedbackPolicy                     false
-  integratorType                        RK2
-  threadPriority                        50
-  initialBarrierParameter               1e-4
-  targetBarrierParameter                1e-4
-  barrierLinearDecreaseFactor           0.2
-  barrierSuperlinearDecreasePower       1.5
-  barrierReductionCostTol               1e-3
-  barrierReductionConstraintTol         1e-3
-  fractionToBoundaryMargin              0.995
-  usePrimalStepSizeForDual              false
-  initialSlackLowerBound                1e-4
-  initialDualLowerBound                 1e-4
-  initialSlackMarginRate                1e-2
-  initialDualMarginRate                 1e-2
+  nThreads                              3  ; 备用 IPM 工作线程数，当前未选用。
+  dt                                    0.015  ; 备用 IPM 的轨迹离散步长，单位 s，不是控制更新周期。
+  ipmIteration                          1  ; 一次求解的 IPM 最大迭代数。
+  deltaTol                              1e-4  ; 状态与输入更新 RMS 的收敛门限。
+  g_max                                 10.0  ; 线搜索较大约束违反门限。
+  g_min                                 1e-6  ; 线搜索近可行区的约束违反门限。
+  computeLagrangeMultipliers            true  ; 是否计算等式约束拉格朗日乘子，涉及对偶可行性统计。
+  printSolverStatistics                 false  ; 是否输出内点法求解统计。
+  printSolverStatus                     false  ; 是否输出 HPIPM 子问题求解状态。
+  printLinesearch                       false  ; 是否输出线搜索细节。
+  useFeedbackPolicy                     false  ; 备用 IPM 是否导出局部反馈策略。
+  integratorType                        RK2  ; 备用 IPM 的动力学/灵敏度积分方式。
+  threadPriority                        50  ; 备用 IPM 工作线程优先级请求值。
+  initialBarrierParameter               1e-4  ; 内点法初始障碍参数 mu。
+  targetBarrierParameter                1e-4  ; 障碍参数逐步减小到的目标值。
+  barrierLinearDecreaseFactor           0.2  ; 障碍参数线性递减候选 mu*系数。
+  barrierSuperlinearDecreasePower       1.5  ; 障碍参数超线性递减候选 mu^指数。
+  barrierReductionCostTol               1e-3  ; 减小障碍参数时的 merit 变化门限；当前 IPM 未选用。
+  ; 当前固定上游版本的 IPM 加载键误带尾随空格，此正常字段未被该加载器读入；本次只注释，不改源码或键名。
+  barrierReductionConstraintTol         1e-3  ; 减小障碍参数时的约束违反量门限。
+  fractionToBoundaryMargin              0.995  ; 内点法 fraction-to-boundary 步长选取参数，避免跨越正性边界。
+  usePrimalStepSizeForDual              false  ; 是否让对偶更新共用原变量步长；false 时分别选取。
+  initialSlackLowerBound                1e-4  ; 初始化松弛变量时使用的正下界。
+  initialDualLowerBound                 1e-4  ; 初始化对偶变量时使用的正下界。
+  initialSlackMarginRate                1e-2  ; 初始化松弛变量时相对边界的余量比例。
+  initialDualMarginRate                 1e-2  ; 初始化对偶变量时相对边界的余量比例。
 }
 
+; 备用 DDP/SLQ 设置：当前创建 SqpMpc，没有选用该求解器；这些值不决定当前 SQP 行为。
 ddp
 {
-  algorithm                       SLQ
-  nThreads                        3
-  threadPriority                  50
-  maxNumIterations                1
-  minRelCost                      1e-1
-  constraintTolerance             5e-3
-  displayInfo                     false
-  displayShortSummary             false
-  checkNumericalStability         false
-  debugPrintRollout               false
-  AbsTolODE                       1e-5
-  RelTolODE                       1e-3
-  maxNumStepsPerSecond            10000
-  timeStep                        0.015
-  backwardPassIntegratorType      ODE45
-  constraintPenaltyInitialValue   20.0
-  constraintPenaltyIncreaseRate   2.0
-  preComputeRiccatiTerms          true
-  useFeedbackPolicy               false
-  strategy                        LINE_SEARCH
+  algorithm                       SLQ  ; 备用算法选择 SLQ（连续时间序列线性二次法），当前未实例化。
+  nThreads                        3  ; 备用 DDP 的工作线程数。
+  threadPriority                  50  ; 备用 DDP 的工作线程优先级请求值。
+  maxNumIterations                1  ; 每次求解的 DDP 最大迭代次数。
+  minRelCost                      1e-1  ; 代价相对变化的收敛门限。
+  constraintTolerance             5e-3  ; 约束误差平方积分 ISE 的容限。
+  displayInfo                     false  ; 是否打印 DDP 详细信息。
+  displayShortSummary             false  ; 是否打印 DDP 简要总结。
+  checkNumericalStability         false  ; 是否执行数值稳定性检查。
+  debugPrintRollout               false  ; 是否打印前向展开轨迹，供调试。
+  AbsTolODE                       1e-5  ; ODE 数值积分绝对误差容限。
+  RelTolODE                       1e-3  ; ODE 数值积分相对误差容限。
+  maxNumStepsPerSecond            10000  ; ODE 每秒允许的最大积分点数，用于限制数值求解工作量。
+  timeStep                        0.015  ; 积分步长设置，单位 s；ODE45 下为自适应积分的初始尝试步长，不是控制周期。
+  backwardPassIntegratorType      ODE45  ; SLQ 反向 Riccati 方程使用的 ODE45 积分器。
+  constraintPenaltyInitialValue   20.0  ; merit 函数二次约束惩罚的初始系数。
+  constraintPenaltyIncreaseRate   2.0  ; 约束惩罚系数需要增大时的乘数。
+  preComputeRiccatiTerms          true  ; 是否预先计算 Riccati 方程项以供插值。
+  useFeedbackPolicy               false  ; 备用 DDP 是否导出优化反馈策略。
+  strategy                        LINE_SEARCH  ; 备用 DDP 的步长/子问题搜索策略：线搜索。
+  ; DDP 的线搜索与 Hessian 修正；当前 SQP 不使用本区。
   lineSearch
   {
-    minStepLength                 1e-2
-    maxStepLength                 1.0
-    hessianCorrectionStrategy     DIAGONAL_SHIFT
-    hessianCorrectionMultiple     1e-5
+    minStepLength                 1e-2  ; 线搜索允许的最小步长比例，无量纲。
+    maxStepLength                 1.0  ; 线搜索允许的最大步长比例，无量纲。
+    hessianCorrectionStrategy     DIAGONAL_SHIFT  ; Hessian 数值修正方式：对角平移。
+    hessianCorrectionMultiple     1e-5  ; Hessian 修正用的系数/尺度，不是物理阻尼。
   }
 }
 
+; 模型轨迹前向积分设置。不是 Gazebo 物理步长，也不是 NMPC/WBC 的循环频率。
+; 当前采用自适应 ODE45，timeStep 是初始尝试步长，后续按误差容限自适应调整。
 rollout
 {
-  AbsTolODE                       1e-5
-  RelTolODE                       1e-3
-  timeStep                        0.015
-  integratorType                  ODE45
-  maxNumStepsPerSecond            10000
-  checkNumericalStability         false
+  AbsTolODE                       1e-5  ; 轨迹前向积分绝对误差容限。
+  RelTolODE                       1e-3  ; 轨迹前向积分相对误差容限。
+  timeStep                        0.015  ; 当前 ODE45 自适应前向积分的初始尝试步长，单位 s；不是固定物理步长。
+  integratorType                  ODE45  ; 轨迹前向积分算法，ODE45 为自适应积分。
+  maxNumStepsPerSecond            10000  ; 每秒轨迹允许的最大积分点数，不是电机/主控频率。
+  checkNumericalStability         false  ; 是否检查展开轨迹的数值稳定性。
 }
 
+; 滚动优化的预测时域及策略窗口。频率字段供 OCS2 通用接口使用，不能代替本项目控制器的实际调度参数。
 mpc
 {
-  timeHorizon                     1.0
-  solutionTimeWindow              -1
-  coldStart                       false
-  debugPrint                      false
-  mpcDesiredFrequency             50
-  mrtDesiredFrequency             1000
+  timeHorizon                     1.0  ; 每次滚动优化向前看的时域长度，单位 s。
+  solutionTimeWindow              -1  ; 策略导出窗口，单位 s；负值表示使用求解器的完整剩余时域。
+  coldStart                       false  ; false 表示保留上轮解作热启动；true 会在每次求解前重置求解器。
+  debugPrint                      false  ; OCS2 MPC 性能调试输出开关。
+  mpcDesiredFrequency             50  ; OCS2 通用期望频率，单位 Hz；本项目真实节拍由 controllers.yaml.mpc_frequency_hz 驱动。
+  mrtDesiredFrequency             1000  ; OCS2 通用策略执行期望频率，单位 Hz；实际 WBC 频率由 controller_manager.update_rate 驱动。
 }
 
+; 启动初始化的 24 维质心状态，进入运行后由状态估计持续更新。
+; 顺序：[线动量/m(3)、角动量/m(3)、基座 XYZ(3)、yaw/pitch/roll(3)、12 关节位置]。
+; 动量在质心处、与世界坐标轴平行的坐标系表达；线动量/m 等于质心速度，角动量/m 不是角速度。
+; XYZ 指基座坐标原点，不是质心位置；关节顺序为 FL、FR、RL、RR，每腿髋/大腿/小腿。
 initialState
 {
-   (0,0)  0.0
-   (1,0)  0.0
-   (2,0)  0.0
-   (3,0)  0.0
-   (4,0)  0.0
-   (5,0)  0.0
-   (6,0)  0.0
-   (7,0)  0.0
-   (8,0)  0.34
-   (9,0)  0.0
-   (10,0) 0.0
-   (11,0) 0.0
-   ; Pinocchio joint order: FL, FR, RL, RR (hip, thigh, calf per leg).
-   (12,0) 0.0
-   (13,0) 0.715821774
-   (14,0) -1.454461972
-   (15,0) 0.0
-   (16,0) 0.716130233
-   (17,0) -1.454294645
-   (18,0) 0.0
-   (19,0) 0.713540237
-   (20,0) -1.455606346
-   (21,0) 0.0
-   (22,0) 0.715631114
-   (23,0) -1.454556830
+   (0,0)  0.0  ; 质心线动量 x/m，单位 m/s。
+   (1,0)  0.0  ; 质心线动量 y/m，单位 m/s。
+   (2,0)  0.0  ; 质心线动量 z/m，单位 m/s。
+   (3,0)  0.0  ; 质心角动量 x/m，单位 m^2/s。
+   (4,0)  0.0  ; 质心角动量 y/m，单位 m^2/s。
+   (5,0)  0.0  ; 质心角动量 z/m，单位 m^2/s。
+   (6,0)  0.0  ; 基座位置 x，单位 m。
+   (7,0)  0.0  ; 基座位置 y，单位 m。
+   (8,0)  0.34  ; 基座位置 z，单位 m。
+   (9,0)  0.0  ; 基座 yaw，单位 rad。
+   (10,0) 0.0  ; 基座 pitch，单位 rad。
+   (11,0) 0.0  ; 基座 roll，单位 rad。
+   (12,0) 0.0  ; FL 髋关节位置，单位 rad。
+   (13,0) 0.715821774  ; FL 大腿关节位置，单位 rad。
+   (14,0) -1.454461972  ; FL 小腿关节位置，单位 rad。
+   (15,0) 0.0  ; FR 髋关节位置，单位 rad。
+   (16,0) 0.716130233  ; FR 大腿关节位置，单位 rad。
+   (17,0) -1.454294645  ; FR 小腿关节位置，单位 rad。
+   (18,0) 0.0  ; RL 髋关节位置，单位 rad。
+   (19,0) 0.713540237  ; RL 大腿关节位置，单位 rad。
+   (20,0) -1.455606346  ; RL 小腿关节位置，单位 rad。
+   (21,0) 0.0  ; RR 髋关节位置，单位 rad。
+   (22,0) 0.715631114  ; RR 大腿关节位置，单位 rad。
+   (23,0) -1.454556830  ; RR 小腿关节位置，单位 rad。
 }
 
+; NMPC 状态跟踪二次代价：各项权重乘以 scaling。数值越大，通常越倾向减小对应状态误差。
+; 各状态物理量单位不同，不能仅按权重数值比较重要性；此处不是关节 PD。
 Q
 {
-  scaling 1e+0
-  (0,0)   100.0
-  (1,1)   20.0
-  (2,2)   100.0
-  (3,3)   10.0
-  (4,4)   30.0
-  (5,5)   30.0
-  (6,6)   1000.0
-  (7,7)   1000.0
-  (8,8)   2000.0
-  (9,9)   100.0
-  (10,10) 300.0
-  (11,11) 300.0
-  (12,12) 20.0
-  (13,13) 5.0
-  (14,14) 2.5
-  (15,15) 20.0
-  (16,16) 5.0
-  (17,17) 2.5
-  (18,18) 20.0
-  (19,19) 5.0
-  (20,20) 2.5
-  (21,21) 20.0
-  (22,22) 5.0
-  (23,23) 2.5
+  scaling 1e+0  ; 整个 Q 的统一乘数，当前为 1。
+  (0,0)   100.0  ; 质心线动量 x/m（m/s）的误差权重。
+  (1,1)   20.0  ; 质心线动量 y/m（m/s）的误差权重。
+  (2,2)   100.0  ; 质心线动量 z/m（m/s）的误差权重。
+  (3,3)   10.0  ; 质心角动量 x/m（m^2/s）的误差权重。
+  (4,4)   30.0  ; 质心角动量 y/m（m^2/s）的误差权重。
+  (5,5)   30.0  ; 质心角动量 z/m（m^2/s）的误差权重。
+  (6,6)   1000.0  ; 基座位置 x（m）的误差权重。
+  (7,7)   1000.0  ; 基座位置 y（m）的误差权重。
+  (8,8)   2000.0  ; 基座位置 z（m）的误差权重。
+  (9,9)   100.0  ; 基座 yaw（rad）的误差权重。
+  (10,10) 300.0  ; 基座 pitch（rad）的误差权重。
+  (11,11) 300.0  ; 基座 roll（rad）的误差权重。
+  (12,12) 20.0  ; FL 髋关节位置（rad）的误差权重。
+  (13,13) 5.0  ; FL 大腿关节位置（rad）的误差权重。
+  (14,14) 2.5  ; FL 小腿关节位置（rad）的误差权重。
+  (15,15) 20.0  ; FR 髋关节位置（rad）的误差权重。
+  (16,16) 5.0  ; FR 大腿关节位置（rad）的误差权重。
+  (17,17) 2.5  ; FR 小腿关节位置（rad）的误差权重。
+  (18,18) 20.0  ; RL 髋关节位置（rad）的误差权重。
+  (19,19) 5.0  ; RL 大腿关节位置（rad）的误差权重。
+  (20,20) 2.5  ; RL 小腿关节位置（rad）的误差权重。
+  (21,21) 20.0  ; RR 髋关节位置（rad）的误差权重。
+  (22,22) 5.0  ; RR 大腿关节位置（rad）的误差权重。
+  (23,23) 2.5  ; RR 小腿关节位置（rad）的误差权重。
 }
 
+; NMPC 输入二次代价。实际输入顺序为 [四足接触力(12)、关节速度(12)]。
+; 本文件后 12 项先定义足端线速度任务空间权重，在初始化姿态用 J^T R_foot J 转为关节速度块；
+; 因此后 12 项不是直接逐关节 dq 的对角权重，转换后可含非对角耦合。
 R
 {
-  scaling 1e-3
-  (0,0)   1.0
-  (1,1)   1.0
-  (2,2)   1.0
-  (3,3)   1.0
-  (4,4)   1.0
-  (5,5)   1.0
-  (6,6)   1.0
-  (7,7)   1.0
-  (8,8)   1.0
-  (9,9)   1.0
-  (10,10) 1.0
-  (11,11) 1.0
-  (12,12) 5000.0
-  (13,13) 5000.0
-  (14,14) 5000.0
-  (15,15) 5000.0
-  (16,16) 5000.0
-  (17,17) 5000.0
-  (18,18) 5000.0
-  (19,19) 5000.0
-  (20,20) 5000.0
-  (21,21) 5000.0
-  (22,22) 5000.0
-  (23,23) 5000.0
+  scaling 1e-3  ; 整个任务空间 R 的统一乘数；接触力项有效值 0.001，足端速度项有效值 5 再经 J^T R J 映射。
+  (0,0)   1.0  ; FR 足接触力 x（N）的误差权重，乘 scaling 后为 0.001。
+  (1,1)   1.0  ; FR 足接触力 y（N）的误差权重，乘 scaling 后为 0.001。
+  (2,2)   1.0  ; FR 足接触力 z（N）的误差权重，乘 scaling 后为 0.001。
+  (3,3)   1.0  ; FL 足接触力 x（N）的误差权重，乘 scaling 后为 0.001。
+  (4,4)   1.0  ; FL 足接触力 y（N）的误差权重，乘 scaling 后为 0.001。
+  (5,5)   1.0  ; FL 足接触力 z（N）的误差权重，乘 scaling 后为 0.001。
+  (6,6)   1.0  ; RR 足接触力 x（N）的误差权重，乘 scaling 后为 0.001。
+  (7,7)   1.0  ; RR 足接触力 y（N）的误差权重，乘 scaling 后为 0.001。
+  (8,8)   1.0  ; RR 足接触力 z（N）的误差权重，乘 scaling 后为 0.001。
+  (9,9)   1.0  ; RL 足接触力 x（N）的误差权重，乘 scaling 后为 0.001。
+  (10,10) 1.0  ; RL 足接触力 y（N）的误差权重，乘 scaling 后为 0.001。
+  (11,11) 1.0  ; RL 足接触力 z（N）的误差权重，乘 scaling 后为 0.001。
+  (12,12) 5000.0  ; FR 足端线速度 x（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (13,13) 5000.0  ; FR 足端线速度 y（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (14,14) 5000.0  ; FR 足端线速度 z（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (15,15) 5000.0  ; FL 足端线速度 x（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (16,16) 5000.0  ; FL 足端线速度 y（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (17,17) 5000.0  ; FL 足端线速度 z（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (18,18) 5000.0  ; RR 足端线速度 x（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (19,19) 5000.0  ; RR 足端线速度 y（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (20,20) 5000.0  ; RR 足端线速度 z（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (21,21) 5000.0  ; RL 足端线速度 x（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (22,22) 5000.0  ; RL 足端线速度 y（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
+  (23,23) 5000.0  ; RL 足端线速度 z（m/s）的任务空间权重，乘 scaling 后为 5；随后经雅可比映射。
 }
 
+; NMPC 地面接触摩擦锥参数，和小腿齿轮/连杆的传动阻力不同。
+; 当前后端以 useHardFrictionConeConstraint=true 创建模型，使用本区 frictionCoefficient 建硬摩擦锥。
+; 本区 mu/delta 虽加载，但当前未用来建立摩擦锥软代价；SQP 的不等式障碍设置仍在 sqp 区生效。
 frictionConeSoftConstraint
 {
-  frictionCoefficient    0.5
-  mu                     0.1
-  delta                  5.0
+  frictionCoefficient    0.5  ; 地面接触摩擦锥系数，无量纲；当前硬摩擦锥实际读取此值。
+  mu                     0.1  ; 软摩擦锥障碍惩罚缩放系数；当前硬锥分支不使用该软惩罚。
+  delta                  5.0  ; 软摩擦锥障碍松弛切换参数；当前硬锥分支不使用该软惩罚。
 }
 
-; legged_control LeggedInterface always installs its self-collision soft
-; constraint. The canonical model currently has collision primitives on the
-; body, hips and feet, so only verified primitive pairs are listed here.
+; NMPC 自碰撞距离软约束：仅对下面明确列出的模型碰撞几何对计算，不等同于 Gazebo 物理碰撞。
 selfCollision
 {
+  ; 可按碰撞对象索引指定配对；当前为空，使用下面的 link 名称配对。
   collisionObjectPairs
   {
   }
+  ; 只列出已核查具有碰撞几何的连杆对，名称必须存在于 URDF。
   collisionLinkPairs
   {
-    [0] "FR_foot, FL_foot"
-    [1] "RR_foot, RL_foot"
-    [2] "FR_foot, RR_foot"
-    [3] "FL_foot, RL_foot"
-    [4] "FR_hip, FL_hip"
-    [5] "RR_hip, RL_hip"
+    [0] "FR_foot, FL_foot"  ; 左右前足之间的碰撞距离配对。
+    [1] "RR_foot, RL_foot"  ; 左右后足之间的碰撞距离配对。
+    [2] "FR_foot, RR_foot"  ; 右侧前后足之间的碰撞距离配对。
+    [3] "FL_foot, RL_foot"  ; 左侧前后足之间的碰撞距离配对。
+    [4] "FR_hip, FL_hip"  ; 左右前髋之间的碰撞距离配对。
+    [5] "RR_hip, RL_hip"  ; 左右后髋之间的碰撞距离配对。
   }
-  minimumDistance  0.02
-  mu               1e-2
-  delta            1e-3
+  minimumDistance  0.02  ; 所列碰撞几何之间的最小距离参考，单位 m，作为软约束处理。
+  mu               1e-2  ; 自碰撞松弛障碍惩罚的缩放系数。
+  delta            1e-3  ; 自碰撞松弛障碍在约束余量接近边界时的切换尺度。
 }
 
+; WBC 每腿髋/大腿/小腿的关节输出侧名义力矩限值，单位 N·m。
+; 小腿数值已对应额外 2:1 传动后的关节侧，不能再重复乘减速比。
+; 当前 motor_pd_budget_horizon_s=0 时没有交付窗口内的 PD 预留；WBC 的 FF 边界不保证延迟执行时 FF+PD 总力矩严格不过限。
+; 最终仍需检查执行侧 FF+PD、预算缩放与安全保护；不能通过调大此值代替电机能力标定。
 torqueLimitsTask
 {
-   (0,0)  23.7
-   (1,0)  23.7
-   (2,0)  45.0
+   (0,0)  23.7  ; 每腿髋关节输出侧名义力矩上限，单位 N·m。
+   (1,0)  23.7  ; 每腿大腿关节输出侧名义力矩上限，单位 N·m。
+   (2,0)  45.0  ; 每腿小腿关节输出侧名义力矩上限，单位 N·m。
 }
 
+; WBC 预测关节界限：q(T)=q+dq*T+0.5*ddq*T^2，并带非负松弛。
+; 区别：controllers.yaml 的 locomotion_joint_limit_margin_rad 限名义姿态目标；
+; 本区 positionMargin 限 WBC 预测状态；joint_limit_tolerance_rad 用于实测关节安全保护，三者不是同一个边界。
 jointLimitsTask
 {
-  positionMargin       0.10
-  predictionHorizon    0.05
+  positionMargin       0.10  ; 相对 URDF 关节上下限向内收缩的预测余量，单位 rad；允许受罚松弛。
+  predictionHorizon    0.05  ; 用当前 q/dq 和 QP 的 ddq 预测关节位置的时间窗，单位 s。
 }
 
+; WBC 地面接触力硬摩擦锥，独立于 NMPC 的摩擦锥，也不是传动阻力。
 frictionConeTask
 {
-  frictionCoefficient    0.5
+  frictionCoefficient    0.5  ; 地面切向力/法向力约束使用的摩擦系数，无量纲。
 }
 
+; WBC 摆动足任务空间 PD：位置/速度误差生成期望足端加速度，参与 QP 前馈力矩求解。
+; 与 controllers.yaml 下发到电机的关节 Kp/Kd 不同，不直接作为电机协议增益。
 swingLegTask
 {
-  kp                     500
-  kd                     45
+  kp                     500  ; 足端位置误差到加速度的增益，单位 1/s^2，对摆动足 xyz 方向共用。
+  kd                     45  ; 足端速度误差到加速度的增益，单位 1/s，对摆动足 xyz 方向共用。
 }
 
+; WBC 机身任务：由 NMPC 质心动量变化得到前馈基座加速度，再加入位置、姿态及速度误差反馈。
+; 额外名义高度恢复项由 controllers.yaml 的 wbc_nominal_height_correction_limit_mps2 限幅。
 baseAccelTask
 {
+  ; 机身位置误差到线加速度的增益，顺序 x/y/z，单位 1/s^2。
   positionKp
   {
-    (0,0) 0.0
-    (1,0) 0.0
-    (2,0) 80.0
+    (0,0) 0.0  ; x 方向位置比例增益。
+    (1,0) 0.0  ; y 方向位置比例增益。
+    (2,0) 80.0  ; z 方向位置比例增益。
   }
+  ; 机身线速度误差到线加速度的增益，顺序 x/y/z，单位 1/s。
   positionKd
   {
-    (0,0) 15.0
-    (1,0) 15.0
-    (2,0) 15.0
+    (0,0) 15.0  ; x 方向线速度反馈增益。
+    (1,0) 15.0  ; y 方向线速度反馈增益。
+    (2,0) 15.0  ; z 方向线速度反馈增益。
   }
-  ; Orientation order is yaw, pitch, roll (ZYX).
+  ; 机身姿态坐标误差到角加速度任务的增益，顺序 yaw/pitch/roll（ZYX），单位 1/s^2。
   orientationKp
   {
-    (0,0) 150.0
-    (1,0) 100.0
-    (2,0) 100.0
+    (0,0) 150.0  ; yaw 方向姿态比例增益。
+    (1,0) 100.0  ; pitch 方向姿态比例增益。
+    (2,0) 100.0  ; roll 方向姿态比例增益。
   }
+  ; 对应姿态坐标速度反馈增益，顺序 yaw/pitch/roll，单位 1/s。
   orientationKd
   {
-    (0,0) 30.0
-    (1,0) 20.0
-    (2,0) 20.0
+    (0,0) 30.0  ; yaw 方向姿态坐标速度反馈增益。
+    (1,0) 20.0  ; pitch 方向姿态坐标速度反馈增益。
+    (2,0) 20.0  ; roll 方向姿态坐标速度反馈增益。
   }
 }
 
+; WBC 软任务残差乘子；动力学、接触与力矩等硬约束不因这些权重而放宽。
+; 实现先将任务 A、b 乘权重 w，再构造 H=A^T*A，故对应平方代价系数为 w^2；权重翻倍相当于该项惩罚乘 4。
+; 各任务残差单位不同，不能仅凭 100、1、0.01 直接判断物理优先级。
 weight
 {
-  swingLeg               100
-  baseAccel               1
-  contactForce            0.01
-  jointLimitSlack         100
+  swingLeg               100  ; 摆动足加速度跟踪残差乘子。
+  baseAccel               1  ; 机身加速度跟踪残差乘子。
+  contactForce            0.01  ; WBC 接触力偏离 NMPC 接触力的残差乘子。
+  jointLimitSlack         100  ; 关节预测限位松弛量的残差乘子。
 }

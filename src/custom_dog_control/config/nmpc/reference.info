@@ -1,44 +1,71 @@
+; 模型名义构型与初始/缺省站立接触计划；仅增加中文说明，不改变任何参数。
+; 当前后端读取 defaultJointState、initialModeSchedule、defaultModeSequenceTemplate。
+; 运行中的高度与关节参考分别由 controllers.yaml 的 nominal_height_m、nominal_joint_positions 生成。
+; 注意：task/reference 的原始字节参与 CppAD 缓存指纹；仅改注释也可能触发下次启动重新生成模型库。
+
+; 上游通用目标转换的平移速度参数，单位 m/s；当前自定义速度链路未读取，不是实际限速。
 targetDisplacementVelocity          1.5
+; 上游通用目标转换的转动速度参数，单位 rad/s；当前链路未读取，实际限速见 controllers.yaml。
 targetRotationVelocity              2.0
+; 上游参考高度，单位 m；当前速度链路未读取，运行高度主开关为 nominal_height_m，不要只修改此项。
 comHeight                           0.34
 
-; Pinocchio joint order: FL, FR, RL, RR; each leg is hip, thigh, calf.
-; controllers.yaml uses hardware order FR, FL, RR, RL and is mapped by name.
+; 模型建立时使用的默认关节构型，单位 rad；不直接作为起身或运行电机目标。
+; Pinocchio 内部顺序 FL 左前、FR 右前、RL 左后、RR 右后，每腿髋外展/大腿/小腿；
+; controllers.yaml 的硬件数组是 FR、FL、RR、RL，代码按关节名映射，不能直接按索引互换。
 defaultJointState
 {
+   ; FL 左前 髋外展名义角，单位 rad。
    (0,0)   0.0
+   ; FL 左前 大腿名义角，单位 rad。
    (1,0)   0.715821774
+   ; FL 左前 小腿名义角，单位 rad。
    (2,0)  -1.454461972
+   ; FR 右前 髋外展名义角，单位 rad。
    (3,0)   0.0
+   ; FR 右前 大腿名义角，单位 rad。
    (4,0)   0.716130233
+   ; FR 右前 小腿名义角，单位 rad。
    (5,0)  -1.454294645
+   ; RL 左后 髋外展名义角，单位 rad。
    (6,0)   0.0
+   ; RL 左后 大腿名义角，单位 rad。
    (7,0)   0.713540237
+   ; RL 左后 小腿名义角，单位 rad。
    (8,0)  -1.455606346
+   ; RR 右后 髋外展名义角，单位 rad。
    (9,0)   0.0
+   ; RR 右后 大腿名义角，单位 rad。
    (10,0)  0.715631114
+   ; RR 右后 小腿名义角，单位 rad。
    (11,0) -1.454556830
 }
 
+; 模型初始化的接触相位序列；下方两段均为 STANCE（四足计划支撑），不代表实测触地。
 initialModeSchedule
 {
+; 接触模式列表；STANCE 表示四足计划支撑。
   modeSequence
   {
     [0] STANCE
     [1] STANCE
   }
+; 相邻接触模式的切换时刻，单位 s；0.5 s 两侧都是 STANCE，支撑状态没有变化。
   eventTimes
   {
     [0] 0.5
   }
 }
 
+; 没有新步态命令时使用的四足站立模板；实际 Trot 由后端根据 trot_period_s 动态生成。
 defaultModeSequenceTemplate
 {
+; 接触模式列表；STANCE 表示四足计划支撑。
   modeSequence
   {
     [0] STANCE
   }
+; 模板边界时刻，单位 s；0.0 到 0.5 是模板长度，不是实际 Trot 周期。
   switchingTimes
   {
     [0] 0.0

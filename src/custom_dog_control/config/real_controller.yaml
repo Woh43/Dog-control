@@ -1,16 +1,23 @@
-# Only IO and startup differences belong here. NMPC, WBC, gait, stand-up gains,
-# control rates and speed limits are inherited from controllers.yaml, which is
-# also consumed by fortress.launch.py.
+# 真机差异覆盖层；real.launch.py 先读取 controllers.yaml，再按节点的参数键覆盖本文件。
+# 本文件只维护 IO/启动差异：NMPC/WBC、步态、起身增益、控制频率和速度限制均继承公共配置。
+# 串口、电机方向、标定角及急停确认由 real.launch.py 参数传给硬件 xacro，不在这里重复配置。
 controller_manager:
   ros__parameters:
+    # 真机不使用仿真 /clock，管理器使用系统时钟。
     use_sim_time: false
 
 nmpc_wbc_controller:
   ros__parameters:
+    # 控制器使用系统时钟；后台 NMPC 和策略年龄检查使用相应单调墙钟节拍。
     use_sim_time: false
+    # 选择真机混合命令接口：关节目标 q/dq、FF、Kp/Kd；启动文件也会强制此模式。
     hardware_mode: real
+    # 真机无仿真位姿真值，只能使用 IMU＋关节反馈估计；不得把规划接触当成实测足底力。
     use_sim_ground_truth: false
+    # 使用旧 event2joy 的整套轴映射与 LT 组合键；与公共文件的 legacy_joy_y_right 单轴符号开关不同。
+    # 此布局中 vx=-LY、vy=-RX、yaw=-LX，已反射到 REP-103；需 START 标定后显式请求站立/Trot。
     legacy_joy_layout: true
+    # 禁用仿真趴姿保持；真机常规 PASSIVE/CALIBRATION/FAULT 禁止运动输出，发送停止包。
     simulation_passive_hold: false
-    # Hardware needs no allowance for simulated contact penetration.
+    # 实测关节角超过 URDF 边界的保护容差，单位 rad；真机不需要仿真接触穿透的宽松容差。
     joint_limit_tolerance_rad: 0.005
